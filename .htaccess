@@ -1,0 +1,15 @@
+<FilesMatch "^(add_product|add_stock|adjust|batchlist|config|delete|edit_product|get_data|home|login|logout|other|productlist|save|stockcard)\.php$">
+    Require all denied
+</FilesMatch>
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /prototype_v4/
+
+    RewriteRule ^(app|writable|tests|vendor|legacy_backup|ci4-temp|template|user)(/|$) - [F,L,NC]
+    RewriteRule ^(\.env|composer\.(json|lock)|spark|phpunit\.xml\.dist|preload\.php|builds|README\.md|LICENSE)$ - [F,L,NC]
+
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.php [L]
+</IfModule>

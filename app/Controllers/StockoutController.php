@@ -1,0 +1,243 @@
+<?php
+
+namespace App\Controllers;
+
+use App\Models\StockoutModel;
+use CodeIgniter\HTTP\ResponseInterface;
+
+class StockoutController extends BaseController
+{
+    private function userOfficeId(): int
+    {
+        return (int) (session('user')['user_office_id'] ?? 0);
+    }
+
+    private function levelId(): int
+    {
+        return (int) (session('user')['level_id'] ?? 0);
+    }
+
+    private function userId(): int
+    {
+        return (int) (session('user')['id'] ?? 0);
+    }
+
+    /**
+     * Level 1: Stock-out page — list items with stock and a form to add to temp list.
+     */
+    public function index()
+    {
+        $model = new StockoutModel();
+        $userOfficeId = $this->userOfficeId();
+
+        return view('stockout/index', [
+            'items' => $model->availableItems($userOfficeId),
+        ]);
+    }
+
+    /**
+     * Level 1: View current temporary stock-out list.
+     */
+    public function tempList()
+    {
+        $model = new StockoutModel();
+        $userId = $this->userId();
+        $userOfficeId = $this->userOfficeId();
+
+        $draft = $model->getOrCreateDraft($userId, $userOfficeId ?: null);
+        $items = $model->getItems((int) $draft['temp_stockout_id']);
+
+        return view('stockout/temp_list', [
+            'draft' => $draft,
+            'items' => $items,
+        ]);
+    }
+
+    /**
+     * Level 1: Add an item to the temp stock-out list.
+     */
+    public function addToTemp(): ResponseInterface
+    {
+        $model = new StockoutModel();
+        $userId = $this->userId();
+        $userOfficeId = $this->userOfficeId();
+
+        $draft = $model->getOrCreateDraft($userId, $userOfficeId ?: null);
+
+        $itemId = (int) $this->request->getPost('item_id');
+        $quantity = (int) $this->request->getPost('quantity');
+        $unit = trim((string) $this->request->getPost('unit'));
+        $description = trim((string) $this->request->getPost('description'));
+
+        if ($itemId <= 0 || $quantity <= 0) {
+            return redirect()->to(site_url('stockout'))->with('error', 'Please select an item and enter a valid quantity.');
+        }
+
+        $model->addItem((int) $draft['temp_stockout_id'], [
+            'item_id'     => $itemId,
+            'quantity'    => $quantity,
+            'unit'        => $unit,
+            'description' => $description,
+        ]);
+
+        return redirect()->to(site_url('stockout/temp'))->with('success', 'Item added to your temporary stock-out list.');
+    }
+
+    /**
+     * Level 1: Edit an item in the temp stock-out list.
+     */
+    public function editTemp(int $itemId)
+    {
+        $model = new StockoutModel();
+
+        $quantity = (int) $this->request->getPost('quantity');
+        $description = trim((string) $this->request->getPost('description'));
+        $unit = trim((string) $this->request->getPost('unit'));
+
+        if ($quantity <= 0) {
+            return redirect()->to(site_url('stockout/temp'))->with('error', 'Quantity must be greater than 0.');
+        }
+
+        $model->updateItem($itemId, [
+            'quantity'    => $quantity,
+            'description' => $description,
+            'unit'        => $unit,
+        ]);
+
+        return redirect()->to(site_url('stockout/temp'))->with('success', 'Item updated.');
+    }
+
+    /**
+     * Level 1: Remove an item from the temp stock-out list.
+     */
+    public function removeFromTemp(int $itemId)
+    {
+        $model = new StockoutModel();
+        $model->removeItem($itemId);
+
+        return redirect()->to(site_url('stockout/temp'))->with('success', 'Item removed from list.');
+    }
+
+    /**
+     * Level 1: Submit the temp list for approval.
+     */
+    public function submitForApproval()
+    {
+        $model = new StockoutModel();
+        $userId = $this->userId();
+        $userOfficeId = $this->userOfficeId();
+
+        $draft = $model->getOrCreateDraft($userId, $userOfficeId ?: null);
+        $items = $model->getItems((int) $draft['temp_stockout_id']);
+
+        if (empty($items)) {
+            return redirect()->to(site_url('stockout/temp'))->with('error', 'Cannot submit an empty list.');
+        }
+
+        $model->submitForApproval((int) $draft['temp_stockout_id']);
+
+        return redirect()->to(site_url('stockout/temp'))->with('success', 'Stock-out request submitted for approval.');
+    }
+
+    /**
+     * Level 2/3: View pending stock-out requests.
+     */
+    public function pendingRequests()
+    {
+        $levelId = $this->levelId();
+
+        if ($levelId < 2) {
+            return redirect()->to(site_url('/'));
+        }
+
+        $model = new StockoutModel();
+        $requests = $model->pendingRequests($this->userOfficeId(), $levelId);
+
+        // Load items for each request (summed by item_id)
+        foreach ($requests as &$request) {
+            $request['items'] = $model->getItemsSummed((int) $request['temp_stockout_id']);
+        }
+
+        return view('stockout/pending', [
+            'requests' => $requests,
+            'levelId'  => $levelId,
+        ]);
+    }
+
+    /**
+     * Level 2/3: Approve a single item.
+     */
+    public function approveItem(int $itemId): ResponseInterface
+    {
+        $levelId = $this->levelId();
+
+        if ($levelId < 2) {
+            return $this->response->setStatusCode(403)->setJSON(['message' => 'Access denied.']);
+        }
+
+        $model = new StockoutModel();
+        $result = $model->approveItem($itemId, $this->userId());
+
+        if (! $result) {
+            return $this->response->setStatusCode(422)->setJSON(['message' => 'Item could not be approved.']);
+        }
+
+        return $this->response->setJSON(['message' => 'Item approved and stock deducted.']);
+    }
+
+    /**
+     * Level 2/3: Approve all items in a request.
+     */
+    public function approveAll(int $requestId): ResponseInterface
+    {
+        $levelId = $this->levelId();
+
+        if ($levelId < 2) {
+            return $this->response->setStatusCode(403)->setJSON(['message' => 'Access denied.']);
+        }
+
+        $model = new StockoutModel();
+        $model->approveAll($requestId, $this->userId());
+
+        return $this->response->setJSON(['message' => 'All items approved and stock deducted.']);
+    }
+
+    /**
+     * Level 2/3: Reject a single item.
+     */
+    public function rejectItem(int $itemId): ResponseInterface
+    {
+        $levelId = $this->levelId();
+
+        if ($levelId < 2) {
+            return $this->response->setStatusCode(403)->setJSON(['message' => 'Access denied.']);
+        }
+
+        $model = new StockoutModel();
+        $model->rejectItem($itemId);
+
+        return $this->response->setJSON(['message' => 'Item rejected.']);
+    }
+
+    /**
+     * Level 2/3: Edit quantity of a pending item before approval.
+     */
+    public function editPendingItem(int $itemId): ResponseInterface
+    {
+        $levelId = $this->levelId();
+
+        if ($levelId < 2) {
+            return $this->response->setStatusCode(403)->setJSON(['message' => 'Access denied.']);
+        }
+
+        $quantity = (int) $this->request->getPost('quantity');
+        if ($quantity <= 0) {
+            return $this->response->setStatusCode(422)->setJSON(['message' => 'Quantity must be greater than 0.']);
+        }
+
+        $model = new StockoutModel();
+        $model->updateItem($itemId, ['quantity' => $quantity]);
+
+        return $this->response->setJSON(['message' => 'Quantity updated successfully.']);
+    }
+}
