@@ -17,25 +17,46 @@ class SettingsModel extends Model
      */
     public function definitions(int $levelId = 2): array
     {
+        $allDefinitions = $this->allDefinitions();
+
         // Level 4 (Technical Staff): only user + user_office management
         if ($levelId >= 4) {
             return [
-                'users' => [
-                    'table'  => 'users',
-                    'pk'     => 'user_id',
-                    'fields' => ['username', 'email', 'password', 'role', 'user_office_id'],
-                    'labels' => ['username' => 'Username', 'email' => 'Email', 'password' => 'Password', 'role' => 'Role', 'user_office_id' => 'User Office'],
-                ],
-                'user_office' => [
-                    'table'  => 'user_office',
-                    'pk'     => 'user_office_id',
-                    'fields' => ['user_office'],
-                    'labels' => ['user_office' => 'User Office Name'],
-                ],
+                'users' => $allDefinitions['users'],
+                'user_office' => $allDefinitions['user_office'],
             ];
         }
 
         $defs = [
+            'entity' => $allDefinitions['entity'],
+            'unit' => $allDefinitions['unit'],
+            'roles' => $allDefinitions['roles'],
+            'reference' => $allDefinitions['reference'],
+            'item_type' => $allDefinitions['item_type'],
+            'item_category' => $allDefinitions['item_category'],
+            'office' => $allDefinitions['office'],
+        ];
+
+        // Level 3: add user management
+        if ($levelId >= 3) {
+            $defs = array_merge(
+                ['users' => $allDefinitions['users']],
+                $defs
+            );
+        }
+
+        return $defs;
+    }
+
+    private function allDefinitions(): array
+    {
+        return [
+            'users' => [
+                'table'  => 'users',
+                'pk'     => 'user_id',
+                'fields' => ['username', 'email', 'password', 'role', 'user_office_id'],
+                'labels' => ['username' => 'Username', 'email' => 'Email', 'password' => 'Password', 'role' => 'Role', 'user_office_id' => 'User Office'],
+            ],
             'entity' => [
                 'table'  => 'entity',
                 'pk'     => 'entity_id',
@@ -78,22 +99,13 @@ class SettingsModel extends Model
                 'fields' => ['office'],
                 'labels' => ['office' => 'Office Name'],
             ],
+            'user_office' => [
+                'table'  => 'user_office',
+                'pk'     => 'user_office_id',
+                'fields' => ['user_office'],
+                'labels' => ['user_office' => 'User Office Name'],
+            ],
         ];
-
-        // Level 3: add user management
-        if ($levelId >= 3) {
-            $defs = array_merge(
-                ['users' => [
-                    'table'  => 'users',
-                    'pk'     => 'user_id',
-                    'fields' => ['username', 'email', 'password', 'role', 'user_office_id'],
-                    'labels' => ['username' => 'Username', 'email' => 'Email', 'password' => 'Password', 'role' => 'Role', 'user_office_id' => 'User Office'],
-                ]],
-                $defs
-            );
-        }
-
-        return $defs;
     }
 
     public function indexData(int $userOfficeId = 0, int $levelId = 2): array
@@ -173,8 +185,7 @@ class SettingsModel extends Model
 
     public function fetchRecord(string $type, int $id): array
     {
-        // Allow fetching user_office records too
-        $allDefs = $this->definitions(4);
+        $allDefs = $this->allDefinitions();
         if (! array_key_exists($type, $allDefs)) {
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
         }
@@ -194,7 +205,7 @@ class SettingsModel extends Model
 
     public function saveRecord(string $type, int $id, array $payload, int $userOfficeId = 0): void
     {
-        $allDefs = $this->definitions(4);
+        $allDefs = $this->allDefinitions();
         if (! array_key_exists($type, $allDefs)) {
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
         }
@@ -217,7 +228,7 @@ class SettingsModel extends Model
 
     public function deleteRecord(string $type, int $id): void
     {
-        $allDefs = $this->definitions(4);
+        $allDefs = $this->allDefinitions();
         if (! array_key_exists($type, $allDefs)) {
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
         }

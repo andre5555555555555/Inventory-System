@@ -37,6 +37,8 @@ class SettingsController extends BaseController
 
     public function fetch(string $type, int $id): ResponseInterface
     {
+        $this->settingsModel->definition($type, $this->levelId());
+
         return $this->response->setJSON($this->settingsModel->fetchRecord($type, $id));
     }
 
@@ -84,6 +86,8 @@ class SettingsController extends BaseController
     {
         $levelId = $this->levelId();
         $sessionUser = session('user');
+
+        $this->settingsModel->definition($type, $levelId);
 
         if ($type === 'users' && $sessionUser && (int) $sessionUser['id'] === $id) {
             return $this->response->setStatusCode(422)->setJSON(['message' => 'You cannot delete the currently logged-in user.']);
