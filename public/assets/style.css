@@ -1158,9 +1158,7 @@ tr:hover {
     box-shadow: none;
 }
 
-.settings-page .settings-section-header h2 {
-    color: #ffffff;
-}
+
 
 .settings-page .settings-section-body {
     background: #ffffff;
@@ -3160,4 +3158,1716 @@ tr:hover {
         flex-direction: column;
         align-items: stretch;
     }
+}
+
+/* =========================
+   DARK MODE + INTERACTION LOCKS
+   ========================= */
+
+.theme-toggle {
+    position: fixed;
+    right: 22px;
+    bottom: 22px;
+    z-index: 9999;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 54px;
+    height: 54px;
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, 0.26);
+    border-radius: 50%;
+    color: #ffffff;
+    background: linear-gradient(135deg, #0f3d3e 0%, #0f766e 100%);
+    box-shadow: 0 16px 34px rgba(15, 61, 62, 0.28);
+    cursor: pointer;
+    transition: transform 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+}
+
+.theme-toggle:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 20px 40px rgba(15, 61, 62, 0.34);
+}
+
+.theme-toggle:focus-visible {
+    outline: 3px solid rgba(45, 212, 191, 0.42);
+    outline-offset: 3px;
+}
+
+.theme-toggle-icon,
+.theme-toggle-icon::before,
+.theme-toggle-icon::after {
+    display: block;
+    box-sizing: border-box;
+}
+
+.theme-toggle-icon {
+    position: relative;
+    width: 24px;
+    height: 24px;
+}
+
+.theme-toggle:not([data-theme-state]) .theme-toggle-icon,
+.theme-toggle[data-theme-state="light"] .theme-toggle-icon {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #fef3c7;
+    box-shadow:
+        0 -13px 0 -6px #fef3c7,
+        0 13px 0 -6px #fef3c7,
+        13px 0 0 -6px #fef3c7,
+        -13px 0 0 -6px #fef3c7,
+        9px 9px 0 -6px #fef3c7,
+        -9px -9px 0 -6px #fef3c7,
+        9px -9px 0 -6px #fef3c7,
+        -9px 9px 0 -6px #fef3c7;
+}
+
+.theme-toggle[data-theme-state="dark"] .theme-toggle-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #e2e8f0;
+}
+
+.theme-toggle[data-theme-state="dark"] .theme-toggle-icon::after {
+    content: "";
+    position: absolute;
+    top: -2px;
+    right: -3px;
+    width: 23px;
+    height: 23px;
+    border-radius: 50%;
+    background: #0f172a;
+}
+
+.theme-toggle[data-theme-state="bsu"] .theme-toggle-icon {
+    width: 22px;
+    height: 26px;
+    border: 2px solid #fde68a;
+    border-radius: 11px 11px 8px 8px;
+    background: linear-gradient(135deg, #92400e 0%, #451a03 100%);
+    clip-path: polygon(50% 0, 100% 15%, 91% 72%, 50% 100%, 9% 72%, 0 15%);
+}
+
+
+.theme-toggle[data-theme-state="bsu"] .theme-toggle-icon::after {
+    content: "";
+    position: absolute;
+    left: 9px;
+    top: 4px;
+    width: 2px;
+    height: 15px;
+    background: #fde68a;
+    box-shadow: -4px 5px 0 -1px #fde68a, 4px 5px 0 -1px #fde68a;
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.is-busy,
+button:disabled,
+input[type="submit"]:disabled,
+a[aria-disabled="true"] {
+    cursor: wait !important;
+    opacity: 0.66;
+    pointer-events: none;
+}
+
+html[data-theme="dark"] {
+    color-scheme: dark;
+}
+
+html[data-theme="dark"] body {
+    background:
+        radial-gradient(circle at top left, rgba(20, 184, 166, 0.14), transparent 28%),
+        linear-gradient(145deg, #071316 0%, #101820 48%, #151923 100%);
+    color: #dce7ea;
+}
+
+html[data-theme="dark"] body.login-page {
+    background:
+        radial-gradient(circle at top left, rgba(45, 212, 191, 0.18), transparent 28%),
+        radial-gradient(circle at bottom right, rgba(245, 158, 11, 0.10), transparent 32%),
+        linear-gradient(145deg, #071316 0%, #101820 52%, #171923 100%);
+}
+
+html[data-theme="dark"] .navbar,
+html[data-theme="dark"] .sidebar,
+html[data-theme="dark"] .sidebar-flat,
+html[data-theme="dark"] .nav-links {
+    background: linear-gradient(90deg, #071316 0%, #0f2f32 58%, #12383a 100%);
+    border-color: rgba(148, 163, 184, 0.18);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.32);
+}
+
+html[data-theme="dark"] .nav-logo,
+html[data-theme="dark"] .nav-links a,
+html[data-theme="dark"] .sidebar h3,
+html[data-theme="dark"] .sidebar ul li a {
+    color: #ecfeff;
+}
+
+html[data-theme="dark"] .nav-links a:hover,
+html[data-theme="dark"] .sidebar ul li a:hover {
+    background: rgba(45, 212, 191, 0.16);
+}
+
+html[data-theme="dark"] .nav-links .login a {
+    background: #f1f5f9;
+    color: #0f172a;
+}
+
+html[data-theme="dark"] .page-eyebrow,
+html[data-theme="dark"] .dashboard-eyebrow,
+html[data-theme="dark"] .stock-form-eyebrow,
+html[data-theme="dark"] .login-eyebrow {
+    color: #5eead4;
+}
+
+html[data-theme="dark"] .page-header h1,
+html[data-theme="dark"] .main-content h1,
+html[data-theme="dark"] .main-content h2,
+html[data-theme="dark"] .request-header h2,
+html[data-theme="dark"] .empty-state h3,
+html[data-theme="dark"] .stockout-form-card h2,
+html[data-theme="dark"] .dashboard-card-head h2,
+html[data-theme="dark"] .summary-card strong,
+html[data-theme="dark"] .stock-form-panel-head h2,
+html[data-theme="dark"] .login-card-section h2,
+html[data-theme="dark"] .section-header h2 {
+    color: #f8fafc;
+}
+
+html[data-theme="dark"] .page-subtitle,
+html[data-theme="dark"] .request-meta,
+html[data-theme="dark"] .empty-state,
+html[data-theme="dark"] .dashboard-card-head span,
+html[data-theme="dark"] .summary-card span,
+html[data-theme="dark"] .dashboard-empty,
+html[data-theme="dark"] .stock-form-panel-head p,
+html[data-theme="dark"] .stock-form-help,
+html[data-theme="dark"] .login-card-section p,
+html[data-theme="dark"] .login-hint,
+html[data-theme="dark"] .text-muted {
+    color: #9fb2bb;
+}
+
+html[data-theme="dark"] .page-header,
+html[data-theme="dark"] .toolbar-card,
+html[data-theme="dark"] .panel-card,
+html[data-theme="dark"] .section-card,
+html[data-theme="dark"] .settings-section-card,
+html[data-theme="dark"] .dashboard-card,
+html[data-theme="dark"] .summary-card,
+html[data-theme="dark"] .stock-form,
+html[data-theme="dark"] .stock-form-panel,
+html[data-theme="dark"] .stockout-form-card,
+html[data-theme="dark"] .info,
+html[data-theme="dark"] .info-flat,
+html[data-theme="dark"] .table-card,
+html[data-theme="dark"] .report-table-card,
+html[data-theme="dark"] .login-card,
+html[data-theme="dark"] .modal-content,
+html[data-theme="dark"] .filter-content {
+    background:
+        linear-gradient(180deg, rgba(20, 30, 38, 0.96), rgba(13, 23, 30, 0.96));
+    border-color: rgba(148, 163, 184, 0.18);
+    color: #dce7ea;
+    box-shadow: 0 18px 38px rgba(0, 0, 0, 0.32);
+}
+
+html[data-theme="dark"] .section-body,
+html[data-theme="dark"] .settings-section-body,
+html[data-theme="dark"] .info-header,
+html[data-theme="dark"] .dashboard-list-item,
+html[data-theme="dark"] .dashboard-empty,
+html[data-theme="dark"] .notification-item,
+html[data-theme="dark"] .login-secondary-link {
+    background:
+        linear-gradient(180deg, rgba(18, 31, 39, 0.95), rgba(10, 20, 27, 0.95));
+    border-color: rgba(148, 163, 184, 0.16);
+    color: #dce7ea;
+}
+
+html[data-theme="dark"] .dashboard-hero,
+html[data-theme="dark"] .stock-form-hero,
+html[data-theme="dark"] .login-brand-panel {
+    background:
+        radial-gradient(circle at top right, rgba(45, 212, 191, 0.22), transparent 30%),
+        linear-gradient(135deg, #071316 0%, #12383a 58%, #0f766e 100%);
+    color: #ffffff;
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.36);
+}
+
+html[data-theme="dark"] .dashboard-hero-note,
+html[data-theme="dark"] .stock-form-stock-chip,
+html[data-theme="dark"] .login-feature-item,
+html[data-theme="dark"] .login-highlight-card {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.14);
+    color: #e6fffb;
+}
+
+html[data-theme="dark"] input,
+html[data-theme="dark"] select,
+html[data-theme="dark"] textarea,
+html[data-theme="dark"] .search-input,
+html[data-theme="dark"] .inline-input {
+    color: #e5eef1;
+    background: #0b151c;
+    border-color: rgba(148, 163, 184, 0.28);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+html[data-theme="dark"] input::placeholder,
+html[data-theme="dark"] textarea::placeholder {
+    color: #748890;
+}
+
+html[data-theme="dark"] input:focus,
+html[data-theme="dark"] select:focus,
+html[data-theme="dark"] textarea:focus,
+html[data-theme="dark"] .search-input:focus {
+    border-color: #2dd4bf;
+    box-shadow: 0 0 0 4px rgba(45, 212, 191, 0.14);
+}
+
+html[data-theme="dark"] table,
+html[data-theme="dark"] .data-table {
+    background: #101820;
+    border-color: rgba(45, 212, 191, 0.24);
+    box-shadow: 0 16px 34px rgba(0, 0, 0, 0.30);
+}
+
+html[data-theme="dark"] th,
+html[data-theme="dark"] .data-table th,
+html[data-theme="dark"] .section-header,
+html[data-theme="dark"] .report-group-row th {
+    background: linear-gradient(90deg, #0b3b3c 0%, #0f766e 100%);
+    color: #f8fafc;
+}
+
+html[data-theme="dark"] td,
+html[data-theme="dark"] .data-table td {
+    color: #dce7ea;
+    border-color: rgba(148, 163, 184, 0.16);
+}
+
+html[data-theme="dark"] tr:nth-child(even),
+html[data-theme="dark"] .data-table tr:nth-child(even) {
+    background: rgba(255, 255, 255, 0.035);
+}
+
+html[data-theme="dark"] tr:hover,
+html[data-theme="dark"] .data-table tr:hover {
+    background: rgba(45, 212, 191, 0.10);
+}
+
+html[data-theme="dark"] .item-link a,
+html[data-theme="dark"] .empty-state a,
+html[data-theme="dark"] .login-secondary-link {
+    color: #5eead4;
+}
+
+html[data-theme="dark"] .close,
+html[data-theme="dark"] .close-btn,
+html[data-theme="dark"] .modal-content .close {
+    color: #e2e8f0 !important;
+}
+
+html[data-theme="dark"] .searchbar button,
+html[data-theme="dark"] .report-toolbar button,
+html[data-theme="dark"] .btn-add,
+html[data-theme="dark"] .filter-btn,
+html[data-theme="dark"] .stock-form button,
+html[data-theme="dark"] .modal-content button,
+html[data-theme="dark"] .login-form button,
+html[data-theme="dark"] .btn-primary,
+html[data-theme="dark"] .theme-toggle {
+    background: linear-gradient(135deg, #0f766e 0%, #14b8a6 100%);
+    color: #ffffff;
+    border-color: rgba(94, 234, 212, 0.26);
+    box-shadow: 0 12px 26px rgba(20, 184, 166, 0.18);
+}
+
+html[data-theme="dark"] .btn-secondary {
+    background: #101820;
+    color: #5eead4;
+    border-color: #2dd4bf;
+}
+
+html[data-theme="dark"] .edit-btn {
+    background: #0f766e;
+    color: #ffffff;
+}
+
+html[data-theme="dark"] .delete-btn {
+    background: #dc2626;
+    color: #ffffff;
+}
+
+html[data-theme="dark"] .activate-btn {
+    background: #16a34a;
+    color: #ffffff;
+}
+
+html[data-theme="dark"] .deactivate-btn {
+    background: #d97706;
+    color: #ffffff;
+}
+
+html[data-theme="dark"] .pending-section {
+    background: linear-gradient(180deg, rgba(69, 44, 11, 0.72), rgba(24, 20, 14, 0.94));
+    border-color: rgba(245, 158, 11, 0.42);
+}
+
+html[data-theme="dark"] .pending-section .section-header h2 {
+    color: #fbbf24;
+}
+
+html[data-theme="dark"] .flash-message {
+    background: rgba(15, 23, 42, 0.96);
+    border-color: rgba(148, 163, 184, 0.20);
+    color: #e2e8f0;
+}
+
+html[data-theme="dark"] .flash-success,
+html[data-theme="dark"] .success {
+    background: linear-gradient(90deg, rgba(6, 78, 59, 0.96), rgba(6, 95, 70, 0.96));
+    color: #dcfce7;
+}
+
+html[data-theme="dark"] .flash-error,
+html[data-theme="dark"] .error {
+    background: linear-gradient(90deg, rgba(127, 29, 29, 0.96), rgba(153, 27, 27, 0.96));
+    color: #fee2e2;
+}
+
+html[data-theme="dark"] .status-active,
+html[data-theme="dark"] .status-approved {
+    background: rgba(22, 101, 52, 0.32);
+    color: #bbf7d0;
+    border-color: rgba(74, 222, 128, 0.34);
+}
+
+html[data-theme="dark"] .status-pending {
+    background: rgba(133, 77, 14, 0.32);
+    color: #fde68a;
+    border-color: rgba(251, 191, 36, 0.34);
+}
+
+html[data-theme="dark"] .status-deactivated,
+html[data-theme="dark"] .status-rejected {
+    background: rgba(127, 29, 29, 0.34);
+    color: #fecaca;
+    border-color: rgba(248, 113, 113, 0.34);
+}
+
+html[data-theme="dark"] .status-draft,
+html[data-theme="dark"] .status-unknown {
+    background: rgba(30, 41, 59, 0.72);
+    color: #cbd5e1;
+    border-color: rgba(148, 163, 184, 0.28);
+}
+
+@media (max-width: 768px) {
+    .theme-toggle {
+        right: 14px;
+        bottom: 14px;
+        width: 50px;
+        height: 50px;
+    }
+}
+
+html[data-theme="bsu"] {
+    color-scheme: light;
+}
+
+
+
+html[data-theme="bsu"] body {
+    background:
+        radial-gradient(circle at top left, rgba(180, 83, 9, 0.18), transparent 28%),
+        linear-gradient(145deg, #2b1608 0%, #5b3314 42%, #8a5a2b 100%);
+    color: #2b170c;
+}
+
+html[data-theme="bsu"] body.login-page {
+    background:
+        radial-gradient(circle at top left, rgba(251, 191, 36, 0.20), transparent 26%),
+        radial-gradient(circle at bottom right, rgba(69, 26, 3, 0.32), transparent 34%),
+        linear-gradient(145deg, #2b1608 0%, #5b3314 48%, #9a6a38 100%);
+}
+
+html[data-theme="bsu"] .navbar,
+html[data-theme="bsu"] .sidebar,
+html[data-theme="bsu"] .sidebar-flat,
+html[data-theme="bsu"] .nav-links {
+    background: linear-gradient(90deg, #2b1608 0%, #5b3314 58%, #7c4a21 100%);
+    border-color: rgba(253, 230, 138, 0.26);
+    box-shadow: 0 12px 30px rgba(43, 22, 8, 0.36);
+}
+
+html[data-theme="bsu"] .nav-logo,
+html[data-theme="bsu"] .nav-links a,
+html[data-theme="bsu"] .sidebar h3,
+html[data-theme="bsu"] .sidebar ul li a {
+    color: #fff7ed;
+}
+
+html[data-theme="bsu"] .nav-links a:hover,
+html[data-theme="bsu"] .sidebar ul li a:hover {
+    background: rgba(253, 230, 138, 0.16);
+}
+
+html[data-theme="bsu"] .nav-links .login a {
+    background: #fef3c7;
+    color: #451a03;
+}
+
+html[data-theme="bsu"] .page-eyebrow,
+
+html[data-theme="bsu"] .stock-form-eyebrow,
+html[data-theme="bsu"] .login-eyebrow {
+    color: #92400e;
+}
+
+
+html[data-theme="bsu"] .settings-section-header h2 {
+    color: #ffffff;
+}
+
+html[data-theme="bsu"] .page-header h1,
+html[data-theme="bsu"] .main-content h1,
+html[data-theme="bsu"] .main-content h2,
+html[data-theme="bsu"] .request-header h2,
+html[data-theme="bsu"] .empty-state h3,
+html[data-theme="bsu"] .stockout-form-card h2,
+html[data-theme="bsu"] .dashboard-card-head h2,
+html[data-theme="bsu"] .summary-card strong,
+html[data-theme="bsu"] .stock-form-panel-head h2,
+html[data-theme="bsu"] .login-card-section h2,
+html[data-theme="bsu"] .section-header h2 {
+    color: wheat;
+}
+
+html[data-theme="bsu"] .page-subtitle,
+html[data-theme="bsu"] .request-meta,
+html[data-theme="bsu"] .empty-state,
+html[data-theme="bsu"] .dashboard-card-head span,
+html[data-theme="bsu"] .summary-card span,
+html[data-theme="bsu"] .dashboard-empty,
+html[data-theme="bsu"] .stock-form-panel-head p,
+html[data-theme="bsu"] .stock-form-help,
+html[data-theme="bsu"] .login-card-section p,
+html[data-theme="bsu"] .login-hint,
+html[data-theme="bsu"] .text-muted {
+    color: #6b3f1d;
+}
+
+html[data-theme="bsu"] .page-header,
+html[data-theme="bsu"] .toolbar-card,
+html[data-theme="bsu"] .panel-card,
+html[data-theme="bsu"] .section-card,
+html[data-theme="bsu"] .settings-section-card,
+html[data-theme="bsu"] .dashboard-card,
+html[data-theme="bsu"] .summary-card,
+html[data-theme="bsu"] .stock-form,
+html[data-theme="bsu"] .stock-form-panel,
+html[data-theme="bsu"] .stockout-form-card,
+html[data-theme="bsu"] .info,
+html[data-theme="bsu"] .info-flat,
+html[data-theme="bsu"] .table-card,
+html[data-theme="bsu"] .report-table-card,
+html[data-theme="bsu"] .login-card,
+html[data-theme="bsu"] .modal-content,
+html[data-theme="bsu"] .filter-content {
+    background:
+        linear-gradient(180deg, rgba(255, 247, 237, 0.98), rgba(254, 243, 199, 0.96));
+    border: 1px solid rgba(146, 64, 14, 0.28);
+    color: #2b170c;
+    box-shadow: 0 18px 38px rgba(43, 22, 8, 0.22);
+}
+
+html[data-theme="bsu"] .section-body,
+html[data-theme="bsu"] .settings-section-body,
+html[data-theme="bsu"] .info-header,
+html[data-theme="bsu"] .dashboard-list-item,
+html[data-theme="bsu"] .dashboard-empty,
+html[data-theme="bsu"] .notification-item,
+html[data-theme="bsu"] .login-secondary-link {
+    background:
+        linear-gradient(180deg, rgba(255, 251, 235, 0.96), rgba(253, 230, 138, 0.42));
+    border-color: rgba(146, 64, 14, 0.22);
+    color: #3b220f;
+}
+
+html[data-theme="bsu"] .dashboard-hero,
+html[data-theme="bsu"] .stock-form-hero,
+html[data-theme="bsu"] .login-brand-panel {
+    background:
+        radial-gradient(circle at top right, rgba(253, 230, 138, 0.24), transparent 30%),
+        linear-gradient(135deg, #2b1608 0%, #5b3314 56%, #92400e 100%);
+    color: #fff7ed;
+    box-shadow: 0 24px 48px rgba(43, 22, 8, 0.34);
+}
+
+html[data-theme="bsu"] .dashboard-hero h1,
+html[data-theme="bsu"] .stock-form-hero h1,
+html[data-theme="bsu"] .login-brand-panel h1,
+html[data-theme="bsu"] .dashboard-hero-note strong,
+html[data-theme="bsu"] .stock-form-stock-chip strong {
+    color: #fff7ed;
+}
+
+html[data-theme="bsu"] .dashboard-subtitle,
+html[data-theme="bsu"] .dashboard-hero-note span,
+html[data-theme="bsu"] .dashboard-hero-note small,
+html[data-theme="bsu"] .stock-form-subtitle,
+html[data-theme="bsu"] .login-copy {
+    color: #fde68a;
+}
+
+html[data-theme="bsu"] .dashboard-hero-note,
+html[data-theme="bsu"] .stock-form-stock-chip,
+html[data-theme="bsu"] .login-feature-item,
+html[data-theme="bsu"] .login-highlight-card {
+    background: rgba(253, 230, 138, 0.12);
+    border-color: rgba(253, 230, 138, 0.24);
+    color: #fff7ed;
+}
+
+html[data-theme="bsu"] input,
+html[data-theme="bsu"] select,
+html[data-theme="bsu"] textarea,
+html[data-theme="bsu"] .search-input,
+html[data-theme="bsu"] .inline-input {
+    color: #3b220f;
+    background: #fff7ed;
+    border-color: rgba(146, 64, 14, 0.34);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.70);
+}
+
+html[data-theme="bsu"] input::placeholder,
+html[data-theme="bsu"] textarea::placeholder {
+    color: #8a5a2b;
+}
+
+html[data-theme="bsu"] input:focus,
+html[data-theme="bsu"] select:focus,
+html[data-theme="bsu"] textarea:focus,
+html[data-theme="bsu"] .search-input:focus {
+    border-color: #b45309;
+    box-shadow: 0 0 0 4px rgba(180, 83, 9, 0.18);
+}
+
+html[data-theme="bsu"] table,
+html[data-theme="bsu"] .data-table {
+    background: #fff7ed;
+    border-color: rgba(146, 64, 14, 0.30);
+    box-shadow: 0 16px 34px rgba(43, 22, 8, 0.20);
+}
+
+html[data-theme="bsu"] th,
+html[data-theme="bsu"] .data-table th,
+html[data-theme="bsu"] .section-header,
+html[data-theme="bsu"] .report-group-row th {
+    background: linear-gradient(90deg, #5b3314 0%, #92400e 100%);
+    color: #fff7ed;
+}
+
+html[data-theme="bsu"] td,
+html[data-theme="bsu"] .data-table td {
+    color: #2b170c;
+    border-color: rgba(146, 64, 14, 0.18);
+}
+
+html[data-theme="bsu"] tr:nth-child(even),
+html[data-theme="bsu"] .data-table tr:nth-child(even) {
+    background: rgba(253, 230, 138, 0.28);
+}
+
+html[data-theme="bsu"] tr:hover,
+html[data-theme="bsu"] .data-table tr:hover {
+    background: rgba(245, 158, 11, 0.22);
+}
+
+html[data-theme="bsu"] .item-link a,
+html[data-theme="bsu"] .empty-state a,
+html[data-theme="bsu"] .login-secondary-link {
+    color: #92400e;
+}
+
+html[data-theme="bsu"] .close,
+html[data-theme="bsu"] .close-btn,
+html[data-theme="bsu"] .modal-content .close {
+    color: #451a03 !important;
+}
+
+html[data-theme="bsu"] .searchbar button,
+html[data-theme="bsu"] .report-toolbar button,
+html[data-theme="bsu"] .btn-add,
+html[data-theme="bsu"] .filter-btn,
+html[data-theme="bsu"] .stock-form button,
+html[data-theme="bsu"] .modal-content button,
+html[data-theme="bsu"] .login-form button,
+html[data-theme="bsu"] .btn-primary,
+html[data-theme="bsu"] .theme-toggle {
+    background: linear-gradient(135deg, #78350f 0%, #b45309 100%);
+    color: #fff7ed;
+    border-color: rgba(253, 230, 138, 0.36);
+    box-shadow: 0 12px 26px rgba(120, 53, 15, 0.26);
+}
+
+html[data-theme="bsu"] .btn-secondary {
+    background: #fff7ed;
+    color: #78350f;
+    border-color: #92400e;
+}
+
+html[data-theme="bsu"] .edit-btn {
+    background: #1f766e;
+    color: #ffffff;
+}
+
+html[data-theme="bsu"] .delete-btn {
+    background: #991b1b;
+    color: #ffffff;
+}
+
+html[data-theme="bsu"] .activate-btn {
+    background: #166534;
+    color: #ffffff;
+}
+
+html[data-theme="bsu"] .deactivate-btn {
+    background: #b45309;
+    color: #ffffff;
+}
+
+html[data-theme="bsu"] .pending-section {
+    background: linear-gradient(180deg, rgba(254, 243, 199, 0.98), rgba(253, 230, 138, 0.82));
+    border-color: rgba(180, 83, 9, 0.46);
+}
+
+html[data-theme="bsu"] .pending-section .section-header h2 {
+    color: #fff7ed;
+}
+
+html[data-theme="bsu"] .flash-message {
+    background: #fff7ed;
+    border-color: rgba(146, 64, 14, 0.24);
+    color: #451a03;
+}
+
+html[data-theme="bsu"] .flash-success,
+html[data-theme="bsu"] .success {
+    background: linear-gradient(90deg, rgba(220, 252, 231, 0.96), rgba(187, 247, 208, 0.96));
+    color: #14532d;
+}
+
+html[data-theme="bsu"] .flash-error,
+html[data-theme="bsu"] .error {
+    background: linear-gradient(90deg, rgba(254, 226, 226, 0.98), rgba(254, 202, 202, 0.96));
+    color: #7f1d1d;
+}
+
+html[data-theme="bsu"] .status-active,
+html[data-theme="bsu"] .status-approved {
+    background: #dcfce7;
+    color: #166534;
+    border-color: #86efac;
+}
+
+html[data-theme="bsu"] .status-pending {
+    background: #fef3c7;
+    color: #92400e;
+    border-color: #fbbf24;
+}
+
+html[data-theme="bsu"] .status-deactivated,
+html[data-theme="bsu"] .status-rejected {
+    background: #fee2e2;
+    color: #991b1b;
+    border-color: #fca5a5;
+}
+
+html[data-theme="bsu"] .status-draft,
+html[data-theme="bsu"] .status-unknown {
+    background: #ede9fe;
+    color: #5b21b6;
+    border-color: #c4b5fd;
+}
+
+/* =========================
+   BSU THEME REFINEMENT
+   ========================= */
+
+html[data-theme="bsu"] body {
+    font-family: "Trebuchet MS", "Segoe UI", Tahoma, sans-serif;
+    background:
+        radial-gradient(circle at top left, rgba(132, 204, 22, 0.15), transparent 28%),
+        radial-gradient(circle at bottom right, rgba(59, 130, 246, 0.10), transparent 34%),
+        linear-gradient(145deg, #f8f0dc 0%, #ead7ae 52%, #d9c18d 100%);
+    color: #2f2a1f;
+}
+
+html[data-theme="bsu"] body.login-page {
+    background:
+        radial-gradient(circle at top left, rgba(132, 204, 22, 0.16), transparent 26%),
+        radial-gradient(circle at bottom right, rgba(59, 130, 246, 0.12), transparent 34%),
+        linear-gradient(145deg, #f8f0dc 0%, #ead7ae 52%, #d4c4a0 100%);
+}
+
+html[data-theme="bsu"] h1,
+html[data-theme="bsu"] h2,
+html[data-theme="bsu"] h3,
+html[data-theme="bsu"] .nav-logo,
+html[data-theme="bsu"] .section-header h2,
+html[data-theme="bsu"] .dashboard-card-head h2,
+html[data-theme="bsu"] .stock-form-panel-head h2,
+html[data-theme="bsu"] .login-card-section h2 {
+    font-family: Georgia, "Palatino Linotype", "Book Antiqua", serif;
+    letter-spacing: 0;
+}
+
+html[data-theme="bsu"] input,
+html[data-theme="bsu"] select,
+html[data-theme="bsu"] textarea,
+html[data-theme="bsu"] button,
+html[data-theme="bsu"] .action-btn,
+html[data-theme="bsu"] .status-badge {
+    font-family: "Trebuchet MS", "Segoe UI", Tahoma, sans-serif;
+}
+
+html[data-theme="bsu"] .navbar,
+html[data-theme="bsu"] .sidebar,
+html[data-theme="bsu"] .sidebar-flat,
+html[data-theme="bsu"] .nav-links {
+    background: linear-gradient(90deg, #3d4d25 0%, #4f6330 54%, #6b6f47 100%);
+    border-color: rgba(126, 98, 40, 0.28);
+    box-shadow: 0 10px 24px rgba(61, 77, 37, 0.24);
+}
+
+html[data-theme="bsu"] .nav-logo,
+html[data-theme="bsu"] .nav-links a,
+html[data-theme="bsu"] .sidebar h3,
+html[data-theme="bsu"] .sidebar ul li a {
+    color: #fff9e8;
+}
+
+html[data-theme="bsu"] .nav-links a:hover,
+html[data-theme="bsu"] .sidebar ul li a:hover {
+    background: rgba(255, 249, 232, 0.16);
+}
+
+html[data-theme="bsu"] .nav-links .login a {
+    background: #fff9e8;
+    color: #3d4d25;
+}
+
+html[data-theme="bsu"] .page-header,
+html[data-theme="bsu"] .toolbar-card,
+html[data-theme="bsu"] .panel-card,
+html[data-theme="bsu"] .section-card,
+html[data-theme="bsu"] .settings-section-card,
+html[data-theme="bsu"] .dashboard-card,
+html[data-theme="bsu"] .summary-card,
+html[data-theme="bsu"] .stock-form,
+html[data-theme="bsu"] .stock-form-panel,
+html[data-theme="bsu"] .stockout-form-card,
+html[data-theme="bsu"] .info,
+html[data-theme="bsu"] .info-flat,
+html[data-theme="bsu"] .table-card,
+html[data-theme="bsu"] .report-table-card,
+html[data-theme="bsu"] .login-card,
+html[data-theme="bsu"] .modal-content,
+html[data-theme="bsu"] .filter-content {
+    background:
+        linear-gradient(180deg, rgba(255, 252, 239, 0.98), rgba(245, 235, 210, 0.96));
+    border-color: rgba(94, 83, 55, 0.20);
+    color: #2f2a1f;
+    box-shadow: 0 14px 28px rgba(73, 58, 30, 0.15);
+}
+
+html[data-theme="bsu"] .section-body,
+html[data-theme="bsu"] .settings-section-body,
+html[data-theme="bsu"] .info-header,
+html[data-theme="bsu"] .dashboard-list-item,
+html[data-theme="bsu"] .dashboard-empty,
+html[data-theme="bsu"] .notification-item,
+html[data-theme="bsu"] .login-secondary-link {
+    background:
+        linear-gradient(180deg, rgba(255, 250, 234, 0.96), rgba(235, 244, 219, 0.88));
+    border-color: rgba(79, 99, 48, 0.18);
+    color: #2f2a1f;
+}
+
+html[data-theme="bsu"] .dashboard-hero,
+html[data-theme="bsu"] .stock-form-hero,
+html[data-theme="bsu"] .login-brand-panel {
+    background:
+        radial-gradient(circle at top right, rgba(245, 197, 66, 0.24), transparent 30%),
+        linear-gradient(135deg, #4f6330 0%, #5f6f42 48%, #687f92 100%);
+    color: #fffaf0;
+    box-shadow: 0 20px 40px rgba(61, 77, 37, 0.24);
+}
+
+html[data-theme="bsu"] .dashboard-hero h1,
+html[data-theme="bsu"] .stock-form-hero h1,
+html[data-theme="bsu"] .login-brand-panel h1,
+html[data-theme="bsu"] .dashboard-hero-note strong,
+html[data-theme="bsu"] .stock-form-stock-chip strong {
+    color: #fffaf0;
+}
+
+html[data-theme="bsu"] .dashboard-subtitle,
+html[data-theme="bsu"] .dashboard-hero-note span,
+html[data-theme="bsu"] .dashboard-hero-note small,
+html[data-theme="bsu"] .stock-form-subtitle,
+html[data-theme="bsu"] .login-copy {
+    color: #fff3c4;
+}
+
+html[data-theme="bsu"] .page-eyebrow,
+html[data-theme="bsu"] .dashboard-eyebrow,
+html[data-theme="bsu"] .stock-form-eyebrow,
+html[data-theme="bsu"] .login-eyebrow {
+    color: #4f6330;
+    font-weight: 800;
+}
+
+html[data-theme="bsu"] .page-header h1,
+html[data-theme="bsu"] .main-content h1,
+html[data-theme="bsu"] .main-content h2,
+html[data-theme="bsu"] .request-header h2,
+html[data-theme="bsu"] .empty-state h3,
+html[data-theme="bsu"] .stockout-form-card h2,
+html[data-theme="bsu"] .dashboard-card-head h2,
+html[data-theme="bsu"] .summary-card strong,
+html[data-theme="bsu"] .stock-form-panel-head h2,
+html[data-theme="bsu"] .login-card-section h2,
+html[data-theme="bsu"] .section-header h2 {
+    color: #2f3d24;
+}
+
+
+
+html[data-theme="bsu"] .page-subtitle,
+html[data-theme="bsu"] .request-meta,
+html[data-theme="bsu"] .empty-state,
+html[data-theme="bsu"] .dashboard-card-head span,
+html[data-theme="bsu"] .summary-card span,
+html[data-theme="bsu"] .dashboard-empty,
+html[data-theme="bsu"] .stock-form-panel-head p,
+html[data-theme="bsu"] .stock-form-help,
+html[data-theme="bsu"] .login-card-section p,
+html[data-theme="bsu"] .login-hint,
+html[data-theme="bsu"] .text-muted {
+    color: #5d6048;
+}
+
+html[data-theme="bsu"] input,
+html[data-theme="bsu"] select,
+html[data-theme="bsu"] textarea,
+html[data-theme="bsu"] .search-input,
+html[data-theme="bsu"] .inline-input {
+    color: #222817;
+    background: #fffaf0;
+    border-color: rgba(79, 99, 48, 0.30);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.70);
+}
+
+html[data-theme="bsu"] input::placeholder,
+html[data-theme="bsu"] textarea::placeholder {
+    color: #7b8064;
+}
+
+html[data-theme="bsu"] input:focus,
+html[data-theme="bsu"] select:focus,
+html[data-theme="bsu"] textarea:focus,
+html[data-theme="bsu"] .search-input:focus {
+    border-color: #687f92;
+    box-shadow: 0 0 0 4px rgba(104, 127, 146, 0.18);
+}
+
+html[data-theme="bsu"] table,
+html[data-theme="bsu"] .data-table {
+    background: #fffaf0;
+    border-color: rgba(79, 99, 48, 0.28);
+    box-shadow: 0 14px 28px rgba(73, 58, 30, 0.14);
+}
+
+html[data-theme="bsu"] th,
+html[data-theme="bsu"] .data-table th,
+html[data-theme="bsu"] .section-header,
+html[data-theme="bsu"] .report-group-row th {
+    background: linear-gradient(90deg, #4f6330 0%, #687f92 100%);
+    color: #fffaf0;
+}
+
+html[data-theme="bsu"] td,
+html[data-theme="bsu"] .data-table td {
+    color: #25291a;
+    border-color: rgba(79, 99, 48, 0.16);
+}
+
+html[data-theme="bsu"] tr:nth-child(even),
+html[data-theme="bsu"] .data-table tr:nth-child(even) {
+    background: rgba(235, 244, 219, 0.72);
+}
+
+html[data-theme="bsu"] tr:hover,
+html[data-theme="bsu"] .data-table tr:hover {
+    background: rgba(224, 232, 203, 0.92);
+}
+
+html[data-theme="bsu"] .searchbar button,
+html[data-theme="bsu"] .report-toolbar button,
+html[data-theme="bsu"] .btn-add,
+html[data-theme="bsu"] .filter-btn,
+html[data-theme="bsu"] .stock-form button,
+html[data-theme="bsu"] .modal-content button,
+html[data-theme="bsu"] .login-form button,
+html[data-theme="bsu"] .btn-primary,
+html[data-theme="bsu"] .theme-toggle {
+    background: linear-gradient(135deg, #4f6330 0%, #687f92 100%);
+    color: #fffaf0;
+    border-color: rgba(245, 197, 66, 0.34);
+    box-shadow: 0 10px 22px rgba(79, 99, 48, 0.20);
+}
+
+html[data-theme="bsu"] .btn-secondary {
+    background: #fffaf0;
+    color: #4f6330;
+    border-color: #4f6330;
+}
+
+html[data-theme="bsu"] .edit-btn {
+    background: #3f7f7a;
+    color: #ffffff;
+}
+
+html[data-theme="bsu"] .delete-btn {
+    background: #9f3d35;
+    color: #ffffff;
+}
+
+html[data-theme="bsu"] .activate-btn {
+    background: #487a36;
+    color: #ffffff;
+}
+
+html[data-theme="bsu"] .deactivate-btn {
+    background: #b8872f;
+    color: #1f170b;
+}
+
+html[data-theme="bsu"] .item-link a,
+html[data-theme="bsu"] .empty-state a,
+html[data-theme="bsu"] .login-secondary-link {
+    color: #3f7f7a;
+    font-weight: 800;
+}
+
+html[data-theme="bsu"] .pending-section {
+    background: linear-gradient(180deg, rgba(255, 250, 234, 0.98), rgba(245, 232, 194, 0.92));
+    border-color: rgba(184, 135, 47, 0.44);
+}
+
+html[data-theme="bsu"] .pending-section .section-header h2 {
+    color: #fffaf0;
+}
+
+html[data-theme="bsu"] .theme-toggle[data-theme-state="bsu"] .theme-toggle-icon {
+    background: linear-gradient(135deg, #687f92 0%, #4f6330 100%);
+    border-color: #f5c542;
+}
+
+html[data-theme="bsu"] .status-active,
+html[data-theme="bsu"] .status-approved {
+    background: #e3f4d1;
+    color: #25551c;
+    border-color: #9ccd79;
+}
+
+html[data-theme="bsu"] .status-pending {
+    background: #fff0ba;
+    color: #6e4d0f;
+    border-color: #e5b832;
+}
+
+html[data-theme="bsu"] .status-deactivated,
+html[data-theme="bsu"] .status-rejected {
+    background: #f7d6d2;
+    color: #7a211c;
+    border-color: #d88d85;
+}
+
+html[data-theme="bsu"] .status-draft,
+html[data-theme="bsu"] .status-unknown {
+    background: #dbe7ef;
+    color: #334f63;
+    border-color: #9fb5c4;
+}
+
+html[data-theme="bsu"] .summary-card strong,
+html[data-theme="bsu"] .dashboard-hero-note strong,
+html[data-theme="bsu"] .stock-form-stock-chip strong,
+html[data-theme="bsu"] .nav-badge,
+html[data-theme="bsu"] .status-badge,
+html[data-theme="bsu"] .data-table td,
+html[data-theme="bsu"] table td,
+html[data-theme="bsu"] input[type="number"],
+html[data-theme="bsu"] .inline-input,
+html[data-theme="bsu"] .pagination a,
+html[data-theme="bsu"] .pagination span {
+    font-family: "Cascadia Mono", Consolas, "Courier New", monospace;
+    font-variant-numeric: tabular-nums;
+}
+
+html[data-theme="bsu"] .summary-card strong,
+html[data-theme="bsu"] .dashboard-hero-note strong,
+html[data-theme="bsu"] .stock-form-stock-chip strong {
+    color: #17210f;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.58);
+}
+
+html[data-theme="bsu"] .data-table td,
+html[data-theme="bsu"] table td,
+html[data-theme="bsu"] input[type="number"],
+html[data-theme="bsu"] .inline-input {
+    font-weight: 700;
+}
+
+html[data-theme="bsu"] .nav-badge {
+    background: #f5c542;
+    color: #17210f;
+    border: 1px solid rgba(23, 33, 15, 0.18);
+    box-shadow: 0 2px 8px rgba(92, 68, 16, 0.28);
+}
+
+/* Final flat BSU palette: parchment, moss, steel, and gold. */
+html[data-theme="bsu"] body,
+html[data-theme="bsu"] body.login-page {
+    background: #efe4c8;
+}
+
+html[data-theme="bsu"] .navbar,
+html[data-theme="bsu"] .sidebar,
+html[data-theme="bsu"] .sidebar-flat,
+html[data-theme="bsu"] .nav-links {
+    background: #4f6330;
+    border-color: rgba(47, 61, 36, 0.26);
+}
+
+html[data-theme="dark"] .nav-logo {
+    color: #67e8f9;
+}
+
+html[data-theme="dark"] .nav-links a {
+    color: #d1fae5;
+}
+
+html[data-theme="dark"] .submenu li a {
+    color: #bae6fd;
+}
+
+html[data-theme="dark"] .nav-links a:hover,
+html[data-theme="dark"] .submenu li a:hover {
+    background: #164e63;
+    color: #ffffff;
+}
+
+html[data-theme="bsu"] .nav-logo {
+    color: #fff6d8;
+}
+
+html[data-theme="bsu"] .nav-links a {
+    color: #f5d46f;
+}
+
+html[data-theme="bsu"] .submenu {
+    background: #e8dcc0;
+    border: 1px solid rgba(79, 99, 48, 0.24);
+}
+
+html[data-theme="bsu"] .submenu li a {
+    color: #2f3d24;
+}
+
+html[data-theme="bsu"] .nav-links a:hover,
+html[data-theme="bsu"] .submenu li a:hover {
+    background: #6f8a4f;
+    color: #fffaf0;
+}
+
+html[data-theme="bsu"] .nav-links .login a {
+    background: #fffaf0;
+    color: #2f3d24;
+}
+
+html[data-theme="bsu"] .page-header,
+html[data-theme="bsu"] .toolbar-card,
+html[data-theme="bsu"] .panel-card,
+html[data-theme="bsu"] .section-card,
+html[data-theme="bsu"] .settings-section-card,
+html[data-theme="bsu"] .dashboard-card,
+html[data-theme="bsu"] .summary-card,
+html[data-theme="bsu"] .stock-form,
+html[data-theme="bsu"] .stock-form-panel,
+html[data-theme="bsu"] .stockout-form-card,
+html[data-theme="bsu"] .info,
+html[data-theme="bsu"] .info-flat,
+html[data-theme="bsu"] .table-card,
+html[data-theme="bsu"] .report-table-card,
+html[data-theme="bsu"] .login-card,
+html[data-theme="bsu"] .modal-content,
+html[data-theme="bsu"] .filter-content {
+    background: #fffaf0;
+    border-color: rgba(79, 99, 48, 0.20);
+}
+
+html[data-theme="bsu"] .section-body,
+html[data-theme="bsu"] .settings-section-body,
+html[data-theme="bsu"] .info-header,
+html[data-theme="bsu"] .dashboard-list-item,
+html[data-theme="bsu"] .dashboard-empty,
+html[data-theme="bsu"] .notification-item,
+html[data-theme="bsu"] .login-secondary-link {
+    background: #f3edd8;
+    border-color: rgba(79, 99, 48, 0.18);
+}
+
+html[data-theme="bsu"] .dashboard-hero,
+html[data-theme="bsu"] .stock-form-hero,
+html[data-theme="bsu"] .login-brand-panel {
+    background: #5f7345;
+}
+
+html[data-theme="bsu"] .dashboard-hero-note,
+html[data-theme="bsu"] .stock-form-stock-chip,
+html[data-theme="bsu"] .login-feature-item,
+html[data-theme="bsu"] .login-highlight-card {
+    background: rgba(255, 250, 240, 0.14);
+    border-color: rgba(255, 250, 240, 0.28);
+}
+
+html[data-theme="bsu"] th,
+html[data-theme="bsu"] .data-table th,
+html[data-theme="bsu"] .section-header,
+html[data-theme="bsu"] .report-group-row th {
+    background: #687f92;
+    color: #fffaf0;
+}
+
+html[data-theme="bsu"] table,
+html[data-theme="bsu"] .data-table {
+    background: #fffaf0;
+}
+
+html[data-theme="bsu"] tr:nth-child(even),
+html[data-theme="bsu"] .data-table tr:nth-child(even) {
+    background: #edf4df;
+}
+
+html[data-theme="bsu"] tr:hover,
+html[data-theme="bsu"] .data-table tr:hover {
+    background: #dfead0;
+}
+
+html[data-theme="bsu"] .searchbar button,
+html[data-theme="bsu"] .report-toolbar button,
+html[data-theme="bsu"] .btn-add,
+html[data-theme="bsu"] .filter-btn,
+html[data-theme="bsu"] .stock-form button,
+html[data-theme="bsu"] .modal-content button,
+html[data-theme="bsu"] .login-form button,
+html[data-theme="bsu"] .btn-primary,
+html[data-theme="bsu"] .theme-toggle {
+    background: #5f7345;
+    color: #fffaf0;
+}
+
+html[data-theme="bsu"] .pending-section {
+    background: #fff3c4;
+}
+
+html[data-theme="bsu"] .theme-toggle[data-theme-state="bsu"] .theme-toggle-icon {
+    background: #687f92;
+}
+
+/* Final navbar/theme polish. */
+html[data-theme="dark"] .nav-links > li > a {
+    background: #0f2a36;
+    color: #d1fae5;
+    border: 1px solid rgba(103, 232, 249, 0.12);
+}
+
+html[data-theme="dark"] .nav-links > li > a:hover,
+html[data-theme="dark"] .nav-links > li.has-submenu:hover > a {
+    background: #164e63;
+    color: #ffffff;
+    border-color: rgba(103, 232, 249, 0.28);
+}
+
+html[data-theme="dark"] .submenu {
+    background: #0b1f2a;
+    border: 1px solid rgba(103, 232, 249, 0.14);
+}
+
+html[data-theme="dark"] .submenu li a {
+    background: #0b1f2a;
+    color: #bae6fd;
+}
+
+html[data-theme="dark"] .submenu li a:hover {
+    background: #123849;
+    color: #ffffff;
+}
+
+html[data-theme="dark"] .nav-links .login a {
+    background: #e2e8f0;
+    color: #0f172a;
+    border-color: rgba(226, 232, 240, 0.32);
+}
+
+html[data-theme="bsu"] body,
+html[data-theme="bsu"] body.login-page {
+    background: #f2ead6;
+    color: #2c3020;
+}
+
+html[data-theme="bsu"] .navbar,
+html[data-theme="bsu"] .sidebar,
+html[data-theme="bsu"] .sidebar-flat,
+html[data-theme="bsu"] .nav-links {
+    background: #445b32;
+    border-color: rgba(47, 61, 36, 0.24);
+}
+
+html[data-theme="bsu"] .nav-logo {
+    color: wheat;
+}
+
+html[data-theme="bsu"] .nav-links > li > a {
+    background: #5f7547;
+    color: wheat;
+    border: 1px solid rgba(245, 222, 179, 0.24);
+}
+
+html[data-theme="bsu"] .nav-links > li > a:hover,
+html[data-theme="bsu"] .nav-links > li.has-submenu:hover > a {
+    background: #7b8f5a;
+    color: #fffaf0;
+    border-color: rgba(245, 222, 179, 0.42);
+}
+
+html[data-theme="bsu"] .submenu {
+    background: #f6edda;
+    border: 1px solid rgba(68, 91, 50, 0.28);
+}
+
+html[data-theme="bsu"] .submenu li a {
+    background: #f6edda;
+    color: #334a25;
+    border: none;
+}
+
+html[data-theme="bsu"] .submenu li a:hover {
+    background: #dfe9c7;
+    color: #243719;
+}
+
+html[data-theme="bsu"] .nav-links .login a {
+    background: wheat;
+    color: #334a25;
+    border-color: rgba(51, 74, 37, 0.20);
+}
+
+html[data-theme="bsu"] .page-header,
+html[data-theme="bsu"] .toolbar-card,
+html[data-theme="bsu"] .panel-card,
+html[data-theme="bsu"] .section-card,
+html[data-theme="bsu"] .settings-section-card,
+html[data-theme="bsu"] .dashboard-card,
+html[data-theme="bsu"] .summary-card,
+html[data-theme="bsu"] .stock-form,
+html[data-theme="bsu"] .stock-form-panel,
+html[data-theme="bsu"] .stockout-form-card,
+html[data-theme="bsu"] .info,
+html[data-theme="bsu"] .info-flat,
+html[data-theme="bsu"] .table-card,
+html[data-theme="bsu"] .report-table-card,
+html[data-theme="bsu"] .login-card,
+html[data-theme="bsu"] .modal-content,
+html[data-theme="bsu"] .filter-content {
+    background: #fff8e8;
+    border-color: rgba(68, 91, 50, 0.20);
+    box-shadow: 0 12px 24px rgba(64, 54, 32, 0.12);
+}
+
+html[data-theme="bsu"] .section-body,
+html[data-theme="bsu"] .settings-section-body,
+html[data-theme="bsu"] .info-header,
+html[data-theme="bsu"] .dashboard-list-item,
+html[data-theme="bsu"] .dashboard-empty,
+html[data-theme="bsu"] .notification-item,
+html[data-theme="bsu"] .login-secondary-link {
+    background: #eef3d8;
+    border-color: rgba(68, 91, 50, 0.18);
+}
+
+html[data-theme="bsu"] .dashboard-hero,
+html[data-theme="bsu"] .stock-form-hero,
+html[data-theme="bsu"] .login-brand-panel {
+    background: #526b3a;
+    color: #fff8e8;
+}
+
+html[data-theme="bsu"] th,
+html[data-theme="bsu"] .data-table th,
+html[data-theme="bsu"] .section-header,
+html[data-theme="bsu"] .report-group-row th {
+    background: #617989;
+    color: #fff8e8;
+}
+
+html[data-theme="bsu"] .searchbar button,
+html[data-theme="bsu"] .report-toolbar button,
+html[data-theme="bsu"] .btn-add,
+html[data-theme="bsu"] .filter-btn,
+html[data-theme="bsu"] .stock-form button,
+html[data-theme="bsu"] .modal-content button,
+html[data-theme="bsu"] .login-form button,
+html[data-theme="bsu"] .btn-primary,
+html[data-theme="bsu"] .theme-toggle {
+    background: #526b3a;
+    color: #fff8e8;
+    border-color: rgba(245, 222, 179, 0.26);
+}
+
+html[data-theme="bsu"] .page-eyebrow,
+html[data-theme="bsu"] .dashboard-eyebrow,
+html[data-theme="bsu"] .stock-form-eyebrow,
+html[data-theme="bsu"] .login-eyebrow,
+html[data-theme="bsu"] .item-link a,
+html[data-theme="bsu"] .empty-state a,
+html[data-theme="bsu"] .login-secondary-link {
+    color: #526b3a;
+}
+
+html[data-theme="bsu"] .pending-section {
+    background: #fff1bd;
+    border-color: rgba(181, 132, 33, 0.38);
+}
+
+/* Final BSU school theme: green, white, yellow, black borders. */
+html[data-theme="bsu"] body,
+html[data-theme="bsu"] body.login-page {
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    background: #f7fff4;
+    color: #111111;
+}
+
+html[data-theme="bsu"] h1,
+html[data-theme="bsu"] h2,
+html[data-theme="bsu"] h3,
+html[data-theme="bsu"] .nav-logo,
+html[data-theme="bsu"] .section-header h2,
+html[data-theme="bsu"] .dashboard-card-head h2,
+html[data-theme="bsu"] .stock-form-panel-head h2,
+html[data-theme="bsu"] .login-card-section h2 {
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    color: #0b3d1c;
+}
+
+html[data-theme="bsu"] .navbar,
+html[data-theme="bsu"] .sidebar,
+html[data-theme="bsu"] .sidebar-flat,
+html[data-theme="bsu"] .nav-links {
+    background: #0b6b2b;
+    border-color: #000000;
+}
+
+html[data-theme="bsu"] .navbar {
+    border-bottom: 3px solid #000000;
+}
+
+html[data-theme="bsu"] .nav-logo {
+    color: #ffffff;
+}
+
+html[data-theme="bsu"] .nav-links > li > a {
+    background: #0f7d35;
+    color: #ffeb3b;
+    border: 2px solid #000000;
+}
+
+html[data-theme="bsu"] .nav-links > li > a:hover,
+html[data-theme="bsu"] .nav-links > li.has-submenu:hover > a {
+    background: #ffeb3b;
+    color: #0b3d1c;
+    border-color: #000000;
+}
+
+html[data-theme="bsu"] .submenu {
+    background: #ffffff;
+    border: 2px solid #000000;
+}
+
+html[data-theme="bsu"] .submenu li a {
+    background: #ffffff;
+    color: #0b3d1c;
+    border: none;
+}
+
+html[data-theme="bsu"] .submenu li a:hover {
+    background: #ffeb3b;
+    color: #000000;
+}
+
+html[data-theme="bsu"] .nav-links .login a {
+    background: #ffeb3b;
+    color: #000000;
+    border: 2px solid #000000;
+}
+
+html[data-theme="bsu"] .page-header,
+html[data-theme="bsu"] .toolbar-card,
+html[data-theme="bsu"] .panel-card,
+html[data-theme="bsu"] .section-card,
+html[data-theme="bsu"] .settings-section-card,
+html[data-theme="bsu"] .dashboard-card,
+html[data-theme="bsu"] .summary-card,
+html[data-theme="bsu"] .stock-form,
+html[data-theme="bsu"] .stock-form-panel,
+html[data-theme="bsu"] .stockout-form-card,
+html[data-theme="bsu"] .info,
+html[data-theme="bsu"] .info-flat,
+html[data-theme="bsu"] .table-card,
+html[data-theme="bsu"] .report-table-card,
+html[data-theme="bsu"] .login-card,
+html[data-theme="bsu"] .modal-content,
+html[data-theme="bsu"] .filter-content {
+    background: #ffffff;
+    border: 2px solid #000000;
+    color: #111111;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.12);
+}
+
+html[data-theme="bsu"] .section-body,
+html[data-theme="bsu"] .settings-section-body,
+html[data-theme="bsu"] .info-header,
+html[data-theme="bsu"] .dashboard-list-item,
+html[data-theme="bsu"] .dashboard-empty,
+html[data-theme="bsu"] .notification-item,
+html[data-theme="bsu"] .login-secondary-link {
+    background: #f1ffe9;
+    border-color: #000000;
+    color: #111111;
+}
+
+html[data-theme="bsu"] .dashboard-hero,
+html[data-theme="bsu"] .stock-form-hero,
+html[data-theme="bsu"] .login-brand-panel {
+    background: #0b6b2b;
+    color: #ffffff;
+    border: 3px solid #000000;
+}
+
+html[data-theme="bsu"] .dashboard-hero h1,
+html[data-theme="bsu"] .stock-form-hero h1,
+html[data-theme="bsu"] .login-brand-panel h1,
+html[data-theme="bsu"] .dashboard-hero-note strong,
+html[data-theme="bsu"] .stock-form-stock-chip strong {
+    color: #ffffff;
+}
+
+html[data-theme="bsu"] .dashboard-subtitle,
+html[data-theme="bsu"] .dashboard-hero-note span,
+html[data-theme="bsu"] .dashboard-hero-note small,
+html[data-theme="bsu"] .stock-form-subtitle,
+html[data-theme="bsu"] .login-copy {
+    color: #fff59d;
+}
+
+html[data-theme="bsu"] .dashboard-hero-note,
+html[data-theme="bsu"] .stock-form-stock-chip,
+html[data-theme="bsu"] .login-feature-item,
+html[data-theme="bsu"] .login-highlight-card {
+    background: rgba(255, 235, 59, 0.14);
+    border: 2px solid #000000;
+}
+
+html[data-theme="bsu"] .page-eyebrow,
+html[data-theme="bsu"] .dashboard-eyebrow,
+html[data-theme="bsu"] .stock-form-eyebrow,
+html[data-theme="bsu"] .login-eyebrow,
+html[data-theme="bsu"] .item-link a,
+html[data-theme="bsu"] .empty-state a,
+html[data-theme="bsu"] .login-secondary-link {
+    color: #0b6b2b;
+    font-weight: 800;
+}
+
+html[data-theme="bsu"] .page-subtitle,
+html[data-theme="bsu"] .request-meta,
+html[data-theme="bsu"] .empty-state,
+html[data-theme="bsu"] .dashboard-card-head span,
+html[data-theme="bsu"] .summary-card span,
+html[data-theme="bsu"] .dashboard-empty,
+html[data-theme="bsu"] .stock-form-panel-head p,
+html[data-theme="bsu"] .stock-form-help,
+html[data-theme="bsu"] .login-card-section p,
+html[data-theme="bsu"] .login-hint,
+html[data-theme="bsu"] .text-muted {
+    color: #26382a;
+}
+
+html[data-theme="bsu"] input,
+html[data-theme="bsu"] select,
+html[data-theme="bsu"] textarea,
+html[data-theme="bsu"] .search-input,
+html[data-theme="bsu"] .inline-input {
+    background: #ffffff;
+    color: #111111;
+    border: 2px solid #000000;
+}
+
+html[data-theme="bsu"] input:focus,
+html[data-theme="bsu"] select:focus,
+html[data-theme="bsu"] textarea:focus,
+html[data-theme="bsu"] .search-input:focus {
+    border-color: #0b6b2b;
+    box-shadow: 0 0 0 4px rgba(255, 235, 59, 0.42);
+}
+
+html[data-theme="bsu"] table,
+html[data-theme="bsu"] .data-table {
+    background: #ffffff;
+    border: 2px solid #000000;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.10);
+}
+
+html[data-theme="bsu"] th,
+html[data-theme="bsu"] .data-table th,
+html[data-theme="bsu"] .section-header,
+html[data-theme="bsu"] .report-group-row th {
+    background: #0b6b2b;
+    color: #ffffff;
+    border-color: #000000;
+}
+
+html[data-theme="bsu"] td,
+html[data-theme="bsu"] .data-table td {
+    color: #111111;
+    border-color: #000000;
+}
+
+html[data-theme="bsu"] tr:nth-child(even),
+html[data-theme="bsu"] .data-table tr:nth-child(even) {
+    background: #f2ffe9;
+}
+
+html[data-theme="bsu"] tr:hover,
+html[data-theme="bsu"] .data-table tr:hover {
+    background: #fff9c4;
+}
+
+html[data-theme="bsu"] .searchbar button,
+html[data-theme="bsu"] .report-toolbar button,
+html[data-theme="bsu"] .btn-add,
+html[data-theme="bsu"] .filter-btn,
+html[data-theme="bsu"] .stock-form button,
+html[data-theme="bsu"] .modal-content button,
+html[data-theme="bsu"] .login-form button,
+html[data-theme="bsu"] .btn-primary,
+html[data-theme="bsu"] .theme-toggle {
+    background: #0b6b2b;
+    color: #ffffff;
+    border: 2px solid #000000;
+}
+
+html[data-theme="bsu"] .btn-secondary {
+    background: #ffffff;
+    color: #0b6b2b;
+    border: 2px solid #000000;
+}
+
+html[data-theme="bsu"] .edit-btn {
+    background: #0b6b2b;
+    color: #ffffff;
+}
+
+html[data-theme="bsu"] .delete-btn {
+    background: #b91c1c;
+    color: #ffffff;
+}
+
+html[data-theme="bsu"] .activate-btn {
+    background: #15803d;
+    color: #ffffff;
+}
+
+html[data-theme="bsu"] .deactivate-btn {
+    background: #ffeb3b;
+    color: #000000;
+}
+
+html[data-theme="bsu"] .pending-section {
+    background: #fff9c4;
+    border: 2px solid #000000;
+}
+
+html[data-theme="bsu"] .status-badge,
+html[data-theme="bsu"] .nav-badge {
+    border: 1px solid #000000;
+}
+
+html[data-theme="bsu"] .nav-badge {
+    background: #ffeb3b;
+    color: #000000;
+}
+
+html[data-theme="bsu"] .theme-toggle[data-theme-state="bsu"] .theme-toggle-icon {
+    width: 26px;
+    height: 26px;
+    border: 2px solid #000000;
+    border-radius: 50%;
+    background: linear-gradient(
+        90deg,
+        #0b6b2b 0 42%,
+        #ffffff 42% 58%,
+        #ffeb3b 58% 100%
+    );
+    clip-path: none;
+}
+
+html[data-theme="bsu"] .theme-toggle[data-theme-state="bsu"] .theme-toggle-icon::after {
+    content: "";
+    position: absolute;
+    inset: 8px;
+    border-radius: 50%;
+    background: #000000;
+    box-shadow: none;
+}
+
+html[data-theme="bsu"] .settings-section-header h2 {
+    color: #ffffff;
+}
+
+html[data-theme="bsu"] .dashboard-eyebrow{
+    color: white;
 }

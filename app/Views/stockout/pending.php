@@ -90,6 +90,17 @@
 function editPendingQuantity(event, itemId) {
     event.preventDefault();
     const form = event.target;
+    if (form.dataset.submitting === 'true') return;
+
+    form.dataset.submitting = 'true';
+    const submitButton = form.querySelector('button[type="submit"]');
+    if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.classList.add('is-busy');
+        submitButton.dataset.busy = 'true';
+        submitButton.setAttribute('aria-busy', 'true');
+    }
+
     const quantity = form.querySelector('input[name="quantity"]').value;
     const headers = {
         'X-Requested-With': 'XMLHttpRequest',
@@ -117,6 +128,15 @@ function editPendingQuantity(event, itemId) {
     })
     .catch(() => {
         alert('Failed to update quantity.');
+    })
+    .finally(() => {
+        form.dataset.submitting = 'false';
+        if (submitButton) {
+            submitButton.disabled = false;
+            submitButton.classList.remove('is-busy');
+            submitButton.dataset.busy = 'false';
+            submitButton.setAttribute('aria-busy', 'false');
+        }
     });
 }
 </script>

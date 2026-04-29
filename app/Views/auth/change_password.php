@@ -4,7 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Change Password - BSU Inventory</title>
-    <link rel="stylesheet" href="<?= base_url('assets/style.css') ?>">
+    <script>
+        (function () {
+            var savedTheme = localStorage.getItem('inventoryTheme');
+            if (savedTheme === 'rpg' || savedTheme === 'BSU') savedTheme = 'bsu';
+            var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            var allowedThemes = ['light', 'dark', 'bsu'];
+            document.documentElement.dataset.theme = allowedThemes.indexOf(savedTheme) >= 0 ? savedTheme : (prefersDark ? 'dark' : 'light');
+        })();
+    </script>
+    <link rel="stylesheet" href="<?= base_url('assets/style.css?v=' . filemtime(FCPATH . 'assets/style.css')) ?>">
 </head>
 <body class="login-page">
     <div class="login-shell">
@@ -41,5 +50,10 @@
             </div>
         </section>
     </div>
+    <button type="button" class="theme-toggle" data-theme-toggle aria-label="Switch color theme">
+        <span class="theme-toggle-icon" aria-hidden="true"></span>
+        <span class="sr-only" data-theme-label>Switch color theme</span>
+    </button>
+    <script src="<?= base_url('assets/script.js?v=' . filemtime(FCPATH . 'assets/script.js')) ?>"></script>
 </body>
 </html>

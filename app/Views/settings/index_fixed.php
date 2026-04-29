@@ -167,7 +167,7 @@
 
     <div id="modal" class="modal settings-modal">
         <div class="modal-content settings-modal-content">
-            <button type="button" class="close" onclick="closeModal()">&times;</button>
+            <button style="color: #0f3d3e;" type="button" class="close" onclick="closeModal()">&times;</button>
             <h2 id="modalTitle"></h2>
             <form id="modalForm">
                 <?= csrf_field() ?>

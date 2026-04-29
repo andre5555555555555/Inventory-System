@@ -43,6 +43,114 @@
         return headers;
     }
 
+    const busyActions = new Set();
+
+    function setBusyState(element, isBusy) {
+        if (!element) return;
+
+        element.classList.toggle("is-busy", isBusy);
+        element.dataset.busy = isBusy ? "true" : "false";
+        element.setAttribute("aria-busy", isBusy ? "true" : "false");
+
+        if (element.matches("button, input[type='submit'], input[type='button']")) {
+            element.disabled = isBusy;
+        } else if (element.matches("a")) {
+            if (isBusy) {
+                element.setAttribute("aria-disabled", "true");
+            } else {
+                element.removeAttribute("aria-disabled");
+            }
+        }
+    }
+
+    async function runOnce(actionKey, trigger, task) {
+        if (busyActions.has(actionKey)) return null;
+
+        busyActions.add(actionKey);
+        setBusyState(trigger, true);
+
+        try {
+            return await task();
+        } finally {
+            busyActions.delete(actionKey);
+            setBusyState(trigger, false);
+        }
+    }
+
+    function initThemeToggle() {
+        const root = document.documentElement;
+        const toggle = document.querySelector("[data-theme-toggle]");
+        if (!toggle) return;
+        const label = toggle.querySelector("[data-theme-label]");
+        const themes = ["light", "dark", "bsu"];
+
+        function applyTheme(theme) {
+            const currentTheme = themes.includes(theme) ? theme : "light";
+            const nextTheme = themes[(themes.indexOf(currentTheme) + 1) % themes.length];
+            const themeNames = {
+                light: "Light",
+                dark: "Dark",
+                bsu: "BSU",
+            };
+            const labelText = `${themeNames[currentTheme]} mode. Click for ${themeNames[nextTheme]} mode.`;
+
+            root.dataset.theme = currentTheme;
+            toggle.dataset.themeState = currentTheme;
+            localStorage.setItem("inventoryTheme", currentTheme);
+            toggle.setAttribute("aria-label", labelText);
+            toggle.setAttribute("title", labelText);
+
+            if (label) {
+                label.textContent = labelText;
+            }
+        }
+
+        if (root.dataset.theme === "rpg" || root.dataset.theme === "BSU") {
+            root.dataset.theme = "bsu";
+        }
+
+        applyTheme(themes.includes(root.dataset.theme) ? root.dataset.theme : "light");
+
+        toggle.addEventListener("click", () => {
+            const currentIndex = themes.indexOf(root.dataset.theme);
+            applyTheme(themes[(currentIndex + 1) % themes.length]);
+        });
+    }
+
+    function bindSubmitGuards() {
+        document.addEventListener("submit", (event) => {
+            const form = event.target;
+            if (!(form instanceof HTMLFormElement) || event.defaultPrevented) return;
+            if (form.dataset.noSubmitGuard === "true") return;
+
+            if (form.dataset.submitting === "true") {
+                event.preventDefault();
+                return;
+            }
+
+            if (typeof form.checkValidity === "function" && !form.checkValidity()) return;
+
+            form.dataset.submitting = "true";
+            form.querySelectorAll("button[type='submit'], input[type='submit']").forEach((button) => {
+                setBusyState(button, true);
+            });
+        });
+
+        document.addEventListener("click", (event) => {
+            const trigger = event.target.closest("button, a.action-btn, a.btn-add, a.btn-primary, a.btn-secondary");
+            if (!trigger) return;
+
+            if (trigger.matches("[data-theme-toggle], [data-menu-toggle], [data-stockcard-toggle], [data-filter-open], [data-filter-close], .section-header, .close, .close-btn")) {
+                return;
+            }
+
+            if (trigger.dataset.busy === "true" || trigger.getAttribute("aria-disabled") === "true") {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+            }
+        }, true);
+    }
+
     // =========================
     // TOAST SYSTEM
     // =========================
@@ -320,36 +428,39 @@
         async function deleteRecord(type, id) {
             if (!confirm("Delete this record?")) return;
 
-            localStorage.setItem("activeSettingsSection", `section-${type}`);
+            const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
-            const response = await fetch(`${config.deleteBase}/${type}/${id}`, {
-                method: "POST",
-                headers: csrfHeaders(),
+            await runOnce(`settings-delete-${type}-${id}`, trigger, async () => {
+                localStorage.setItem("activeSettingsSection", `section-${type}`);
+
+                const response = await fetch(`${config.deleteBase}/${type}/${id}`, {
+                    method: "POST",
+                    headers: csrfHeaders(),
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    const msg = (data.message || "").toLowerCase();
+                    let cleanMessage = "Delete failed";
+
+                    if (msg.includes("foreign key") || msg.includes("constraint")) {
+                        cleanMessage = "Delete failed: This item is currently in use and cannot be removed.";
+                    } else if (msg.includes("not found")) {
+                        cleanMessage = "Delete failed: Record not found.";
+                    } else if (msg.includes("permission")) {
+                        cleanMessage = "Delete failed: You do not have permission.";
+                    } else if (msg) {
+                        cleanMessage = data.message;
+                    }
+
+                    showToast(cleanMessage, "error");
+                    return;
+                }
+
+                showToast("Deleted successfully", "success");
+                window.location.reload();
             });
-
-            const data = await response.json();
-
-           if (!response.ok) {
-    const msg = (data.message || "").toLowerCase();
-
-    let cleanMessage = "Delete failed";
-
-        if (msg.includes("foreign key") || msg.includes("constraint")) {
-                cleanMessage = "Delete failed: This item is currently in use and cannot be removed.";
-            } else if (msg.includes("not found")) {
-                cleanMessage = "Delete failed: Record not found.";
-            } else if (msg.includes("permission")) {
-                cleanMessage = "Delete failed: You do not have permission.";
-            } else if (msg) {
-                cleanMessage = data.message; // fallback (safe message)
-            }
-
-            showToast(cleanMessage, "error");
-            return;
-        }
-
-            showToast("Deleted successfully", "success");
-            window.location.reload();
         }
 
         // ── Activate / Deactivate users ──
@@ -357,39 +468,47 @@
         async function activateUser(id) {
             if (!confirm("Activate this user?")) return;
 
-            const response = await fetch(`${config.activateBase}/${id}`, {
-                method: "POST",
-                headers: csrfHeaders(),
+            const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+
+            await runOnce(`settings-activate-${id}`, trigger, async () => {
+                const response = await fetch(`${config.activateBase}/${id}`, {
+                    method: "POST",
+                    headers: csrfHeaders(),
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    showToast(data.message ?? "Activation failed", "error");
+                    return;
+                }
+
+                showToast("User activated successfully", "success");
+                window.location.reload();
             });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                showToast(data.message ?? "Activation failed", "error");
-                return;
-            }
-
-            showToast("User activated successfully", "success");
-            window.location.reload();
         }
 
         async function deactivateUser(id) {
             if (!confirm("Deactivate this user?")) return;
 
-            const response = await fetch(`${config.deactivateBase}/${id}`, {
-                method: "POST",
-                headers: csrfHeaders(),
+            const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+
+            await runOnce(`settings-deactivate-${id}`, trigger, async () => {
+                const response = await fetch(`${config.deactivateBase}/${id}`, {
+                    method: "POST",
+                    headers: csrfHeaders(),
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    showToast(data.message ?? "Deactivation failed", "error");
+                    return;
+                }
+
+                showToast("User deactivated successfully", "success");
+                window.location.reload();
             });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                showToast(data.message ?? "Deactivation failed", "error");
-                return;
-            }
-
-            showToast("User deactivated successfully", "success");
-            window.location.reload();
         }
 
         function filterTable(input, tableId) {
@@ -420,25 +539,29 @@
             event.preventDefault();
 
             const type = recordTypeInput.value;
-            localStorage.setItem("activeSettingsSection", `section-${type}`);
+            const submitter = event.submitter ?? modalForm.querySelector("button[type='submit']");
 
-            const formData = new FormData(modalForm);
+            await runOnce(`settings-save-${type}`, submitter, async () => {
+                localStorage.setItem("activeSettingsSection", `section-${type}`);
 
-            const response = await fetch(`${config.saveBase}/${type}`, {
-                method: "POST",
-                headers: csrfHeaders(),
-                body: new URLSearchParams(formData),
+                const formData = new FormData(modalForm);
+
+                const response = await fetch(`${config.saveBase}/${type}`, {
+                    method: "POST",
+                    headers: csrfHeaders(),
+                    body: new URLSearchParams(formData),
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    showToast(data.message ?? "Save failed", "error");
+                    return;
+                }
+
+                showToast("Saved successfully", "success");
+                window.location.reload();
             });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                showToast(data.message ?? "Save failed", "error");
-                return;
-            }
-
-            showToast("Saved successfully", "success");
-            window.location.reload();
         });
 
         window.toggleSection = toggleSection;
@@ -465,58 +588,70 @@
         window.approveStockoutItem = async function(itemId) {
             if (!confirm("Approve this item? Stock will be deducted.")) return;
 
-            const response = await fetch(`${window.appConfig.baseUrl}stockout/approve-item/${itemId}`, {
-                method: "POST",
-                headers: csrfHeaders(),
+            const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+
+            await runOnce(`stockout-approve-${itemId}`, trigger, async () => {
+                const response = await fetch(`${window.appConfig.baseUrl}stockout/approve-item/${itemId}`, {
+                    method: "POST",
+                    headers: csrfHeaders(),
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    showToast(data.message ?? "Approval failed", "error");
+                    return;
+                }
+
+                showToast("Item approved", "success");
+                window.location.reload();
             });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                showToast(data.message ?? "Approval failed", "error");
-                return;
-            }
-
-            showToast("Item approved", "success");
-            window.location.reload();
         };
 
         window.rejectStockoutItem = async function(itemId) {
             if (!confirm("Reject this item?")) return;
 
-            const response = await fetch(`${window.appConfig.baseUrl}stockout/reject-item/${itemId}`, {
-                method: "POST",
-                headers: csrfHeaders(),
+            const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+
+            await runOnce(`stockout-reject-${itemId}`, trigger, async () => {
+                const response = await fetch(`${window.appConfig.baseUrl}stockout/reject-item/${itemId}`, {
+                    method: "POST",
+                    headers: csrfHeaders(),
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    showToast(data.message ?? "Rejection failed", "error");
+                    return;
+                }
+
+                showToast("Item rejected", "success");
+                window.location.reload();
             });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                showToast(data.message ?? "Rejection failed", "error");
-                return;
-            }
-
-            showToast("Item rejected", "success");
-            window.location.reload();
         };
 
         window.approveAllRequest = async function(requestId) {
             if (!confirm("Approve ALL items in this request? Stock will be deducted for each.")) return;
 
-            const response = await fetch(`${window.appConfig.baseUrl}stockout/approve-all/${requestId}`, {
-                method: "POST",
-                headers: csrfHeaders(),
+            const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+
+            await runOnce(`stockout-approve-all-${requestId}`, trigger, async () => {
+                const response = await fetch(`${window.appConfig.baseUrl}stockout/approve-all/${requestId}`, {
+                    method: "POST",
+                    headers: csrfHeaders(),
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    showToast(data.message ?? "Approval failed", "error");
+                    return;
+                }
+
+                showToast("All items approved", "success");
+                window.location.reload();
             });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                showToast(data.message ?? "Approval failed", "error");
-                return;
-            }
-
-            showToast("All items approved", "success");
-            window.location.reload();
         };
     }
 
@@ -525,6 +660,8 @@
     // =========================
 
     document.addEventListener("DOMContentLoaded", () => {
+        initThemeToggle();
+        bindSubmitGuards();
         document.querySelector("[data-menu-toggle]")?.addEventListener("click", toggleMenu);
         bindItemRedirects();
         bindAdjustSearch();
