@@ -1158,6 +1158,10 @@ tr:hover {
     box-shadow: none;
 }
 
+.settings-page .settings-section-header h2 {
+    color: #ffffff;
+}
+
 
 
 .settings-page .settings-section-body {
