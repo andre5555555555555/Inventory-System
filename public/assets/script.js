@@ -1,4 +1,4 @@
-(() => {
+﻿(() => {
 
     // =========================
     // HELPERS
@@ -186,21 +186,34 @@
         }, 200);
     }, duration);
 }
-    function toggleMenu(forceOpen = null) {
-        const nav = document.querySelector(".nav-links");
-        const button = document.querySelector("[data-menu-toggle]");
-        if (!nav) return;
+    function toggleMenu() {
+        const navLinks = document.querySelector(".nav-links");
+        if (!navLinks) return;
 
-        const isOpen = typeof forceOpen === "boolean" ? forceOpen : !nav.classList.contains("show");
-        nav.classList.toggle("show", isOpen);
-        nav.classList.toggle("active", isOpen);
-        button?.setAttribute("aria-expanded", String(isOpen));
+        const isOpen = navLinks.classList.toggle("show");
+        navLinks.classList.toggle("active", isOpen);
+
+        if (!isOpen) {
+            document.querySelectorAll(".nav-links .has-submenu.active").forEach((item) => {
+                item.classList.remove("active");
+            });
+        }
     }
 
-    function closeSubmenus() {
-        document.querySelectorAll(".nav-links .has-submenu.is-open").forEach((item) => {
-            item.classList.remove("is-open");
+    function toggleMobileSubmenu(trigger) {
+        const parent = trigger?.closest(".has-submenu");
+        if (!parent) return;
+
+        const isOpen = parent.classList.toggle("active");
+        document.querySelectorAll(".nav-links .has-submenu").forEach((item) => {
+            if (item !== parent) item.classList.remove("active");
         });
+
+        const navLinks = document.querySelector(".nav-links");
+        navLinks?.classList.add("show");
+        navLinks?.classList.add("active");
+
+        return isOpen;
     }
 
     // =========================
@@ -476,7 +489,7 @@
             });
         }
 
-        // ── Activate / Deactivate users ──
+        // â”€â”€ Activate / Deactivate users â”€â”€
 
         async function activateUser(id) {
             if (!confirm("Activate this user?")) return;
@@ -676,55 +689,14 @@
         initThemeToggle();
         bindSubmitGuards();
 
-        const menuToggle = document.querySelector("[data-menu-toggle]");
-        if (menuToggle) {
-            menuToggle.setAttribute("aria-expanded", "false");
-            menuToggle.addEventListener("click", () => toggleMenu());
-        }
+        document.querySelector("[data-menu-toggle]")?.addEventListener("click", toggleMenu);
 
-        document.addEventListener("click", (event) => {
-            const nav = document.querySelector(".nav-links");
-            const submenuTrigger = event.target.closest(".nav-links .has-submenu > a");
-
-            if (submenuTrigger && window.matchMedia("(max-width: 768px)").matches) {
+        document.querySelectorAll(".nav-links .has-submenu > a").forEach((link) => {
+            link.addEventListener("click", (event) => {
+                if (!window.matchMedia("(max-width: 768px)").matches) return;
                 event.preventDefault();
-                const parent = submenuTrigger.closest(".has-submenu");
-                const isOpen = parent?.classList.toggle("is-open") ?? false;
-                nav?.classList.add("show");
-                nav?.classList.add("active");
-                menuToggle?.setAttribute("aria-expanded", "true");
-
-                if (parent) {
-                    document.querySelectorAll(".nav-links .has-submenu").forEach((item) => {
-                        if (item !== parent) item.classList.remove("is-open");
-                    });
-                    if (!isOpen) {
-                        parent.classList.remove("is-open");
-                    }
-                }
-                return;
-            }
-
-            if (!event.target.closest(".navbar")) {
-                toggleMenu(false);
-                closeSubmenus();
-            }
-        });
-
-        document.addEventListener("click", (event) => {
-            const navLink = event.target.closest(".nav-links a");
-            if (!navLink || navLink.closest(".has-submenu > a")) return;
-            if (window.matchMedia("(max-width: 768px)").matches) {
-                toggleMenu(false);
-                closeSubmenus();
-            }
-        });
-
-        window.addEventListener("resize", () => {
-            if (!window.matchMedia("(max-width: 768px)").matches) {
-                toggleMenu(false);
-                closeSubmenus();
-            }
+                toggleMobileSubmenu(link);
+            });
         });
 
         bindItemRedirects();
@@ -747,3 +719,5 @@
     });
 
 })();
+
+

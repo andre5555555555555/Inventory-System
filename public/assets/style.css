@@ -4871,3 +4871,551 @@ html[data-theme="bsu"] .settings-section-header h2 {
 html[data-theme="bsu"] .dashboard-eyebrow{
     color: white;
 }
+
+/* Ensure navbar menu layers above page content when expanded */
+.navbar {
+    position: relative;
+}
+
+.nav-links {
+    position: relative;
+    z-index: 1100;
+}
+
+.navbar .submenu {
+    z-index: 1200;
+}
+
+.menu-toggle {
+    z-index: 1300;
+}
+
+@media (max-width: 768px) {
+    .navbar {
+        position: sticky;
+        top: 0;
+        z-index: 1400;
+        height: auto;
+    }
+
+    .menu-toggle {
+        z-index: 1500;
+    }
+
+    .nav-links {
+        z-index: 1450;
+        padding: 12px 0 16px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .nav-links > li > a {
+        width: 100%;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .nav-links .has-submenu > a::after {
+        content: "+";
+        margin-left: auto;
+        font-weight: 700;
+        opacity: 0.9;
+    }
+
+    .nav-links .has-submenu.active > a::after {
+        content: "−";
+    }
+
+    .submenu {
+        display: none;
+        position: static;
+        width: 100%;
+        min-width: 0;
+        margin: 6px 0 2px;
+        padding: 0;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .has-submenu.active .submenu {
+        display: flex;
+    }
+
+    .submenu li a {
+        padding: 10px 18px 10px 30px;
+    }
+}
+
+@media (max-width: 768px) {
+    .navbar {
+        flex-direction: row;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        border-bottom: none;
+    }
+
+    .menu-toggle {
+        margin-left: auto;
+    }
+
+    .nav-links {
+        display: none;
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        padding: 0;
+        margin-top: 8px;
+        width: 100%;
+        border-bottom: none;
+    }
+
+    .nav-links.active,
+    .nav-links.show {
+        display: flex;
+    }
+
+    .nav-links > li {
+        flex: 0 0 auto;
+    }
+
+    .nav-links > li > a {
+        min-height: 40px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        white-space: nowrap;
+    }
+
+    .nav-links .has-submenu > a::after {
+        content: "+";
+        margin-left: 6px;
+        font-weight: 700;
+        opacity: 0.9;
+    }
+
+    .nav-links .has-submenu.active > a::after {
+        content: "−";
+    }
+
+    .submenu {
+        display: none;
+        position: static;
+        width: 100%;
+        min-width: 0;
+        margin: 6px 0 2px;
+        padding: 0;
+        border-radius: 0;
+        overflow: hidden;
+        flex-basis: 100%;
+    }
+
+    .has-submenu.active .submenu {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .submenu li a {
+        padding: 10px 18px 10px 30px;
+    }
+}
+
+@media (max-width: 768px) {
+    .navbar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0;
+        padding: 10px 14px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+    }
+
+    .menu-toggle {
+        margin-left: auto;
+        margin-bottom: 10px;
+    }
+
+    .nav-links {
+        display: none;
+        flex-direction: column;
+        width: 100%;
+        gap: 6px;
+        padding: 10px 0 12px;
+        margin: 0;
+        border-bottom: none;
+    }
+
+    .nav-links.active,
+    .nav-links.show {
+        display: flex;
+    }
+
+    .nav-links > li {
+        width: 100%;
+    }
+
+    .nav-links > li > a {
+        width: 100%;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .nav-links .has-submenu > a::after {
+        content: "+";
+        margin-left: auto;
+        font-weight: 700;
+        opacity: 0.9;
+    }
+
+    .nav-links .has-submenu.active > a::after {
+        content: "−";
+    }
+
+    .submenu {
+        display: none;
+        position: static;
+        width: 100%;
+        min-width: 0;
+        margin: 6px 0 0;
+        padding: 0;
+        border-radius: 0;
+        overflow: hidden;
+        flex-direction: column;
+    }
+
+    .has-submenu.active .submenu {
+        display: flex;
+    }
+
+    .submenu li a {
+        padding: 10px 18px 10px 30px;
+    }
+}
+
+/* Theme-specific navbar and stockcard button polish */
+.menu-toggle,
+.add-btn,
+.sc-add-btn,
+.sc-edit-mode-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.menu-toggle {
+    min-height: 42px;
+    line-height: 1;
+}
+
+.sc-add-btn,
+.sc-edit-mode-btn,
+.sc-save-all-btn {
+    text-align: center;
+    line-height: 1.1;
+}
+
+html[data-theme="light"] .menu-toggle,
+html[data-theme="light"] .sc-add-btn,
+html[data-theme="light"] .sc-edit-mode-btn {
+    background: linear-gradient(135deg, #0f766e 0%, #12907f 100%);
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.18);
+}
+
+html[data-theme="dark"] .menu-toggle,
+html[data-theme="dark"] .sc-add-btn,
+html[data-theme="dark"] .sc-edit-mode-btn {
+    background: linear-gradient(135deg, #0f2a36 0%, #12383a 100%);
+    color: #ecfeff;
+    border-color: rgba(103, 232, 249, 0.22);
+}
+
+html[data-theme="bsu"] .menu-toggle,
+html[data-theme="bsu"] .sc-add-btn,
+html[data-theme="bsu"] .sc-edit-mode-btn {
+    background: #0b6b2b;
+    color: #ffeb3b;
+    border-color: #000000;
+}
+
+html[data-theme="dark"] .menu-toggle:hover,
+html[data-theme="dark"] .sc-add-btn:hover,
+html[data-theme="dark"] .sc-edit-mode-btn:hover {
+    background: linear-gradient(135deg, #164e63 0%, #0f766e 100%);
+    color: #ffffff;
+}
+
+html[data-theme="bsu"] .menu-toggle:hover,
+html[data-theme="bsu"] .sc-add-btn:hover,
+html[data-theme="bsu"] .sc-edit-mode-btn:hover {
+    background: #ffeb3b;
+    color: #000000;
+    border-color: #000000;
+}
+
+/* Match stock-in and menu buttons to Apply Filter button styling */
+.menu-toggle,
+.add-btn,
+.sc-add-btn {
+    background: linear-gradient(135deg, #0f766e 0%, #12907f 100%);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow: 0 10px 18px rgba(15, 118, 110, 0.18);
+}
+
+.menu-toggle:hover,
+.add-btn:hover,
+.sc-add-btn:hover {
+    background: linear-gradient(135deg, #115e59 0%, #0f766e 100%);
+    color: #ffffff;
+}
+
+html[data-theme="dark"] .menu-toggle,
+html[data-theme="dark"] .add-btn,
+html[data-theme="dark"] .sc-add-btn {
+    background: linear-gradient(135deg, #0f766e 0%, #14b8a6 100%);
+    color: #ffffff;
+    border-color: rgba(94, 234, 212, 0.26);
+}
+
+html[data-theme="dark"] .menu-toggle:hover,
+html[data-theme="dark"] .add-btn:hover,
+html[data-theme="dark"] .sc-add-btn:hover {
+    background: linear-gradient(135deg, #115e59 0%, #0f766e 100%);
+    color: #ffffff;
+}
+
+html[data-theme="bsu"] .menu-toggle,
+html[data-theme="bsu"] .add-btn,
+html[data-theme="bsu"] .sc-add-btn {
+    background: #0b6b2b;
+    color: #ffeb3b;
+    border: 2px solid #000000;
+}
+
+html[data-theme="bsu"] .menu-toggle:hover,
+html[data-theme="bsu"] .add-btn:hover,
+html[data-theme="bsu"] .sc-add-btn:hover {
+    background: #ffeb3b;
+    color: #000000;
+    border-color: #000000;
+}
+
+@media (max-width: 768px) {
+    .stockcard-filter-bar .sc-add-btn {
+        width: 100%;
+        min-width: 0;
+        flex: 1 1 100%;
+    }
+}
+
+/* Keep the hamburger hidden on desktop */
+.menu-toggle {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .menu-toggle {
+        display: block;
+    }
+}
+
+/* Make stockcard edit button match report filter action button */
+.sc-filter-actions .sc-edit-mode-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 170px;
+    height: 48px;
+    padding: 0 18px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow: 0 10px 18px rgba(15, 118, 110, 0.18);
+    font-size: 14px;
+    font-weight: 600;
+    gap: 8px;
+}
+
+.sc-filter-actions .sc-edit-mode-btn .sc-edit-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 42px;
+    height: 24px;
+    padding: 0 8px;
+    border-radius: 999px;
+    line-height: 1;
+}
+
+html[data-theme="dark"] .sc-filter-actions .sc-edit-mode-btn {
+    border-color: rgba(94, 234, 212, 0.26);
+}
+
+html[data-theme="bsu"] .sc-filter-actions .sc-edit-mode-btn {
+    border: 2px solid #000000;
+}
+
+@media (max-width: 768px) {
+    .stockcard-filter-bar .sc-edit-mode-btn {
+        width: 100%;
+        min-width: 0;
+    }
+}
+
+/* Make report edit button match stockcard edit button */
+.report-edit-controls .sc-edit-mode-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 170px;
+    height: 48px;
+    padding: 0 18px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow: 0 10px 18px rgba(15, 118, 110, 0.18);
+    font-size: 14px;
+    font-weight: 600;
+    gap: 8px;
+}
+
+.report-edit-controls .sc-edit-mode-btn .sc-edit-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 42px;
+    height: 24px;
+    padding: 0 8px;
+    border-radius: 999px;
+    line-height: 1;
+}
+
+html[data-theme="dark"] .report-edit-controls .sc-edit-mode-btn {
+    border-color: rgba(94, 234, 212, 0.26);
+}
+
+html[data-theme="bsu"] .report-edit-controls .sc-edit-mode-btn {
+    border: 2px solid #000000;
+}
+
+@media (max-width: 768px) {
+    .report-edit-controls .sc-edit-mode-btn {
+        width: 100%;
+        min-width: 0;
+    }
+}
+
+/* Make report edit/save buttons match stockcard exactly */
+.report-edit-controls .sc-edit-mode-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border: 2px solid #94a3b8;
+    border-radius: 8px;
+    background: transparent;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color .2s, color .2s;
+    min-width: 0;
+    height: auto;
+    box-shadow: none;
+    color: inherit;
+}
+
+.report-edit-controls .sc-edit-mode-btn .sc-edit-badge {
+    padding: 2px 8px;
+    border-radius: 20px;
+    background: #cbd5e1;
+    color: #334155;
+    font-size: 0.72rem;
+    letter-spacing: .06em;
+    font-weight: 700;
+    transition: background .2s, color .2s;
+    min-width: 0;
+    height: auto;
+}
+
+.report-edit-controls .sc-edit-mode-btn.is-active {
+    border-color: #f59e0b;
+    color: #b45309;
+}
+
+.report-edit-controls .sc-edit-mode-btn.is-active .sc-edit-badge {
+    background: #f59e0b;
+    color: #fff;
+}
+
+.report-edit-controls .sc-save-all-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 18px;
+    border: none;
+    border-radius: 8px;
+    background: #f59e0b;
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background .2s;
+    min-width: 0;
+    height: auto;
+    box-shadow: none;
+}
+
+.report-edit-controls .sc-save-all-btn:hover {
+    background: #d97706;
+}
+
+.report-edit-controls .sc-save-all-btn:disabled {
+    opacity: .6;
+    cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+    .report-edit-controls .sc-edit-mode-btn,
+    .report-edit-controls .sc-save-all-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* Make report edit button the same size as Apply Filter */
+.report-edit-controls .sc-edit-mode-btn {
+    min-width: 170px;
+    height: 48px;
+    padding: 0 18px;
+    font-size: 14px;
+}
+
+.report-edit-controls .sc-edit-mode-btn .sc-edit-badge {
+    min-width: 42px;
+    height: 24px;
+}
+
+@media (max-width: 768px) {
+    .report-edit-controls .sc-edit-mode-btn {
+        width: 100%;
+        min-width: 0;
+    }
+}
+
+/* Make report save button the same size as Apply Filter */
+.report-edit-controls .sc-save-all-btn {
+    min-width: 170px;
+    height: 48px;
+    padding: 0 18px;
+    font-size: 14px;
+}
+
+@media (max-width: 768px) {
+    .report-edit-controls .sc-save-all-btn {
+        width: 100%;
+        min-width: 0;
+    }
+}

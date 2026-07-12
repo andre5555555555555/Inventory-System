@@ -175,6 +175,7 @@ class InventoryController extends BaseController
         $newQty        = (int) $this->request->getPost('new_qty');
         $newTypeInput  = $this->request->getPost('new_type');
         $newTypeId     = $newTypeInput !== null ? (int) $newTypeInput : null;
+        $newOffice     = trim((string) ($this->request->getPost('new_office') ?? ''));
 
         if ($transactionId <= 0) {
             return $this->response->setStatusCode(422)->setJSON(['ok' => false, 'error' => 'Invalid transaction.']);
@@ -221,6 +222,25 @@ class InventoryController extends BaseController
             'transaction_qty' => $newQty,
             'updated_at'      => date('Y-m-d H:i:s'),
         ];
+        if ($newOffice !== '') {
+            $officeQuery = $db->table('office_table')->select('office_id')->where('office_name', $newOffice);
+            if ($userOfficeId > 0) {
+                $officeQuery->where('user_office_id', $userOfficeId);
+            }
+            $existingOffice = $officeQuery->get(1)->getRowArray();
+            if ($existingOffice) {
+                $updateFields['office_id'] = (int) $existingOffice['office_id'];
+            } else {
+                $officeInsert = ['office_name' => $newOffice];
+                if ($userOfficeId > 0) {
+                    $officeInsert['user_office_id'] = $userOfficeId;
+                }
+                $db->table('office_table')->insert($officeInsert);
+                $updateFields['office_id'] = (int) $db->insertID();
+            }
+        } else {
+            $updateFields['office_id'] = null;
+        }
         // Map display type (1=receipt, 2=issue) to transaction_type_id
         if ($newTypeId !== null && $newTypeId !== $oldTypeId) {
             $updateFields['transaction_type_id'] = $newTypeId;

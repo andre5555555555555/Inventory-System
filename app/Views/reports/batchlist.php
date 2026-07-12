@@ -53,7 +53,7 @@
         <!-- Edit mode controls (right-aligned) -->
         <div class="report-edit-controls">
             <button type="button" id="rptEditToggle" class="sc-edit-mode-btn" aria-pressed="false">
-                <span>✏ Edit Mode</span>
+                <span>Edit Mode</span>
                 <span class="sc-edit-badge">OFF</span>
             </button>
             <button type="button" id="rptSaveBtn" class="sc-save-all-btn" style="display:none">Save Changes</button>

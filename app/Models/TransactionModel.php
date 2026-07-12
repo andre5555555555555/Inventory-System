@@ -92,7 +92,7 @@ class TransactionModel extends Model
                     p.product_no,
                     p.stock_no,
                     COALESCE(ut.unit, 'Deleted Unit') AS unit_name,
-                    COALESCE(ot.office_name, uot.user_office_name, '') AS office,
+                    COALESCE(ot.office_name, '') AS office,
                     COALESCE(r.reference, 'N/A') AS reference,
                     COALESCE(et.entity, 'Deleted Entity') AS entity_name,
                     COALESCE(et.fund_cluster, '-') AS fund_cluster,
@@ -107,7 +107,6 @@ class TransactionModel extends Model
                 INNER JOIN product_table p ON b.product_id = p.product_id
                 LEFT JOIN unit_table ut ON p.unit_id = ut.unit_id
                 LEFT JOIN office_table ot ON t.office_id = ot.office_id
-                LEFT JOIN user_office_table uot ON t.user_office_id = uot.user_office_id
                 LEFT JOIN reference_table r ON t.reference_id = r.reference_id
                 LEFT JOIN entity_table et ON p.entity_id = et.entity_id
                 WHERE b.product_id = ? {$officeFilter}

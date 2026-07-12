@@ -1,4 +1,4 @@
-<?= $this->extend('layouts/main') ?>
+﻿<?= $this->extend('layouts/main') ?>
 
 <?= $this->section('content') ?>
 
@@ -38,15 +38,15 @@
                 </div>
             </div>
 
-            <!-- Inline filter bar — matches report page style -->
+            <!-- Inline filter bar â€” matches report page style -->
             <form method="get" action="<?= site_url('stockcard') ?>" class="toolbar-card report-toolbar stockcard-filter-bar">
                 <input type="hidden" name="item_id" value="<?= (int) $itemId ?>">
 
                 <div class="report-filter-group">
                     <label for="sc-order">Order</label>
                     <select id="sc-order" name="filter_type">
-                        <option value="latest" <?= $filterType === 'latest' ? 'selected' : '' ?>>↓ Descending (Newest First)</option>
-                        <option value="oldest" <?= $filterType === 'oldest' ? 'selected' : '' ?>>↑ Ascending (Oldest First)</option>
+                        <option value="latest" <?= $filterType === 'latest' ? 'selected' : '' ?>>Descending (Newest First)</option>
+                        <option value="oldest" <?= $filterType === 'oldest' ? 'selected' : '' ?>>Ascending (Oldest First)</option>
                     </select>
                 </div>
 
@@ -74,7 +74,7 @@
                     <button type="submit" style="color:white;">Apply Filter</button>
                     <?php if ($stockcard): ?>
                     <button type="button" id="editModeToggle" class="sc-edit-mode-btn" aria-pressed="false">
-                        <span>✏ Edit Mode</span>
+                        <span>Edit Mode</span>
                         <span class="sc-edit-badge">OFF</span>
                     </button>
                     <button type="button" id="scSaveAllBtn" class="sc-save-all-btn" style="display:none">
@@ -126,7 +126,7 @@
                                     <tr class="sc-empty-row">
                                         <td colspan="7" class="sc-empty-cell">
                                             <div class="sc-empty-state">
-                                                <span class="sc-empty-icon">📋</span>
+                                                <span class="sc-empty-icon">ðŸ“‹</span>
                                                 <p>No records found for the selected filter.</p>
                                                 <a href="<?= site_url('stockcard?item_id=' . (int) $itemId) ?>">Clear filters</a>
                                             </div>
@@ -163,9 +163,10 @@
                                                     style="display:none"
                                                     <?= $isReceipt ? 'disabled' : '' ?>>
                                             </td>
-                                            <!-- Office: shown for any row that has one -->
+                                            <?php $officeValue = trim((string) ($row['office'] ?? '')); ?>
                                             <td class="sc-office-cell">
-                                                <?= esc($row['office'] ?? '') ?>
+                                                <span class="sc-office-text"><?= esc($officeValue) ?></span>
+                                                <input type="text" class="sc-office-input" value="<?= esc($officeValue, 'attr') ?>" style="display:none" placeholder="Office">
                                             </td>
                                             <td class="sc-balance-cell sc-col-bal"><?= esc((string) $row['balance']) ?></td>
                                             <!-- Action cell: visible only in edit mode -->
@@ -204,7 +205,7 @@
 </div>
 
 <style>
-/* ── Toolbar layout ─────────────────────────────────────── */
+/* â”€â”€ Toolbar layout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .stockcard-filter-bar.report-toolbar {
     flex-wrap: wrap;
     align-items: flex-end;
@@ -222,7 +223,7 @@
 }
 
 
-/* ── Stockcard table ────────────────────────────────────── */
+/* â”€â”€ Stockcard table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .sc-table {
     width: 100%;
     border-collapse: collapse;
@@ -259,7 +260,7 @@
     background: rgba(239, 68, 68, 0.07) !important;
 }
 
-/* ── Qty input ──────────────────────────────────────────── */
+/* â”€â”€ Qty input â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .sc-qty-input {
     width: 72px;
     padding: 5px 7px;
@@ -271,7 +272,7 @@
     text-align: center;
 }
 
-/* ── Delete button ──────────────────────────────────────── */
+/* â”€â”€ Delete button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .sc-delete-btn {
     padding: 5px 10px;
     border-radius: 6px;
@@ -289,7 +290,7 @@
     color: #6b7280;
 }
 
-/* ── Empty state ────────────────────────────────────────── */
+/* â”€â”€ Empty state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .sc-empty-cell { padding: 40px 20px !important; }
 .sc-empty-state {
     display: flex;
@@ -308,7 +309,7 @@
     cursor: pointer;
 }
 
-/* ── Edit Mode button ───────────────────────────────────── */
+/* â”€â”€ Edit Mode button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .sc-edit-mode-btn {
     display: inline-flex;
@@ -342,7 +343,7 @@
     color: #fff;
 }
 
-/* ── Save All button ────────────────────────────────────── */
+/* â”€â”€ Save All button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .sc-save-all-btn {
     display: inline-flex;
     align-items: center;
@@ -360,12 +361,12 @@
 .sc-save-all-btn:hover { background: #d97706; }
 .sc-save-all-btn:disabled { opacity: .6; cursor: not-allowed; }
 
-/* ── Edit mode table highlight ──────────────────────────── */
+/* â”€â”€ Edit mode table highlight â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 #stockcard-table.edit-mode-on .sc-data-row {
     background: rgba(251, 191, 36, 0.07);
 }
 
-/* ── Qty input inside cells ─────────────────────────────── */
+/* â”€â”€ Qty input inside cells â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .sc-qty-input {
     width: 72px;
     padding: 4px 6px;
@@ -376,7 +377,7 @@
     font-size: 0.9rem;
 }
 
-/* ── Type select ────────────────────────────────────────── */
+/* â”€â”€ Type select â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .sc-type-select {
     padding: 4px 6px;
     border-radius: 5px;
@@ -387,7 +388,7 @@
     font-weight: 600;
 }
 
-/* ── Delete button ──────────────────────────────────────── */
+/* â”€â”€ Delete button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .sc-delete-btn {
     padding: 3px 8px;
     border-radius: 5px;
@@ -400,7 +401,7 @@
 }
 .sc-delete-btn:hover { background: #ef4444; color: #fff; }
 
-/* ── Pending delete row ─────────────────────────────────── */
+/* â”€â”€ Pending delete row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .sc-data-row.sc-pending-delete {
     opacity: 0.45;
     text-decoration: line-through;
@@ -411,7 +412,7 @@
     color: #6b7280;
 }
 
-/* ── Status bar ─────────────────────────────────────────── */
+/* â”€â”€ Status bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .sc-edit-status {
     padding: 8px 14px;
     border-radius: 8px;
@@ -460,7 +461,7 @@
     const deleteUrl = '<?= site_url('stock/delete-transaction') ?>';
     const pendingDeletes = new Set(); // transaction IDs marked for deletion
 
-    // ── Edit Mode toggle ──────────────────────────────────
+    // â”€â”€ Edit Mode toggle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if (editToggle) {
         editToggle.addEventListener('click', function () {
             editMode = !editMode;
@@ -480,11 +481,14 @@
             document.querySelectorAll('.sc-data-row').forEach(row => {
                 // toggle text vs input
                 row.querySelectorAll('.sc-qty-text').forEach(s => s.style.display = editMode ? 'none' : '');
+                row.querySelectorAll('.sc-office-text').forEach(s => s.style.display = editMode ? 'none' : '');
                 // Only reveal the input that belongs to this row's type (not disabled)
                 row.querySelectorAll('.sc-qty-input:not([disabled])').forEach(i => i.style.display = editMode ? '' : 'none');
+                row.querySelectorAll('.sc-office-input').forEach(i => i.style.display = editMode ? '' : 'none');
                 // reset on toggle off
                 if (!editMode) {
                     row.querySelectorAll('.sc-qty-input:not([disabled])').forEach(i => i.value = row.dataset.origQty);
+                    row.querySelectorAll('.sc-office-input').forEach(i => i.value = row.querySelector('.sc-office-text')?.textContent ?? '');
                     row.classList.remove('sc-pending-delete');
                     pendingDeletes.delete(row.dataset.transactionId);
                 }
@@ -492,7 +496,7 @@
         });
     }
 
-    // ── Delete button ─────────────────────────────────────
+    // â”€â”€ Delete button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     document.addEventListener('click', function (e) {
         const btn = e.target.closest('.sc-delete-btn');
         if (!btn) return;
@@ -501,24 +505,24 @@
         if (pendingDeletes.has(tid)) {
             pendingDeletes.delete(tid);
             row.classList.remove('sc-pending-delete');
-            btn.textContent = '🗑';
+            btn.textContent = 'ðŸ—‘';
             btn.title = 'Delete this transaction';
         } else {
             pendingDeletes.add(tid);
             row.classList.add('sc-pending-delete');
-            btn.textContent = '↩';
-            btn.title = 'Undo — keep this row';
+            btn.textContent = 'â†©';
+            btn.title = 'Undo â€” keep this row';
         }
     });
 
-    // ── Save All ──────────────────────────────────────────
+    // â”€â”€ Save All â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if (saveAllBtn) {
         saveAllBtn.addEventListener('click', async function () {
             const csrf = getCsrf();
             let errors = [];
             let ops    = 0;
 
-            // ① Process deletions first
+            // â‘  Process deletions first
             for (const tid of pendingDeletes) {
                 ops++;
                 const data = new FormData();
@@ -533,28 +537,32 @@
                 }
             }
 
-            // ② Process qty changes
+            // â‘¡ Process qty changes
             document.querySelectorAll('.sc-data-row:not(.sc-pending-delete)').forEach(row => {
                 const origQty  = parseInt(row.dataset.origQty, 10);
-                const input    = row.querySelector('.sc-qty-input:not([style*="none"])')
-                              ?? row.querySelector('.sc-receipt-input');
-                const newQty   = parseInt(input?.value ?? origQty, 10);
+                const input      = row.querySelector('.sc-qty-input:not([style*="none"])')
+                                  ?? row.querySelector('.sc-receipt-input');
+                const officeInput = row.querySelector('.sc-office-input');
+                const newQty      = parseInt(input?.value ?? origQty, 10);
+                const newOffice   = (officeInput?.value ?? '').trim();
+                const origOffice  = (row.querySelector('.sc-office-text')?.textContent ?? '').trim();
 
-                if (newQty === origQty) return;
+                if (newQty === origQty && newOffice === origOffice) return;
                 if (isNaN(newQty) || newQty <= 0) { errors.push('Invalid qty in a row'); return; }
 
                 ops++;
-                row._pendingSave = { transactionId: row.dataset.transactionId, newQty };
+                row._pendingSave = { transactionId: row.dataset.transactionId, newQty, newOffice };
             });
 
             const editRows = [...document.querySelectorAll('.sc-data-row[data-transaction-id]')]
                 .filter(r => r._pendingSave);
 
             for (const row of editRows) {
-                const { transactionId, newQty } = row._pendingSave;
+                const { transactionId, newQty, newOffice } = row._pendingSave;
                 const data = new FormData();
                 data.append('transaction_id', transactionId);
                 data.append('new_qty', newQty);
+                data.append('new_office', newOffice);
                 if (csrf.name) data.append(csrf.name, csrf.hash);
                 try {
                     const res  = await fetch(editUrl, { method: 'POST', body: data });
@@ -568,7 +576,7 @@
             if (ops === 0) { showStatus('No changes detected.', 'error'); return; }
 
             if (errors.length === 0) {
-                showStatus('✓ Saved. Reloading…', 'success');
+                showStatus('âœ“ Saved. Reloadingâ€¦', 'success');
                 setTimeout(() => location.reload(), 900);
             } else {
                 showStatus('Errors: ' + errors.join(' | '), 'error');
@@ -578,3 +586,4 @@
 })();
 </script>
 <?= $this->endSection() ?>
+

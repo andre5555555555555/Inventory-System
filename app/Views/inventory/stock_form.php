@@ -1,4 +1,4 @@
-<?= $this->extend('layouts/main') ?>
+﻿<?= $this->extend('layouts/main') ?>
 
 <?= $this->section('content') ?>
 <div class="main-content-stockcard stock-form-page">
@@ -47,13 +47,19 @@
                     <input type="date" name="expiration_date" value="<?= esc((string) old('expiration_date')) ?>">
 
                     <label>Office</label>
-                    <select name="office_id" required>
+                    <input
+                        type="text"
+                        name="office"
+                        list="office-options"
+                        value="<?= esc((string) old('office')) ?>"
+                        placeholder="Select or type an office"
+                    >
+
+                    <datalist id="office-options">
                         <?php foreach ($offices as $office): ?>
-                            <option value="<?= (int) $office['office_id'] ?>" <?= (string) old('office_id', $offices[0]['office_id'] ?? '') === (string) $office['office_id'] ? 'selected' : '' ?>>
-                                <?= esc($office['office_name']) ?>
-                            </option>
+                            <option value="<?= esc($office['office_name']) ?>"></option>
                         <?php endforeach; ?>
-                    </select>
+                    </datalist>
                 </section>
 
                 <!-- TRANSACTION DETAILS -->
@@ -70,7 +76,6 @@
                         list="reference-options"
                         value="<?= esc((string) old('reference')) ?>"
                         placeholder="Select or type a reference"
-                        required
                     >
 
                     <small class="stock-form-help">
@@ -112,3 +117,4 @@
     </div>
 </div>
 <?= $this->endSection() ?>
+
