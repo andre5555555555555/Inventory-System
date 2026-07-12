@@ -49,12 +49,12 @@
                     <label>Confirm Password</label>
                     <input type="password" name="confirm_password" placeholder="Confirm password" required>
 
-                    <label>Role</label>
-                    <select name="role" required>
-                        <option value="">Select Role</option>
-                        <?php foreach (($roles ?? []) as $role): ?>
-                            <option value="<?= esc($role['role_name']) ?>" <?= old('role') === $role['role_name'] ? 'selected' : '' ?>>
-                                <?= esc($role['role_name']) ?> (Level <?= (int) $role['level_id'] ?>)
+                    <label>Level of Access</label>
+                    <select name="lvl_of_access_id" required>
+                        <option value="">Select Level</option>
+                        <?php foreach (($levels ?? []) as $level): ?>
+                            <option value="<?= (int) $level['lvl_of_access_id'] ?>" <?= (string) old('lvl_of_access_id') === (string) $level['lvl_of_access_id'] ? 'selected' : '' ?>>
+                                <?= esc($level['role']) ?> (Level <?= (int) $level['lvl_of_access'] ?>)
                             </option>
                         <?php endforeach; ?>
                     </select>
@@ -64,7 +64,7 @@
                         <option value="">Select User Office</option>
                         <?php foreach (($userOffices ?? []) as $uo): ?>
                             <option value="<?= (int) $uo['user_office_id'] ?>" <?= (string) old('user_office_id') === (string) $uo['user_office_id'] ? 'selected' : '' ?>>
-                                <?= esc($uo['user_office']) ?>
+                                <?= esc($uo['user_office_name']) ?>
                             </option>
                         <?php endforeach; ?>
                     </select>

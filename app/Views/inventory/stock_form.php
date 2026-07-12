@@ -23,19 +23,19 @@
 
             <div class="stock-form-grid stock-form-full">
 
-                <!-- ITEM DETAILS -->
+                <!-- PRODUCT DETAILS -->
                 <section class="stock-form-panel">
                     <div class="stock-form-panel-head">
-                        <h2>Item Details</h2>
-                        <p>Choose the item and where this transaction belongs.</p>
+                        <h2>Product Details</h2>
+                        <p>Choose the product and where this transaction belongs.</p>
                     </div>
 
-                    <label>Item</label>
-                    <select name="item_id" id="stockItemSelect" data-stock-item-select data-target-url="<?= site_url('stock/add') ?>" required>
-                        <option value="">Select item</option>
+                    <label>Product</label>
+                    <select name="product_id" id="stockItemSelect" data-stock-item-select data-target-url="<?= site_url('stock/add') ?>" required>
+                        <option value="">Select product</option>
                         <?php foreach ($items as $item): ?>
-                            <option value="<?= (int) $item['item_id'] ?>" <?= (int) $itemId === (int) $item['item_id'] ? 'selected' : '' ?>>
-                                <?= esc($item['item']) ?>
+                            <option value="<?= (int) $item['product_id'] ?>" <?= (int) $itemId === (int) $item['product_id'] ? 'selected' : '' ?>>
+                                <?= esc($item['product']) ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
@@ -50,7 +50,7 @@
                     <select name="office_id" required>
                         <?php foreach ($offices as $office): ?>
                             <option value="<?= (int) $office['office_id'] ?>" <?= (string) old('office_id', $offices[0]['office_id'] ?? '') === (string) $office['office_id'] ? 'selected' : '' ?>>
-                                <?= esc($office['office']) ?>
+                                <?= esc($office['office_name']) ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
@@ -97,7 +97,7 @@
 
                         <div>
                             <label>Unit Cost</label>
-                            <input type="number" name="unit_cost" step="0.01" value="<?= esc((string) old('unit_cost')) ?>">
+                            <input type="number" name="unit_cost" step="0.01" min="0.01" placeholder="0.00" required value="<?= esc((string) old('unit_cost')) ?>">
                         </div>
                     </div>
                 </section>

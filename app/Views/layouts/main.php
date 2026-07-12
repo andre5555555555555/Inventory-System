@@ -45,7 +45,7 @@
 
         // Pending user activations (Level 3+)
         if ($levelId >= 3) {
-            $userBuilder = $db->table('users')->where('user_activity_id', 3);
+            $userBuilder = $db->table('user_table')->where('user_activity_id', 3);
             if ($levelId < 4 && $userOfficeId > 0) {
                 $userBuilder->where('user_office_id', $userOfficeId);
             }
@@ -54,26 +54,26 @@
 
         // Dashboard alerts: low stock + expiring (Level 1-3)
         if ($levelId >= 1 && $levelId <= 3) {
-            $officeFilter = $userOfficeId > 0 ? ' AND item.user_office_id = ' . (int) $userOfficeId : '';
+            $officeFilter = $userOfficeId > 0 ? ' AND p.user_office_id = ' . (int) $userOfficeId : '';
             $lowStockCount = (int) ($db->query(
                 'SELECT COUNT(*) AS cnt FROM (
-                    SELECT item.item_id
-                    FROM item
-                    LEFT JOIN batch ON item.item_id = batch.item_id
+                    SELECT p.product_id
+                    FROM product_table p
+                    LEFT JOIN batch_table b ON p.product_id = b.product_id
                     WHERE 1=1' . $officeFilter . '
-                    GROUP BY item.item_id, item.re_order_point
-                    HAVING COALESCE(SUM(batch.remaining_qty), 0) <= COALESCE(item.re_order_point, 0)
-                       AND COALESCE(SUM(batch.remaining_qty), 0) > 0
-                       AND COALESCE(item.re_order_point, 0) > 0
+                    GROUP BY p.product_id, p.product_reorder_point
+                    HAVING COALESCE(SUM(b.current_qty), 0) <= COALESCE(p.product_reorder_point, 0)
+                       AND COALESCE(SUM(b.current_qty), 0) > 0
+                       AND COALESCE(p.product_reorder_point, 0) > 0
                 ) AS sub'
             )->getRowArray()['cnt'] ?? 0);
             $expiringCount = (int) ($db->query(
-                'SELECT COUNT(*) AS cnt FROM batch
-                 INNER JOIN item ON batch.item_id = item.item_id
-                 WHERE batch.remaining_qty > 0
-                   AND batch.expiration_date IS NOT NULL
-                   AND batch.expiration_date >= CURDATE()
-                   AND DATEDIFF(batch.expiration_date, CURDATE()) <= 30' . $officeFilter
+                'SELECT COUNT(*) AS cnt FROM batch_table b
+                 INNER JOIN product_table p ON b.product_id = p.product_id
+                 WHERE b.current_qty > 0
+                   AND b.expiration_date IS NOT NULL
+                   AND b.expiration_date >= CURDATE()
+                   AND DATEDIFF(b.expiration_date, CURDATE()) <= 30' . $officeFilter
             )->getRowArray()['cnt'] ?? 0);
             $navBadgeAlerts = $lowStockCount + $expiringCount;
         }

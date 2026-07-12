@@ -6,7 +6,7 @@ use CodeIgniter\Model;
 
 class ReferenceModel extends Model
 {
-    protected $table                 = 'reference';
+    protected $table                 = 'reference_table';
     protected $primaryKey            = 'reference_id';
     protected $returnType            = 'array';
     protected $allowedFields         = ['reference', 'user_office_id'];

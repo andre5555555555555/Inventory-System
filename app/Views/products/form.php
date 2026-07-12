@@ -12,24 +12,24 @@
 
     <form method="post" class="stock-form flat-form-card">
         <?= csrf_field() ?>
-        <label>Stock No:</label>
-        <input type="number" name="item_no" min="1" value="<?= esc((string) old('item_no', $product['item_no'])) ?>" required>
+        <label>Product No:</label>
+        <input type="number" name="product_no" min="1" value="<?= esc((string) old('product_no', $product['product_no'])) ?>" required>
 
         <label>Product Name:</label>
-        <input type="text" name="item" value="<?= esc(old('item', $product['item'])) ?>" required>
+        <input type="text" name="product" value="<?= esc(old('product', $product['product'])) ?>" required>
 
         <label>Description:</label>
-        <textarea name="description"><?= esc(old('description', $product['description'])) ?></textarea>
+        <textarea name="product_description"><?= esc(old('product_description', $product['product_description'])) ?></textarea>
 
         <label>Re-order Point:</label>
-        <input type="number" name="re_order_point" min="0" value="<?= esc((string) old('re_order_point', $product['re_order_point'] ?? 0)) ?>" required>
+        <input type="number" name="product_reorder_point" min="0" value="<?= esc((string) old('product_reorder_point', $product['product_reorder_point'] ?? 0)) ?>" required>
 
         <label>Entity:</label>
         <select name="entity_id" required>
             <option value="">Select entity</option>
             <?php foreach ($entities as $entity): ?>
                 <option value="<?= (int) $entity['entity_id'] ?>" <?= (string) old('entity_id', $product['entity_id'] ?? '') === (string) $entity['entity_id'] ? 'selected' : '' ?>>
-                    <?= esc($entity['entity_name']) ?>
+                    <?= esc($entity['entity']) ?>
                 </option>
             <?php endforeach; ?>
         </select>
@@ -44,27 +44,17 @@
             <?php endforeach; ?>
         </select>
 
-        <label>Item Type:</label>
-        <select name="item_type_id" required>
-            <option value="">Select item type</option>
-            <?php foreach ($itemTypes as $itemType): ?>
-                <option value="<?= (int) $itemType['item_type_id'] ?>" <?= (string) old('item_type_id', $product['item_type_id'] ?? '') === (string) $itemType['item_type_id'] ? 'selected' : '' ?>>
-                    <?= esc($itemType['item_type']) ?>
+        <label>Product Type:</label>
+        <select name="type_id" required>
+            <option value="">Select product type</option>
+            <?php foreach ($productTypes as $pType): ?>
+                <option value="<?= (int) $pType['type_id'] ?>" <?= (string) old('type_id', $product['type_id'] ?? '') === (string) $pType['type_id'] ? 'selected' : '' ?>>
+                    <?= esc($pType['type']) ?>
                 </option>
             <?php endforeach; ?>
         </select>
 
-        <label>Category:</label>
-        <select name="item_category_id" required>
-            <option value="">Select category</option>
-            <?php foreach ($itemCategories as $itemCategory): ?>
-                <option value="<?= (int) $itemCategory['item_category_id'] ?>" <?= (string) old('item_category_id', $product['item_category_id'] ?? '') === (string) $itemCategory['item_category_id'] ? 'selected' : '' ?>>
-                    <?= esc($itemCategory['item_category']) ?>
-                </option>
-            <?php endforeach; ?>
-        </select>
-
-        <button type="submit"><?= $product['item_id'] ? 'Update' : 'Save Product' ?></button>
+        <button type="submit"><?= $product['product_id'] ? 'Update' : 'Save Product' ?></button>
     </form>
 </div>
 <?= $this->endSection() ?>

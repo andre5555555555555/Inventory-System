@@ -7,13 +7,13 @@ use CodeIgniter\Model;
 
 class SettingsModel extends Model
 {
-    protected $table = 'users';
+    protected $table = 'user_table';
 
     /**
-     * Return definitions filtered by the caller's access level.
+     * Return settings definitions filtered by access level.
      * Level 2: inventory settings only (no users)
      * Level 3: inventory settings + users (within office)
-     * Level 4: everything + user_office management
+     * Level 4: user + user_office_table management only
      */
     public function definitions(int $levelId = 2): array
     {
@@ -22,19 +22,17 @@ class SettingsModel extends Model
         // Level 4 (Technical Staff): only user + user_office management
         if ($levelId >= 4) {
             return [
-                'users' => $allDefinitions['users'],
-                'user_office' => $allDefinitions['user_office'],
+                'users'             => $allDefinitions['users'],
+                'user_office_table' => $allDefinitions['user_office_table'],
             ];
         }
 
         $defs = [
-            'entity' => $allDefinitions['entity'],
-            'unit' => $allDefinitions['unit'],
-            'roles' => $allDefinitions['roles'],
-            'reference' => $allDefinitions['reference'],
-            'item_type' => $allDefinitions['item_type'],
-            'item_category' => $allDefinitions['item_category'],
-            'office' => $allDefinitions['office'],
+            'entity_table'    => $allDefinitions['entity_table'],
+            'unit_table'      => $allDefinitions['unit_table'],
+            'reference_table' => $allDefinitions['reference_table'],
+            'type_of_product' => $allDefinitions['type_of_product'],
+            'office_table'    => $allDefinitions['office_table'],
         ];
 
         // Level 3: add user management
@@ -52,58 +50,52 @@ class SettingsModel extends Model
     {
         return [
             'users' => [
-                'table'  => 'users',
+                'table'  => 'user_table',
                 'pk'     => 'user_id',
-                'fields' => ['username', 'email', 'password', 'role', 'user_office_id'],
-                'labels' => ['username' => 'Username', 'email' => 'Email', 'password' => 'Password', 'role' => 'Role', 'user_office_id' => 'User Office'],
+                'fields' => ['username', 'email', 'password', 'lvl_of_access_id', 'user_office_id'],
+                'labels' => [
+                    'username'         => 'Username',
+                    'email'            => 'Email',
+                    'password'         => 'Password',
+                    'lvl_of_access_id' => 'Level of Access',
+                    'user_office_id'   => 'User Office',
+                ],
             ],
-            'entity' => [
-                'table'  => 'entity',
+            'entity_table' => [
+                'table'  => 'entity_table',
                 'pk'     => 'entity_id',
-                'fields' => ['entity_name', 'fund_cluster'],
-                'labels' => ['entity_name' => 'Entity Name', 'fund_cluster' => 'Fund Cluster'],
+                'fields' => ['entity', 'fund_cluster'],
+                'labels' => ['entity' => 'Entity Name', 'fund_cluster' => 'Fund Cluster'],
             ],
-            'unit' => [
-                'table'  => 'unit',
+            'unit_table' => [
+                'table'  => 'unit_table',
                 'pk'     => 'unit_id',
                 'fields' => ['unit'],
                 'labels' => ['unit' => 'Unit'],
             ],
-            'roles' => [
-                'table'  => 'roles',
-                'pk'     => 'role_id',
-                'fields' => ['role_name', 'level_id'],
-                'labels' => ['role_name' => 'Role Name', 'level_id' => 'Level of Access'],
-            ],
-            'reference' => [
-                'table'  => 'reference',
+            'reference_table' => [
+                'table'  => 'reference_table',
                 'pk'     => 'reference_id',
                 'fields' => ['reference'],
                 'labels' => ['reference' => 'Reference'],
             ],
-            'item_type' => [
-                'table'  => 'item_type',
-                'pk'     => 'item_type_id',
-                'fields' => ['item_type'],
-                'labels' => ['item_type' => 'Item Type'],
+            'type_of_product' => [
+                'table'  => 'type_of_product',
+                'pk'     => 'type_id',
+                'fields' => ['type'],
+                'labels' => ['type' => 'Product Type'],
             ],
-            'item_category' => [
-                'table'  => 'item_category',
-                'pk'     => 'item_category_id',
-                'fields' => ['item_category'],
-                'labels' => ['item_category' => 'Category'],
-            ],
-            'office' => [
-                'table'  => 'office',
+            'office_table' => [
+                'table'  => 'office_table',
                 'pk'     => 'office_id',
-                'fields' => ['office'],
-                'labels' => ['office' => 'Office Name'],
+                'fields' => ['office_name'],
+                'labels' => ['office_name' => 'Office Name'],
             ],
-            'user_office' => [
-                'table'  => 'user_office',
+            'user_office_table' => [
+                'table'  => 'user_office_table',
                 'pk'     => 'user_office_id',
-                'fields' => ['user_office'],
-                'labels' => ['user_office' => 'User Office Name'],
+                'fields' => ['user_office_name'],
+                'labels' => ['user_office_name' => 'User Office Name'],
             ],
         ];
     }
@@ -116,25 +108,23 @@ class SettingsModel extends Model
         foreach (array_keys($definitions) as $type) {
             if ($type === 'users') {
                 $records['users'] = $this->userRecords($userOfficeId, $levelId);
-            } elseif ($type === 'user_office') {
-                $records['user_office'] = $this->db->table('user_office')->orderBy('user_office', 'ASC')->get()->getResultArray();
-            } elseif ($type === 'roles') {
-                $records['roles'] = $this->rolesWithLevel($userOfficeId);
+            } elseif ($type === 'user_office_table') {
+                $records['user_office_table'] = $this->db->table('user_office_table')
+                    ->orderBy('user_office_name', 'ASC')->get()->getResultArray();
             } else {
                 $orderCol = match ($type) {
-                    'entity'        => 'entity_name',
-                    'unit'          => 'unit',
-                    'reference'     => 'reference',
-                    'item_type'     => 'item_type',
-                    'item_category' => 'item_category',
-                    'office'        => 'office',
-                    default         => $definitions[$type]['pk'],
+                    'entity_table'    => 'entity',
+                    'unit_table'      => 'unit',
+                    'reference_table' => 'reference',
+                    'type_of_product' => 'type',
+                    'office_table'    => 'office_name',
+                    default           => $definitions[$type]['pk'],
                 };
-                $records[$type] = $this->orderedRecords($type, $orderCol, $userOfficeId);
+                $records[$type] = $this->orderedRecords($definitions[$type]['table'], $orderCol, $userOfficeId);
             }
         }
 
-        // Pending users for Level 3 (within office) and Level 4 (all)
+        // Pending users for Level 3+ approval
         $pendingUsers = [];
         if ($levelId >= 3) {
             $pendingUsers = $this->pendingUsers($userOfficeId, $levelId);
@@ -143,43 +133,19 @@ class SettingsModel extends Model
         return [
             'definitions'  => $definitions,
             'records'      => $records,
-            'roles'        => $this->rolesWithLevel($userOfficeId),
-            'offices'      => $this->orderedRecords('office', 'office', $userOfficeId),
-            'userOffices'  => $this->db->table('user_office')->orderBy('user_office', 'ASC')->get()->getResultArray(),
-            'levels'       => $this->db->table('level_of_access')->orderBy('level_id', 'ASC')->get()->getResultArray(),
+            'userOffices'  => $this->db->table('user_office_table')->orderBy('user_office_name', 'ASC')->get()->getResultArray(),
+            'levels'       => $this->db->table('level_of_access')->orderBy('lvl_of_access', 'ASC')->get()->getResultArray(),
             'pendingUsers' => $pendingUsers,
             'levelId'      => $levelId,
         ];
     }
 
-    /**
-     * Fetch roles joined with level_of_access for display.
-     */
-    private function rolesWithLevel(int $userOfficeId = 0): array
-    {
-        $builder = $this->db->table('roles')
-            ->select('roles.*, COALESCE(loa.access_level, "Unknown") AS access_level_name')
-            ->join('level_of_access loa', 'roles.level_id = loa.level_id', 'left')
-            ->orderBy('roles.role_name', 'ASC');
-
-        if ($userOfficeId > 0) {
-            $builder->groupStart()
-                ->where('roles.user_office_id', $userOfficeId)
-                ->orWhere('roles.user_office_id IS NULL')
-                ->groupEnd();
-        }
-
-        return $builder->get()->getResultArray();
-    }
-
     public function definition(string $type, int $levelId = 2): array
     {
         $definitions = $this->definitions($levelId);
-
         if (! array_key_exists($type, $definitions)) {
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
         }
-
         return $definitions[$type];
     }
 
@@ -211,8 +177,8 @@ class SettingsModel extends Model
         }
         $definition = $allDefs[$type];
 
-        // Auto-inject user_office_id for tables that have it (except users, user_office)
-        if (! in_array($type, ['users', 'user_office'], true) && $userOfficeId > 0) {
+        // Auto-inject user_office_id for tables that have it (except users, user_office_table)
+        if (! in_array($type, ['users', 'user_office_table'], true) && $userOfficeId > 0) {
             $payload['user_office_id'] = $userOfficeId;
         }
 
@@ -242,83 +208,70 @@ class SettingsModel extends Model
         $this->db->transComplete();
     }
 
-    /**
-     * Fetch pending users.
-     * Level 3: only within their office
-     * Level 4: all pending users
-     */
     public function pendingUsers(int $userOfficeId = 0, int $levelId = 3): array
     {
-        $builder = $this->db->table('users')
-            ->select('users.*, COALESCE(user_office.user_office, "Global") AS user_office_name')
-            ->join('user_office', 'users.user_office_id = user_office.user_office_id', 'left')
-            ->where('users.user_activity_id', 3)
-            ->orderBy('users.created_at', 'ASC');
+        $builder = $this->db->table('user_table')
+            ->select('user_table.*, COALESCE(uot.user_office_name, "Global") AS user_office_name,
+                      COALESCE(loa.role, "Unknown") AS role')
+            ->join('user_office_table uot', 'user_table.user_office_id = uot.user_office_id', 'left')
+            ->join('level_of_access loa', 'user_table.lvl_of_access_id = loa.lvl_of_access_id', 'left')
+            ->where('user_table.user_activity_id', 3)
+            ->orderBy('user_table.user_id', 'ASC');
 
         if ($levelId < 4 && $userOfficeId > 0) {
-            $builder->where('users.user_office_id', $userOfficeId);
+            $builder->where('user_table.user_office_id', $userOfficeId);
         }
 
         return $builder->get()->getResultArray();
     }
 
-    /**
-     * Activate a user (set user_activity_id = 1).
-     */
     public function activateUser(int $userId): void
     {
-        $this->db->table('users')
+        $this->db->table('user_table')
             ->where('user_id', $userId)
             ->update(['user_activity_id' => 1]);
     }
 
-    /**
-     * Deactivate a user (set user_activity_id = 2).
-     */
     public function deactivateUser(int $userId): void
     {
-        $this->db->table('users')
+        $this->db->table('user_table')
             ->where('user_id', $userId)
             ->update(['user_activity_id' => 2]);
     }
 
     private function orderedRecords(string $table, string $orderBy, int $userOfficeId = 0): array
     {
-        $builder = $this->db->table($table)
-            ->orderBy($orderBy, 'ASC');
-
+        $builder = $this->db->table($table)->orderBy($orderBy, 'ASC');
         if ($userOfficeId > 0) {
             $builder->where('user_office_id', $userOfficeId);
         }
-
         return $builder->get()->getResultArray();
     }
 
     private function userRecords(int $userOfficeId = 0, int $levelId = 2): array
     {
-        $sql = 'SELECT users.user_id, users.username, users.email, users.role, users.user_office_id,
-                       users.user_activity_id,
-                       COALESCE(user_office.user_office, "Global") AS user_office_name,
-                       COALESCE(ua.user_activity, "Unknown") AS activity_status
-                FROM users
-                LEFT JOIN user_office ON users.user_office_id = user_office.user_office_id
-                LEFT JOIN user_activity ua ON users.user_activity_id = ua.user_activity_id';
+        $sql = 'SELECT u.user_id, u.username, u.email, u.user_office_id, u.user_activity_id, u.lvl_of_access_id,
+                       COALESCE(uot.user_office_name, "Global") AS user_office_name,
+                       COALESCE(ua.user_activity, "Unknown") AS activity_status,
+                       COALESCE(loa.role, "Unknown") AS role
+                FROM user_table u
+                LEFT JOIN user_office_table uot ON u.user_office_id = uot.user_office_id
+                LEFT JOIN user_activity_table ua ON u.user_activity_id = ua.user_activity_id
+                LEFT JOIN level_of_access loa ON u.lvl_of_access_id = loa.lvl_of_access_id';
 
         $conditions = [];
-        $params = [];
+        $params     = [];
 
-        // Level 3: see only users in their office
-        // Level 4: see all users
         if ($levelId < 4 && $userOfficeId > 0) {
-            $conditions[] = 'users.user_office_id = ?';
-            $params[] = $userOfficeId;
+            $conditions[] = 'u.user_office_id = ?';
+            $params[]     = $userOfficeId;
         }
 
         if ($conditions) {
             $sql .= ' WHERE ' . implode(' AND ', $conditions);
         }
 
-        $sql .= ' ORDER BY users.username ASC';
+        $sql .= ' ORDER BY u.username ASC';
 
         return $this->db->query($sql, $params)->getResultArray();
     }
@@ -326,18 +279,18 @@ class SettingsModel extends Model
     private function preserveRelationsBeforeDelete(BaseConnection $db, string $type, int $id): void
     {
         match ($type) {
-            'entity' => $db->table('item')->where('entity_id', $id)->set('entity_id', null)->update(),
-            'unit' => $db->table('item')->where('unit_id', $id)->set('unit_id', null)->update(),
-            'reference' => $db->table('stockcard')->where('reference_id', $id)->set('reference_id', null)->update(),
-            'item_type' => $db->table('item')->where('item_type_id', $id)->set('item_type_id', null)->update(),
-            'item_category' => $db->table('item')->where('item_category_id', $id)->set('item_category_id', null)->update(),
-            'office' => $this->clearOfficeRelations($db, $id),
-            default => null,
+            'entity_table'    => $db->table('product_table')->where('entity_id', $id)->set('entity_id', null)->update(),
+            'unit_table'      => $db->table('product_table')->where('unit_id', $id)->set('unit_id', null)->update(),
+            'reference_table' => $db->table('transaction_table')->where('reference_id', $id)->set('reference_id', null)->update(),
+            'type_of_product' => $db->table('product_table')->where('type_id', $id)->set('type_id', null)->update(),
+            'office_table'    => $this->clearOfficeRelations($db, $id),
+            default           => null,
         };
     }
 
     private function clearOfficeRelations(BaseConnection $db, int $officeId): void
     {
-        $db->table('stockcard')->where('office_id', $officeId)->set('office_id', null)->update();
+        $db->table('transaction_table')->where('office_id', $officeId)->set('office_id', null)->update();
+        $db->table('batch_table')->where('office_id', $officeId)->set('office_id', null)->update();
     }
 }

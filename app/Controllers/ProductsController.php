@@ -3,9 +3,8 @@
 namespace App\Controllers;
 
 use App\Models\EntityModel;
-use App\Models\ItemCategoryModel;
-use App\Models\ItemModel;
-use App\Models\ItemTypeModel;
+use App\Models\ProductModel;
+use App\Models\ProductTypeModel;
 use App\Models\UnitModel;
 
 class ProductsController extends BaseController
@@ -17,13 +16,13 @@ class ProductsController extends BaseController
 
     public function index()
     {
-        $search = trim((string) $this->request->getGet('search'));
-        $itemModel = new ItemModel();
+        $search       = trim((string) $this->request->getGet('search'));
+        $productModel = new ProductModel();
         $userOfficeId = $this->userOfficeId();
 
         return view('products/index', [
             'search'   => $search,
-            'products' => $itemModel->searchProducts($search, $userOfficeId),
+            'products' => $productModel->searchProducts($search, $userOfficeId),
         ]);
     }
 
@@ -39,76 +38,79 @@ class ProductsController extends BaseController
 
     private function upsert(?int $id = null)
     {
-        $itemModel = new ItemModel();
-        $entityModel = new EntityModel();
-        $unitModel = new UnitModel();
-        $itemTypeModel = new ItemTypeModel();
-        $itemCategoryModel = new ItemCategoryModel();
-        $userOfficeId = $this->userOfficeId();
+        $productModel    = new ProductModel();
+        $entityModel     = new EntityModel();
+        $unitModel       = new UnitModel();
+        $productTypeModel = new ProductTypeModel();
+        $userOfficeId    = $this->userOfficeId();
 
         $product = [
-            'item_id'          => null,
-            'item_no'          => '',
-            'item'             => '',
-            'description'      => '',
-            're_order_point'   => 0,
-            'entity_id'        => '',
-            'unit_id'          => '',
-            'item_type_id'     => '',
-            'item_category_id' => '',
+            'product_id'            => null,
+            'product_no'            => '',
+            'product'               => '',
+            'product_description'   => '',
+            'product_reorder_point' => 0,
+            'entity_id'             => '',
+            'unit_id'               => '',
+            'type_id'               => '',
         ];
 
         if ($id !== null) {
-            $product = $itemModel->findProduct($id) ?? $product;
-            if (! $product['item_id']) {
+            $product = $productModel->findProduct($id) ?? $product;
+            if (! $product['product_id']) {
                 throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
             }
         }
 
         if ($this->request->getMethod() === 'POST') {
             $rules = [
-                'item_no'          => 'required|integer|greater_than[0]',
-                'item'             => 'required|min_length[2]|max_length[255]',
-                'description'      => 'permit_empty|max_length[1000]',
-                're_order_point'   => 'required|integer|greater_than_equal_to[0]',
-                'entity_id'        => 'required|integer|greater_than[0]',
-                'unit_id'          => 'required|integer',
-                'item_type_id'     => 'required|integer',
-                'item_category_id' => 'required|integer',
+                'product_no'            => 'required|integer|greater_than[0]',
+                'product'               => 'required|min_length[2]|max_length[255]',
+                'product_description'   => 'permit_empty|max_length[1000]',
+                'product_reorder_point' => 'required|integer|greater_than_equal_to[0]',
+                'entity_id'             => 'required|integer|greater_than[0]',
+                'unit_id'               => 'required|integer',
+                'type_id'               => 'required|integer',
             ];
 
             if (! $this->validate($rules)) {
                 return redirect()->back()->withInput()->with('error', 'Please correct the product form.');
             }
 
+            $productNo = (int) $this->request->getPost('product_no');
+
+            // Generate stock_no: user_office_name + product_no
+            $officeRow   = db_connect()->table('user_office_table')->where('user_office_id', $userOfficeId)->get(1)->getRowArray();
+            $officeName  = $officeRow['user_office_name'] ?? '';
+            $stockNo     = $officeName !== '' ? strtoupper($officeName) . '-' . str_pad((string) $productNo, 4, '0', STR_PAD_LEFT) : '';
+
             $payload = [
-                'item_no'          => (int) $this->request->getPost('item_no'),
-                'item'             => trim((string) $this->request->getPost('item')),
-                'description'      => trim((string) $this->request->getPost('description')),
-                're_order_point'   => (int) $this->request->getPost('re_order_point'),
-                'entity_id'        => (int) $this->request->getPost('entity_id'),
-                'unit_id'          => (int) $this->request->getPost('unit_id'),
-                'item_type_id'     => (int) $this->request->getPost('item_type_id'),
-                'item_category_id' => (int) $this->request->getPost('item_category_id'),
-                'user_office_id'   => $userOfficeId,
+                'product_no'            => $productNo,
+                'product'               => trim((string) $this->request->getPost('product')),
+                'product_description'   => trim((string) $this->request->getPost('product_description')),
+                'product_reorder_point' => (int) $this->request->getPost('product_reorder_point'),
+                'entity_id'             => (int) $this->request->getPost('entity_id'),
+                'unit_id'               => (int) $this->request->getPost('unit_id'),
+                'type_id'               => (int) $this->request->getPost('type_id'),
+                'user_office_id'        => $userOfficeId,
+                'stock_no'              => $stockNo,
             ];
 
             if ($id === null) {
-                $itemModel->insert($payload);
+                $productModel->insert($payload);
                 return redirect()->to(site_url('products'))->with('success', 'Product added successfully.');
             }
 
-            $itemModel->update($id, $payload);
+            $productModel->update($id, $payload);
             return redirect()->to(site_url('products'))->with('success', 'Product updated successfully.');
         }
 
         return view('products/form', [
-            'title'          => $id === null ? 'Add Product' : 'Edit Product',
-            'product'        => $product,
-            'entities'       => $entityModel->orderedList($userOfficeId),
-            'units'          => $unitModel->orderedList($userOfficeId),
-            'itemTypes'      => $itemTypeModel->orderedList($userOfficeId),
-            'itemCategories' => $itemCategoryModel->orderedList($userOfficeId),
+            'title'        => $id === null ? 'Add Product' : 'Edit Product',
+            'product'      => $product,
+            'entities'     => $entityModel->orderedList($userOfficeId),
+            'units'        => $unitModel->orderedList($userOfficeId),
+            'productTypes' => $productTypeModel->orderedList($userOfficeId),
         ]);
     }
 }

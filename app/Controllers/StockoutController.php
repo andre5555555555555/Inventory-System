@@ -23,11 +23,11 @@ class StockoutController extends BaseController
     }
 
     /**
-     * Level 1: Stock-out page — list items with stock and a form to add to temp list.
+     * Level 1: Stock-out page — list products with stock.
      */
     public function index()
     {
-        $model = new StockoutModel();
+        $model        = new StockoutModel();
         $userOfficeId = $this->userOfficeId();
 
         return view('stockout/index', [
@@ -40,8 +40,8 @@ class StockoutController extends BaseController
      */
     public function tempList()
     {
-        $model = new StockoutModel();
-        $userId = $this->userId();
+        $model        = new StockoutModel();
+        $userId       = $this->userId();
         $userOfficeId = $this->userOfficeId();
 
         $draft = $model->getOrCreateDraft($userId, $userOfficeId ?: null);
@@ -54,27 +54,27 @@ class StockoutController extends BaseController
     }
 
     /**
-     * Level 1: Add an item to the temp stock-out list.
+     * Level 1: Add a product to the temp stock-out list.
      */
     public function addToTemp(): ResponseInterface
     {
-        $model = new StockoutModel();
-        $userId = $this->userId();
+        $model        = new StockoutModel();
+        $userId       = $this->userId();
         $userOfficeId = $this->userOfficeId();
 
         $draft = $model->getOrCreateDraft($userId, $userOfficeId ?: null);
 
-        $itemId = (int) $this->request->getPost('item_id');
-        $quantity = (int) $this->request->getPost('quantity');
-        $unit = trim((string) $this->request->getPost('unit'));
+        $productId   = (int) $this->request->getPost('product_id');
+        $quantity    = (int) $this->request->getPost('quantity');
+        $unit        = trim((string) $this->request->getPost('unit'));
         $description = trim((string) $this->request->getPost('description'));
 
-        if ($itemId <= 0 || $quantity <= 0) {
-            return redirect()->to(site_url('stockout'))->with('error', 'Please select an item and enter a valid quantity.');
+        if ($productId <= 0 || $quantity <= 0) {
+            return redirect()->to(site_url('stockout'))->with('error', 'Please select a product and enter a valid quantity.');
         }
 
         $model->addItem((int) $draft['temp_stockout_id'], [
-            'item_id'     => $itemId,
+            'product_id'  => $productId,
             'quantity'    => $quantity,
             'unit'        => $unit,
             'description' => $description,
@@ -88,11 +88,10 @@ class StockoutController extends BaseController
      */
     public function editTemp(int $itemId)
     {
-        $model = new StockoutModel();
-
-        $quantity = (int) $this->request->getPost('quantity');
+        $model       = new StockoutModel();
+        $quantity    = (int) $this->request->getPost('quantity');
         $description = trim((string) $this->request->getPost('description'));
-        $unit = trim((string) $this->request->getPost('unit'));
+        $unit        = trim((string) $this->request->getPost('unit'));
 
         if ($quantity <= 0) {
             return redirect()->to(site_url('stockout/temp'))->with('error', 'Quantity must be greater than 0.');
@@ -114,7 +113,6 @@ class StockoutController extends BaseController
     {
         $model = new StockoutModel();
         $model->removeItem($itemId);
-
         return redirect()->to(site_url('stockout/temp'))->with('success', 'Item removed from list.');
     }
 
@@ -123,8 +121,8 @@ class StockoutController extends BaseController
      */
     public function submitForApproval()
     {
-        $model = new StockoutModel();
-        $userId = $this->userId();
+        $model        = new StockoutModel();
+        $userId       = $this->userId();
         $userOfficeId = $this->userOfficeId();
 
         $draft = $model->getOrCreateDraft($userId, $userOfficeId ?: null);
@@ -135,7 +133,6 @@ class StockoutController extends BaseController
         }
 
         $model->submitForApproval((int) $draft['temp_stockout_id']);
-
         return redirect()->to(site_url('stockout/temp'))->with('success', 'Stock-out request submitted for approval.');
     }
 
@@ -145,15 +142,13 @@ class StockoutController extends BaseController
     public function pendingRequests()
     {
         $levelId = $this->levelId();
-
         if ($levelId < 2) {
             return redirect()->to(site_url('/'));
         }
 
-        $model = new StockoutModel();
+        $model    = new StockoutModel();
         $requests = $model->pendingRequests($this->userOfficeId(), $levelId);
 
-        // Load items for each request (summed by item_id)
         foreach ($requests as &$request) {
             $request['items'] = $model->getItemsSummed((int) $request['temp_stockout_id']);
         }
@@ -169,13 +164,11 @@ class StockoutController extends BaseController
      */
     public function approveItem(int $itemId): ResponseInterface
     {
-        $levelId = $this->levelId();
-
-        if ($levelId < 2) {
+        if ($this->levelId() < 2) {
             return $this->response->setStatusCode(403)->setJSON(['message' => 'Access denied.']);
         }
 
-        $model = new StockoutModel();
+        $model  = new StockoutModel();
         $result = $model->approveItem($itemId, $this->userId());
 
         if (! $result) {
@@ -190,9 +183,7 @@ class StockoutController extends BaseController
      */
     public function approveAll(int $requestId): ResponseInterface
     {
-        $levelId = $this->levelId();
-
-        if ($levelId < 2) {
+        if ($this->levelId() < 2) {
             return $this->response->setStatusCode(403)->setJSON(['message' => 'Access denied.']);
         }
 
@@ -207,9 +198,7 @@ class StockoutController extends BaseController
      */
     public function rejectItem(int $itemId): ResponseInterface
     {
-        $levelId = $this->levelId();
-
-        if ($levelId < 2) {
+        if ($this->levelId() < 2) {
             return $this->response->setStatusCode(403)->setJSON(['message' => 'Access denied.']);
         }
 
@@ -224,9 +213,7 @@ class StockoutController extends BaseController
      */
     public function editPendingItem(int $itemId): ResponseInterface
     {
-        $levelId = $this->levelId();
-
-        if ($levelId < 2) {
+        if ($this->levelId() < 2) {
             return $this->response->setStatusCode(403)->setJSON(['message' => 'Access denied.']);
         }
 

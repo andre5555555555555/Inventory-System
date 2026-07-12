@@ -2562,10 +2562,6 @@ tr:hover {
     margin-bottom: 18px;
 }
 
-.stockcard-layout .stockcard-toolbar .searchbar,
-.stockcard-layout .stockcard-toolbar .searchbar form {
-    width: 100%;
-}
 
 .stockcard-layout .stockcard-toolbar .searchbar form {
     justify-content: flex-start;

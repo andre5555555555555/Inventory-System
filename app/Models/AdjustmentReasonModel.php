@@ -7,13 +7,13 @@ use CodeIgniter\Model;
 class AdjustmentReasonModel extends Model
 {
     protected $table                 = 'adjustment_reason';
-    protected $primaryKey            = 'reason_id';
+    protected $primaryKey            = 'adjustment_reason_id';
     protected $returnType            = 'array';
-    protected $allowedFields         = ['reason_name'];
+    protected $allowedFields         = ['adjustment_reason'];
     protected bool $allowEmptyInserts = false;
 
     public function orderedList(): array
     {
-        return $this->orderBy('reason_name', 'ASC')->findAll();
+        return $this->orderBy('adjustment_reason', 'ASC')->findAll();
     }
 }

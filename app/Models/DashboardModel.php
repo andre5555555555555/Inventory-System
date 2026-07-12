@@ -6,7 +6,7 @@ use CodeIgniter\Model;
 
 class DashboardModel extends Model
 {
-    protected $table = 'item';
+    protected $table = 'product_table';
 
     public function overview(int $userOfficeId = 0): array
     {
@@ -19,25 +19,25 @@ class DashboardModel extends Model
             'outOfStock'         => $this->outOfStock($userOfficeId),
             'recentTransactions' => $this->recentTransactions($userOfficeId),
             'summary'            => [
-                'totalItems'     => $this->totalItems($userOfficeId),
-                'lowStockCount'  => count($lowStock),
-                'expiringCount'  => count($expiring),
+                'totalItems'    => $this->totalItems($userOfficeId),
+                'lowStockCount' => count($lowStock),
+                'expiringCount' => count($expiring),
             ],
         ];
     }
 
     public function lowStock(int $userOfficeId = 0): array
     {
-        $officeFilter = $userOfficeId > 0 ? ' AND item.user_office_id = ' . (int) $userOfficeId : '';
+        $officeFilter = $userOfficeId > 0 ? ' AND p.user_office_id = ' . (int) $userOfficeId : '';
 
         return $this->db->query(
-            'SELECT item.item,
-                    COALESCE(SUM(batch.remaining_qty), 0) AS stock_left,
-                    COALESCE(item.re_order_point, 0) AS re_order_point
-             FROM item
-             LEFT JOIN batch ON item.item_id = batch.item_id
+            'SELECT p.product AS item,
+                    COALESCE(SUM(b.current_qty), 0) AS stock_left,
+                    COALESCE(p.product_reorder_point, 0) AS re_order_point
+             FROM product_table p
+             LEFT JOIN batch_table b ON p.product_id = b.product_id
              WHERE 1=1' . $officeFilter . '
-             GROUP BY item.item_id, item.item, item.re_order_point
+             GROUP BY p.product_id, p.product, p.product_reorder_point
              HAVING stock_left <= re_order_point
                 AND stock_left > 0
                 AND re_order_point > 0'
@@ -46,53 +46,57 @@ class DashboardModel extends Model
 
     public function expiringSoon(int $userOfficeId = 0): array
     {
-        $officeFilter = $userOfficeId > 0 ? ' AND item.user_office_id = ' . (int) $userOfficeId : '';
+        $officeFilter = $userOfficeId > 0 ? ' AND p.user_office_id = ' . (int) $userOfficeId : '';
 
         return $this->db->query(
-            'SELECT batch.batch_id, item.item, batch.expiration_date, batch.remaining_qty,
-                    DATEDIFF(batch.expiration_date, CURDATE()) AS days_left
-             FROM batch
-             INNER JOIN item ON batch.item_id = item.item_id
-             WHERE batch.remaining_qty > 0
-               AND batch.expiration_date IS NOT NULL
-               AND batch.expiration_date >= CURDATE()
-               AND DATEDIFF(batch.expiration_date, CURDATE()) <= 30' . $officeFilter . '
-             ORDER BY batch.expiration_date ASC'
+            'SELECT b.batch_id, p.product AS item, b.expiration_date, b.current_qty AS remaining_qty,
+                    DATEDIFF(b.expiration_date, CURDATE()) AS days_left
+             FROM batch_table b
+             INNER JOIN product_table p ON b.product_id = p.product_id
+             WHERE b.current_qty > 0
+               AND b.expiration_date IS NOT NULL
+               AND b.expiration_date >= CURDATE()
+               AND DATEDIFF(b.expiration_date, CURDATE()) <= 30' . $officeFilter . '
+             ORDER BY b.expiration_date ASC'
         )->getResultArray();
     }
 
     public function outOfStock(int $userOfficeId = 0): array
     {
-        $officeFilter = $userOfficeId > 0 ? ' AND item.user_office_id = ' . (int) $userOfficeId : '';
+        $officeFilter = $userOfficeId > 0 ? ' AND p.user_office_id = ' . (int) $userOfficeId : '';
 
         return $this->db->query(
-            'SELECT item.item
-             FROM item
-             LEFT JOIN batch ON item.item_id = batch.item_id
+            'SELECT p.product AS item
+             FROM product_table p
+             LEFT JOIN batch_table b ON p.product_id = b.product_id
              WHERE 1=1' . $officeFilter . '
-             GROUP BY item.item_id, item.item
-             HAVING COALESCE(SUM(batch.remaining_qty), 0) = 0'
+             GROUP BY p.product_id, p.product
+             HAVING COALESCE(SUM(b.current_qty), 0) = 0'
         )->getResultArray();
     }
 
     public function recentTransactions(int $userOfficeId = 0): array
     {
-        $officeFilter = $userOfficeId > 0 ? ' AND stockcard.user_office_id = ' . (int) $userOfficeId : '';
+        $officeFilter = $userOfficeId > 0 ? ' AND t.user_office_id = ' . (int) $userOfficeId : '';
 
         return $this->db->query(
-            'SELECT item.item, transaction.receipt_qty, transaction.issue_qty, transaction.date
-             FROM transaction
-             INNER JOIN stockcard ON transaction.transaction_id = stockcard.transaction_id
-             INNER JOIN item ON stockcard.item_id = item.item_id
+            'SELECT p.product AS item,
+                    t.transaction_qty,
+                    tt.transaction_type,
+                    t.transaction_date AS date
+             FROM transaction_table t
+             INNER JOIN transaction_type_table tt ON t.transaction_type_id = tt.transaction_type_id
+             INNER JOIN batch_table b ON t.batch_id = b.batch_id
+             INNER JOIN product_table p ON b.product_id = p.product_id
              WHERE 1=1' . $officeFilter . '
-             ORDER BY transaction.date DESC
+             ORDER BY t.transaction_date DESC
              LIMIT 5'
         )->getResultArray();
     }
 
     public function totalItems(int $userOfficeId = 0): int
     {
-        $builder = $this->db->table('item')->selectCount('item_id', 'total');
+        $builder = $this->db->table('product_table')->selectCount('product_id', 'total');
         if ($userOfficeId > 0) {
             $builder->where('user_office_id', $userOfficeId);
         }

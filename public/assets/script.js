@@ -186,8 +186,21 @@
         }, 200);
     }, duration);
 }
-    function toggleMenu() {
-        document.querySelector(".nav-links")?.classList.toggle("show");
+    function toggleMenu(forceOpen = null) {
+        const nav = document.querySelector(".nav-links");
+        const button = document.querySelector("[data-menu-toggle]");
+        if (!nav) return;
+
+        const isOpen = typeof forceOpen === "boolean" ? forceOpen : !nav.classList.contains("show");
+        nav.classList.toggle("show", isOpen);
+        nav.classList.toggle("active", isOpen);
+        button?.setAttribute("aria-expanded", String(isOpen));
+    }
+
+    function closeSubmenus() {
+        document.querySelectorAll(".nav-links .has-submenu.is-open").forEach((item) => {
+            item.classList.remove("is-open");
+        });
     }
 
     // =========================
@@ -662,7 +675,58 @@
     document.addEventListener("DOMContentLoaded", () => {
         initThemeToggle();
         bindSubmitGuards();
-        document.querySelector("[data-menu-toggle]")?.addEventListener("click", toggleMenu);
+
+        const menuToggle = document.querySelector("[data-menu-toggle]");
+        if (menuToggle) {
+            menuToggle.setAttribute("aria-expanded", "false");
+            menuToggle.addEventListener("click", () => toggleMenu());
+        }
+
+        document.addEventListener("click", (event) => {
+            const nav = document.querySelector(".nav-links");
+            const submenuTrigger = event.target.closest(".nav-links .has-submenu > a");
+
+            if (submenuTrigger && window.matchMedia("(max-width: 768px)").matches) {
+                event.preventDefault();
+                const parent = submenuTrigger.closest(".has-submenu");
+                const isOpen = parent?.classList.toggle("is-open") ?? false;
+                nav?.classList.add("show");
+                nav?.classList.add("active");
+                menuToggle?.setAttribute("aria-expanded", "true");
+
+                if (parent) {
+                    document.querySelectorAll(".nav-links .has-submenu").forEach((item) => {
+                        if (item !== parent) item.classList.remove("is-open");
+                    });
+                    if (!isOpen) {
+                        parent.classList.remove("is-open");
+                    }
+                }
+                return;
+            }
+
+            if (!event.target.closest(".navbar")) {
+                toggleMenu(false);
+                closeSubmenus();
+            }
+        });
+
+        document.addEventListener("click", (event) => {
+            const navLink = event.target.closest(".nav-links a");
+            if (!navLink || navLink.closest(".has-submenu > a")) return;
+            if (window.matchMedia("(max-width: 768px)").matches) {
+                toggleMenu(false);
+                closeSubmenus();
+            }
+        });
+
+        window.addEventListener("resize", () => {
+            if (!window.matchMedia("(max-width: 768px)").matches) {
+                toggleMenu(false);
+                closeSubmenus();
+            }
+        });
+
         bindItemRedirects();
         bindAdjustSearch();
         bindStockcardTools();

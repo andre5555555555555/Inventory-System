@@ -23,19 +23,16 @@ class AuthController extends BaseController
 
         $db = db_connect();
 
-        // Only show the default global roles (not per-office, not Technical Staff)
-        $roles = $db->table('roles')
-            ->select('roles.*, COALESCE(loa.access_level, "Unknown") AS access_level_name')
-            ->join('level_of_access loa', 'roles.level_id = loa.level_id', 'left')
-            ->where('roles.user_office_id IS NULL')
-            ->where('roles.level_id !=', 4)  // Hide Technical Staff from registration
-            ->orderBy('roles.level_id', 'ASC')
+        // Show all levels except Technical Staff (level 4) for self-registration
+        $levels = $db->table('level_of_access')
+            ->where('lvl_of_access !=', 4)
+            ->orderBy('lvl_of_access', 'ASC')
             ->get()
             ->getResultArray();
 
         return view('auth/register', [
-            'roles'       => $roles,
-            'userOffices' => $db->table('user_office')->orderBy('user_office', 'ASC')->get()->getResultArray(),
+            'levels'      => $levels,
+            'userOffices' => $db->table('user_office_table')->orderBy('user_office_name', 'ASC')->get()->getResultArray(),
         ]);
     }
 
@@ -51,7 +48,7 @@ class AuthController extends BaseController
         }
 
         $model = new UserModel();
-        $user = $model->findWithLevel($this->request->getPost('username'));
+        $user  = $model->findWithLevel($this->request->getPost('username'));
 
         if (! $user || ! $this->passwordMatches($this->request->getPost('password'), $user['password'])) {
             return redirect()->back()->withInput()->with('error', 'Invalid username or password.');
@@ -75,23 +72,18 @@ class AuthController extends BaseController
             ]);
         }
 
+        // level_id comes from level_of_access.lvl_of_access (the numeric level)
         $levelId = (int) ($user['level_id'] ?? 0);
 
         session()->regenerate();
         session()->set('user', [
-            'id'                   => (int) $user['user_id'],
-            'username'             => $user['username'],
-            'email'                => $user['email'] ?? '',
-            'role'                 => $user['role'],
-            'level_id'             => $levelId,
-            'user_office_id'       => $user['user_office_id'] ? (int) $user['user_office_id'] : 0,
-            'must_change_password' => (int) ($user['must_change_password'] ?? 0),
+            'id'             => (int) $user['user_id'],
+            'username'       => $user['username'],
+            'email'          => $user['email'] ?? '',
+            'role'           => $user['role'] ?? '',
+            'level_id'       => $levelId,
+            'user_office_id' => $user['user_office_id'] ? (int) $user['user_office_id'] : 0,
         ]);
-
-        // ── Force password change on first login ──
-        if ((int) ($user['must_change_password'] ?? 0) === 1) {
-            return redirect()->to(site_url('change-password'));
-        }
 
         return redirect()->to(site_url('/'));
     }
@@ -99,18 +91,17 @@ class AuthController extends BaseController
     public function logout()
     {
         session()->destroy();
-
         return redirect()->to(site_url('login'));
     }
 
     public function register()
     {
         $rules = [
-            'username'         => 'required|min_length[3]|max_length[50]|is_unique[users.username]',
+            'username'         => 'required|min_length[3]|max_length[50]|is_unique[user_table.username]',
             'email'            => 'required|valid_email|max_length[255]',
             'password'         => 'required|min_length[3]|max_length[255]',
             'confirm_password' => 'required|matches[password]',
-            'role'             => 'required|min_length[2]|max_length[100]',
+            'lvl_of_access_id' => 'required|integer|greater_than[0]',
             'user_office_id'   => 'required|integer|greater_than[0]',
         ];
 
@@ -118,65 +109,17 @@ class AuthController extends BaseController
             return redirect()->to(site_url('register'))->withInput()->with('error', implode(' ', $this->validator->getErrors()));
         }
 
-        // Resolve role_id from role_name
-        $db = db_connect();
-        $roleName = trim((string) $this->request->getPost('role'));
-        $roleRow = $db->table('roles')->where('role_name', $roleName)->get()->getRowArray();
-        $roleId = $roleRow ? (int) $roleRow['role_id'] : null;
-
         $model = new UserModel();
         $model->insert([
-            'username'         => trim((string) $this->request->getPost('username')),
-            'email'            => trim((string) $this->request->getPost('email')),
-            'password'         => password_hash((string) $this->request->getPost('password'), PASSWORD_DEFAULT),
-            'role'             => $roleName,
-            'user_office_id'   => (int) $this->request->getPost('user_office_id'),
-            'role_id'          => $roleId,
-            'user_activity_id' => 3, // Pending – must be activated by admin
+            'username'          => trim((string) $this->request->getPost('username')),
+            'email'             => trim((string) $this->request->getPost('email')),
+            'password'          => password_hash((string) $this->request->getPost('password'), PASSWORD_DEFAULT),
+            'user_office_id'    => (int) $this->request->getPost('user_office_id'),
+            'lvl_of_access_id'  => (int) $this->request->getPost('lvl_of_access_id'),
+            'user_activity_id'  => 3, // Pending – must be activated by admin
         ]);
 
         return redirect()->to(site_url('login'))->with('success', 'Account created successfully. Please wait for an administrator to activate your account.');
-    }
-
-    // ── Change password (first-login prompt) ──
-
-    public function changePasswordView()
-    {
-        if (! session()->has('user')) {
-            return redirect()->to(site_url('login'));
-        }
-
-        return view('auth/change_password');
-    }
-
-    public function changePassword()
-    {
-        if (! session()->has('user')) {
-            return redirect()->to(site_url('login'));
-        }
-
-        $rules = [
-            'password'         => 'required|min_length[3]|max_length[255]',
-            'confirm_password' => 'required|matches[password]',
-        ];
-
-        if (! $this->validate($rules)) {
-            return redirect()->back()->with('error', 'Passwords do not match or are too short.');
-        }
-
-        $userId = (int) session('user')['id'];
-        $model = new UserModel();
-        $model->update($userId, [
-            'password'             => password_hash((string) $this->request->getPost('password'), PASSWORD_DEFAULT),
-            'must_change_password' => 0,
-        ]);
-
-        // Update session flag
-        $userData = session('user');
-        $userData['must_change_password'] = 0;
-        session()->set('user', $userData);
-
-        return redirect()->to(site_url('/'))->with('success', 'Password changed successfully.');
     }
 
     private function passwordMatches(string $input, string $stored): bool
@@ -184,7 +127,6 @@ class AuthController extends BaseController
         if (password_get_info($stored)['algo']) {
             return password_verify($input, $stored);
         }
-
         return hash_equals($stored, $input);
     }
 }

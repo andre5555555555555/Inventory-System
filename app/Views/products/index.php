@@ -13,7 +13,7 @@
     <div class="toolbar-card">
         <div class="searchbar">
             <form method="get" action="<?= site_url('products') ?>">
-                <input type="text" name="search" placeholder="Search item..." value="<?= esc($search) ?>">
+                <input type="text" name="search" placeholder="Search product..." value="<?= esc($search) ?>">
                 <button type="submit">Search</button>
             </form>
         </div>
@@ -25,9 +25,9 @@
     <div class="panel-card table-card">
         <table class="data-table">
             <tr>
-                <th>Item No</th>
-                <th>Code</th>
-                <th>Item</th>
+                <th>Product No</th>
+                <th>Stock No</th>
+                <th>Product</th>
                 <th>Unit</th>
                 <th>Stock</th>
                 <?php if ((int) (session('user')['level_id'] ?? 0) >= 2): ?>
@@ -36,13 +36,13 @@
             </tr>
             <?php foreach ($products as $product): ?>
                 <tr>
-                    <td><?= esc((string) $product['item_no']) ?></td>
-                    <td><?= esc((string) $product['stockcard_no']) ?></td>
-                    <td class="item-link"><a href="<?= site_url('stockcard?item_id=' . (int) $product['item_id']) ?>"><?= esc($product['item']) ?></a></td>
+                    <td><?= esc((string) $product['product_no']) ?></td>
+                    <td><?= esc((string) $product['stock_no']) ?></td>
+                    <td class="item-link"><a href="<?= site_url('stockcard?item_id=' . (int) $product['product_id']) ?>"><?= esc($product['product']) ?></a></td>
                     <td><?= esc((string) $product['unit_name']) ?></td>
                     <td><?= esc((string) $product['total_stock']) ?></td>
                     <?php if ((int) (session('user')['level_id'] ?? 0) >= 2): ?>
-                        <td><a class="action-btn edit-btn" href="<?= site_url('products/edit/' . (int) $product['item_id']) ?>">Edit</a></td>
+                        <td><a class="action-btn edit-btn" href="<?= site_url('products/edit/' . (int) $product['product_id']) ?>">Edit</a></td>
                     <?php endif; ?>
                 </tr>
             <?php endforeach; ?>

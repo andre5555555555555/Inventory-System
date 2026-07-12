@@ -28,7 +28,6 @@
             <span>Expiring Soon</span>
             <strong><?= (int) $summary['expiringCount'] ?></strong>
         </article>
-    
     </section>
 
     <section class="dashboard-grid">
@@ -79,7 +78,7 @@
                     </div>
                 <?php endforeach; ?>
             <?php else: ?>
-                <div class="dashboard-empty">All tracked items still have stock.</div>
+                <div class="dashboard-empty">All tracked products still have stock.</div>
             <?php endif; ?>
         </div>
 
@@ -93,7 +92,7 @@
                     <div class="dashboard-list-item is-info">
                         <strong><?= esc($row['item']) ?></strong>
                         <span>
-                            <?= (int) $row['receipt_qty'] > 0 ? 'Added ' . (int) $row['receipt_qty'] : 'Issued ' . (int) $row['issue_qty'] ?>
+                            <?= esc(ucfirst($row['transaction_type'] ?? '')) ?>: <?= (int) $row['transaction_qty'] ?>
                         </span>
                     </div>
                 <?php endforeach; ?>

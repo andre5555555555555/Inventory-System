@@ -6,18 +6,18 @@ use CodeIgniter\Model;
 
 class ReportModel extends Model
 {
-    protected $table = 'transaction';
+    protected $table = 'transaction_table';
 
-    public function batchLedger(string $search, int $year, string $month, int $itemTypeId, int $userOfficeId = 0): array
+    public function batchLedger(string $search, int $year, string $month, int $typeId, int $userOfficeId = 0): array
     {
         $monthStart = sprintf('%04d-%02d-01', $year, (int) $month);
-        $nextMonth = date('Y-m-d', strtotime($monthStart . ' +1 month'));
+        $nextMonth  = date('Y-m-d', strtotime($monthStart . ' +1 month'));
 
         $openingRows = $this->historyRowsBefore($monthStart, $userOfficeId);
-        $periodRows = $this->historyRowsWithin($monthStart, $nextMonth, $search, $itemTypeId, $userOfficeId);
+        $periodRows  = $this->historyRowsWithin($monthStart, $nextMonth, $search, $typeId, $userOfficeId);
 
-        $batchMemory = [];
-        $runningQty = [];
+        $batchMemory  = [];
+        $runningQty   = [];
         $runningValue = [];
 
         foreach ($openingRows as $row) {
@@ -25,29 +25,30 @@ class ReportModel extends Model
         }
 
         $ledgerRows = [];
-        $counter = 1;
+        $counter    = 1;
 
         foreach ($periodRows as $row) {
-            $itemId = (int) $row['item_id'];
-            $batchMemory[$itemId] ??= [];
-            $runningQty[$itemId] ??= 0;
-            $runningValue[$itemId] ??= 0.0;
+            $productId = (int) $row['product_id'];
+            $batchMemory[$productId]  ??= [];
+            $runningQty[$productId]   ??= 0;
+            $runningValue[$productId] ??= 0.0;
 
-            $beginQty = $runningQty[$itemId];
-            $beginCost = $beginQty > 0 ? $runningValue[$itemId] / $beginQty : 0.0;
+            $beginQty  = $runningQty[$productId];
+            $beginCost = $beginQty > 0 ? $runningValue[$productId] / $beginQty : 0.0;
 
-            [$purchaseQty, $purchaseCost, $purchaseTotal] = $this->purchaseValues($row, $batchMemory[$itemId], $runningQty[$itemId], $runningValue[$itemId]);
-            [$usedQty, $usedCost, $usedTotal] = $this->issueValues($row, 0, $batchMemory[$itemId], $runningQty[$itemId], $runningValue[$itemId]);
-            [$spoiledQty, $spoiledCost, $spoiledTotal] = $this->issueValues($row, 4, $batchMemory[$itemId], $runningQty[$itemId], $runningValue[$itemId]);
+            [$purchaseQty, $purchaseCost, $purchaseTotal] = $this->purchaseValues($row, $batchMemory[$productId], $runningQty[$productId], $runningValue[$productId]);
+            [$usedQty, $usedCost, $usedTotal]             = $this->issueValues($row, 0, $batchMemory[$productId], $runningQty[$productId], $runningValue[$productId]);
+            [$spoiledQty, $spoiledCost, $spoiledTotal]    = $this->issueValues($row, 4, $batchMemory[$productId], $runningQty[$productId], $runningValue[$productId]);
 
-            $endingQty = $runningQty[$itemId];
-            $endingCost = $endingQty > 0 ? $runningValue[$itemId] / $endingQty : 0.0;
+            $endingQty  = $runningQty[$productId];
+            $endingCost = $endingQty > 0 ? $runningValue[$productId] / $endingQty : 0.0;
 
             $ledgerRows[] = [
                 'counter'        => $counter++,
-                'item_type'      => $row['item_type'] ?: 'Uncategorized',
-                'stockcard_no'   => $row['stockcard_no'],
-                'item'           => $row['item'],
+                'product_id'     => $productId,
+                'product_type'   => $row['product_type'] ?: 'Uncategorized',
+                'stock_no'       => $row['stock_no'],
+                'item'           => $row['product'],
                 'unit_name'      => $row['unit_name'],
                 'begin_qty'      => $beginQty,
                 'begin_cost'     => $beginCost,
@@ -67,7 +68,7 @@ class ReportModel extends Model
 
         $groupedRows = [];
         foreach ($ledgerRows as $row) {
-            $groupedRows[$row['item_type']][] = $row;
+            $groupedRows[$row['product_type']][] = $row;
         }
 
         return [
@@ -76,10 +77,9 @@ class ReportModel extends Model
         ];
     }
 
-    public function orderedItemTypes(int $userOfficeId = 0): array
+    public function orderedProductTypes(int $userOfficeId = 0): array
     {
-        $builder = $this->db->table('item_type')
-            ->orderBy('item_type', 'ASC');
+        $builder = $this->db->table('type_of_product')->orderBy('type', 'ASC');
         if ($userOfficeId > 0) {
             $builder->where('user_office_id', $userOfficeId);
         }
@@ -88,59 +88,53 @@ class ReportModel extends Model
 
     private function historyRowsBefore(string $monthStart, int $userOfficeId = 0): array
     {
-        $officeFilter = $userOfficeId > 0 ? ' AND sc.user_office_id = ' . (int) $userOfficeId : '';
+        $officeFilter = $userOfficeId > 0 ? ' AND t.user_office_id = ' . (int) $userOfficeId : '';
 
         return $this->db->query(
-            'SELECT sc.item_id, t.receipt_qty, t.issue_qty, sc.transaction_type_id,
-                    COALESCE(batch.unit_cost, 0) AS unit_cost
-             FROM transaction t
-             INNER JOIN stockcard sc ON sc.transaction_id = t.transaction_id
-             LEFT JOIN batch ON batch.transaction_id = t.transaction_id
-             WHERE t.date < ?' . $officeFilter . '
-             ORDER BY sc.item_id ASC, t.date ASC, t.transaction_id ASC',
+            'SELECT b.product_id, t.transaction_qty, t.transaction_unit_cost, t.transaction_type_id
+             FROM transaction_table t
+             INNER JOIN batch_table b ON t.batch_id = b.batch_id
+             WHERE t.transaction_date < ?' . $officeFilter . '
+             ORDER BY b.product_id ASC, t.transaction_date ASC, t.transaction_id ASC',
             [$monthStart]
         )->getResultArray();
     }
 
-    private function historyRowsWithin(string $monthStart, string $nextMonth, string $search, int $itemTypeId, int $userOfficeId = 0): array
+    private function historyRowsWithin(string $monthStart, string $nextMonth, string $search, int $typeId, int $userOfficeId = 0): array
     {
-        $builder = $this->db->table('transaction t');
+        $builder = $this->db->table('transaction_table t');
         $builder->select([
-            'item.item_id',
-            'item.item',
-            'CONCAT(COALESCE(ic.item_category, "Uncategorized"), "-", item.item_no) AS stockcard_no',
-            'COALESCE(it.item_type, "Uncategorized") AS item_type',
-            'COALESCE(unit.unit, "Deleted Unit") AS unit_name',
-            't.receipt_qty',
-            't.issue_qty',
-            'sc.transaction_type_id',
-            'COALESCE(batch.unit_cost, 0) AS unit_cost',
+            'b.product_id',
+            'p.product',
+            'p.stock_no',
+            'COALESCE(pt.type, "Uncategorized") AS product_type',
+            'COALESCE(ut.unit, "Deleted Unit") AS unit_name',
+            't.transaction_qty',
+            't.transaction_unit_cost',
+            't.transaction_type_id',
         ]);
-        $builder->join('stockcard sc', 't.transaction_id = sc.transaction_id');
-        $builder->join('item', 'sc.item_id = item.item_id');
-        $builder->join('unit', 'item.unit_id = unit.unit_id', 'left');
-        $builder->join('item_type it', 'item.item_type_id = it.item_type_id', 'left');
-        $builder->join('item_category ic', 'item.item_category_id = ic.item_category_id', 'left');
-        $builder->join('batch', 'batch.transaction_id = t.transaction_id', 'left');
-        $builder->where('t.date >=', $monthStart);
-        $builder->where('t.date <', $nextMonth);
+        $builder->join('batch_table b', 't.batch_id = b.batch_id');
+        $builder->join('product_table p', 'b.product_id = p.product_id');
+        $builder->join('unit_table ut', 'p.unit_id = ut.unit_id', 'left');
+        $builder->join('type_of_product pt', 'p.type_id = pt.type_id', 'left');
+        $builder->where('t.transaction_date >=', $monthStart);
+        $builder->where('t.transaction_date <', $nextMonth);
+        $builder->whereIn('t.transaction_type_id', [1, 2]); // only receipt & issue; exclude adjustments
 
         if ($userOfficeId > 0) {
-            $builder->where('sc.user_office_id', $userOfficeId);
+            $builder->where('t.user_office_id', $userOfficeId);
         }
-
         if ($search !== '') {
-            $builder->like('item.item', $search);
+            $builder->like('p.product', $search);
         }
-
-        if ($itemTypeId > 0) {
-            $builder->where('item.item_type_id', $itemTypeId);
+        if ($typeId > 0) {
+            $builder->where('p.type_id', $typeId);
         }
 
         return $builder
-            ->orderBy('it.item_type', 'ASC')
-            ->orderBy('item.item_id', 'ASC')
-            ->orderBy('t.date', 'ASC')
+            ->orderBy('pt.type', 'ASC')
+            ->orderBy('b.product_id', 'ASC')
+            ->orderBy('t.transaction_date', 'ASC')
             ->orderBy('t.transaction_id', 'ASC')
             ->get()
             ->getResultArray();
@@ -148,39 +142,42 @@ class ReportModel extends Model
 
     private function applyRowToRunningBalance(array $row, array &$batchMemory, array &$runningQty, array &$runningValue): void
     {
-        $itemId = (int) $row['item_id'];
-        $batchMemory[$itemId] ??= [];
-        $runningQty[$itemId] ??= 0;
-        $runningValue[$itemId] ??= 0.0;
+        $productId = (int) $row['product_id'];
+        $batchMemory[$productId]  ??= [];
+        $runningQty[$productId]   ??= 0;
+        $runningValue[$productId] ??= 0.0;
 
-        $receiptQty = (int) ($row['receipt_qty'] ?? 0);
-        if ($receiptQty > 0) {
-            $unitCost = (float) ($row['unit_cost'] ?? 0);
-            $batchMemory[$itemId][] = ['qty' => $receiptQty, 'cost' => $unitCost];
-            $runningQty[$itemId] += $receiptQty;
-            $runningValue[$itemId] += $receiptQty * $unitCost;
+        $typeId = (int) ($row['transaction_type_id'] ?? 0);
+
+        if ($typeId === 1 || $typeId === 3) { // receipt or adjust_in
+            $unitCost              = (float) ($row['transaction_unit_cost'] ?? 0);
+            $qty                   = (int) ($row['transaction_qty'] ?? 0);
+            $batchMemory[$productId][] = ['qty' => $qty, 'cost' => $unitCost];
+            $runningQty[$productId]   += $qty;
+            $runningValue[$productId] += $qty * $unitCost;
         }
 
-        $issueQty = (int) ($row['issue_qty'] ?? 0);
-        if ($issueQty > 0) {
-            $issuedCost = $this->fifoIssue($batchMemory[$itemId], $issueQty);
-            $runningQty[$itemId] -= $issueQty;
-            $runningValue[$itemId] -= $issuedCost;
+        if ($typeId === 2 || $typeId === 4) { // issue or adjust_out
+            $qty         = (int) ($row['transaction_qty'] ?? 0);
+            $issuedCost  = $this->fifoIssue($batchMemory[$productId], $qty);
+            $runningQty[$productId]   -= $qty;
+            $runningValue[$productId] -= $issuedCost;
         }
     }
 
     private function purchaseValues(array $row, array &$batches, int &$runningQty, float &$runningValue): array
     {
-        $purchaseQty = (int) ($row['receipt_qty'] ?? 0);
-        if ($purchaseQty <= 0) {
+        $typeId = (int) ($row['transaction_type_id'] ?? 0);
+        if ($typeId !== 1 && $typeId !== 3) { // not receipt or adjust_in
             return [0, 0.0, 0.0];
         }
 
-        $purchaseCost = (float) ($row['unit_cost'] ?? 0);
+        $purchaseQty   = (int) ($row['transaction_qty'] ?? 0);
+        $purchaseCost  = (float) ($row['transaction_unit_cost'] ?? 0);
         $purchaseTotal = $purchaseQty * $purchaseCost;
 
-        $batches[] = ['qty' => $purchaseQty, 'cost' => $purchaseCost];
-        $runningQty += $purchaseQty;
+        $batches[]     = ['qty' => $purchaseQty, 'cost' => $purchaseCost];
+        $runningQty   += $purchaseQty;
         $runningValue += $purchaseTotal;
 
         return [$purchaseQty, $purchaseCost, $purchaseTotal];
@@ -193,25 +190,28 @@ class ReportModel extends Model
         int &$runningQty,
         float &$runningValue
     ): array {
-        $issueQty = (int) ($row['issue_qty'] ?? 0);
-        $transactionTypeId = (int) ($row['transaction_type_id'] ?? 0);
+        $typeId   = (int) ($row['transaction_type_id'] ?? 0);
+        $issueQty = (int) ($row['transaction_qty'] ?? 0);
 
         if ($issueQty <= 0) {
             return [0, 0.0, 0.0];
         }
 
-        if ($spoiledTypeId === 4 && $transactionTypeId !== 4) {
+        // $spoiledTypeId 4 means adjust_out, 0 means regular issue
+        if ($spoiledTypeId === 4 && $typeId !== 4) {
             return [0, 0.0, 0.0];
         }
-
-        if ($spoiledTypeId === 0 && $transactionTypeId === 4) {
+        if ($spoiledTypeId === 0 && $typeId === 4) {
+            return [0, 0.0, 0.0];
+        }
+        if ($typeId !== 2 && $typeId !== 4) {
             return [0, 0.0, 0.0];
         }
 
         $issueTotal = $this->fifoIssue($batches, $issueQty);
-        $issueCost = $issueQty > 0 ? $issueTotal / $issueQty : 0.0;
+        $issueCost  = $issueQty > 0 ? $issueTotal / $issueQty : 0.0;
 
-        $runningQty -= $issueQty;
+        $runningQty   -= $issueQty;
         $runningValue -= $issueTotal;
 
         return [$issueQty, $issueCost, $issueTotal];
@@ -225,12 +225,10 @@ class ReportModel extends Model
             if ($qty <= 0) {
                 break;
             }
-
             if ($batch['qty'] <= 0) {
                 continue;
             }
-
-            $take = min($batch['qty'], $qty);
+            $take       = min($batch['qty'], $qty);
             $totalCost += $take * $batch['cost'];
             $batch['qty'] -= $take;
             $qty -= $take;

@@ -6,7 +6,7 @@ use CodeIgniter\Model;
 
 class UnitModel extends Model
 {
-    protected $table                 = 'unit';
+    protected $table                 = 'unit_table';
     protected $primaryKey            = 'unit_id';
     protected $returnType            = 'array';
     protected $allowedFields         = ['unit', 'user_office_id'];

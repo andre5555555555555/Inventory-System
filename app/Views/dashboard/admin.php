@@ -4,17 +4,15 @@
 <?php $levelId = (int) ($levelId ?? session('user')['level_id'] ?? 0); ?>
 
 <script type="application/json" id="settingsConfigJson"><?= json_encode([
-    'definitions' => $definitions,
-    'roles' => $roles ?? [],
-    'offices' => $offices ?? [],
-    'userOffices' => $userOffices ?? [],
-    'levels' => $levels ?? [],
-    'fetchBase' => site_url('settings/fetch'),
-    'saveBase' => site_url('settings/save'),
-    'deleteBase' => site_url('settings/delete'),
+    'definitions'  => $definitions,
+    'userOffices'  => $userOffices ?? [],
+    'levels'       => $levels ?? [],
+    'fetchBase'    => site_url('settings/fetch'),
+    'saveBase'     => site_url('settings/save'),
+    'deleteBase'   => site_url('settings/delete'),
     'activateBase' => site_url('settings/activate'),
     'deactivateBase' => site_url('settings/deactivate'),
-    'levelId' => $levelId,
+    'levelId'      => $levelId,
 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?></script>
 
 <div id="settingsPage" class="dashboard-shell">
@@ -45,7 +43,7 @@
         </article>
         <article class="summary-card">
             <span>User Offices</span>
-            <strong><?= count($records['user_office'] ?? []) ?></strong>
+            <strong><?= count($records['user_office_table'] ?? []) ?></strong>
         </article>
     </section>
 
@@ -81,14 +79,19 @@
         </div>
     <?php endif; ?>
 
-    <!-- ── Users & User Office Sections ── -->
+    <!-- ── Settings Sections ── -->
     <?php $sectionIndex = 0; ?>
     <?php foreach ($definitions as $type => $definition): ?>
         <?php
         $sectionTitle = match ($type) {
-            'users' => 'Users',
-            'user_office' => 'User Office',
-            default => ucwords(str_replace('_', ' ', $type)),
+            'users'             => 'Users',
+            'user_office_table' => 'User Office',
+            'entity_table'      => 'Entities',
+            'unit_table'        => 'Units',
+            'reference_table'   => 'References',
+            'type_of_product'   => 'Product Types',
+            'office_table'      => 'Offices',
+            default             => ucwords(str_replace('_', ' ', $type)),
         };
 
         $columns = array_keys($definition['labels']);
@@ -97,8 +100,6 @@
             $columns[] = 'activity_status';
         }
         $isOpen = $sectionIndex === 0 && empty($pendingUsers);
-
-        // No add button for users (they register themselves)
         $showAddButton = ($type !== 'users');
         ?>
 

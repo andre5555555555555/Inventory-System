@@ -6,27 +6,27 @@
         <div>
             <p class="page-eyebrow">Stock Out</p>
             <h1>Request Stock Out</h1>
-            <p class="page-subtitle">Select items and quantities to add to your temporary stock-out list for approval.</p>
+            <p class="page-subtitle">Select products and quantities to add to your temporary stock-out list for approval.</p>
         </div>
         <a href="<?= site_url('stockout/temp') ?>" class="btn-primary">View My Temp List</a>
     </div>
 
     <div class="section-card">
         <div class="stockout-form-card">
-            <h2>Add Item to Stock-Out</h2>
+            <h2>Add Product to Stock-Out</h2>
             <form method="post" action="<?= site_url('stockout/add-temp') ?>" class="stockout-form">
                 <?= csrf_field() ?>
 
                 <div class="form-group">
-                    <label for="item_id">Item</label>
-                    <select name="item_id" id="item_id" required onchange="fillItemDetails(this)">
-                        <option value="">Select Item</option>
+                    <label for="product_id">Product</label>
+                    <select name="product_id" id="product_id" required onchange="fillProductDetails(this)">
+                        <option value="">Select Product</option>
                         <?php foreach ($items as $item): ?>
-                            <option value="<?= (int) $item['item_id'] ?>"
+                            <option value="<?= (int) $item['product_id'] ?>"
                                     data-unit="<?= esc($item['unit_name'] ?? '') ?>"
-                                    data-desc="<?= esc($item['description'] ?? '') ?>"
+                                    data-desc="<?= esc($item['product_description'] ?? $item['description'] ?? '') ?>"
                                     data-stock="<?= (int) $item['current_stock'] ?>">
-                                <?= esc($item['item']) ?> (Stock: <?= (int) $item['current_stock'] ?>)
+                                <?= esc($item['product']) ?> (Stock: <?= (int) $item['current_stock'] ?>)
                             </option>
                         <?php endforeach; ?>
                     </select>
@@ -45,7 +45,7 @@
 
                 <div class="form-group">
                     <label for="description">Description</label>
-                    <input type="text" name="description" id="description" placeholder="Item description" readonly>
+                    <input type="text" name="description" id="description" placeholder="Product description" readonly>
                 </div>
 
                 <button type="submit" class="btn-primary">Add to Temp List</button>
@@ -54,20 +54,20 @@
     </div>
 
     <div class="section-card">
-        <h2>Available Items</h2>
-        <input type="text" class="search-input" id="stockoutSearch" placeholder="Search items..." onkeyup="filterStockoutTable()">
+        <h2>Available Products</h2>
+        <input type="text" class="search-input" id="stockoutSearch" placeholder="Search products..." onkeyup="filterStockoutTable()">
         <table class="data-table" id="stockoutItemsTable">
             <tr>
-                <th>Item</th>
+                <th>Product</th>
                 <th>Unit</th>
                 <th>Description</th>
                 <th>Current Stock</th>
             </tr>
             <?php foreach ($items as $item): ?>
                 <tr>
-                    <td><?= esc($item['item']) ?></td>
+                    <td><?= esc($item['product']) ?></td>
                     <td><?= esc($item['unit_name'] ?? '') ?></td>
-                    <td><?= esc($item['description'] ?? '') ?></td>
+                    <td><?= esc($item['product_description'] ?? $item['description'] ?? '') ?></td>
                     <td><?= (int) $item['current_stock'] ?></td>
                 </tr>
             <?php endforeach; ?>
@@ -76,7 +76,7 @@
 </div>
 
 <script>
-function fillItemDetails(select) {
+function fillProductDetails(select) {
     const option = select.options[select.selectedIndex];
     document.getElementById('unit').value = option.dataset.unit || '';
     document.getElementById('description').value = option.dataset.desc || '';
