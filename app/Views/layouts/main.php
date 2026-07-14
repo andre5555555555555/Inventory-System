@@ -97,7 +97,6 @@
                 <ul class="submenu">
                     <li><a href="<?= site_url('stockcard') ?>">Stockcard</a></li>
                     <li><a href="<?= site_url('stock/add') ?>">Stock In/Out</a></li>
-                    <li><a href="<?= site_url('stock/adjust') ?>">Adjust Stock</a></li>
                 </ul>
             </li>
             <li class="has-submenu">

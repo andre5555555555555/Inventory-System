@@ -22,8 +22,6 @@ $routes->group('', ['filter' => 'auth'], static function ($routes): void {
 
     $routes->get('stockcard', 'InventoryController::stockcard');
     $routes->match(['get', 'post'], 'stock/add', 'InventoryController::addStock');
-    $routes->match(['get', 'post'], 'stock/adjust', 'InventoryController::adjustStock');
-    $routes->post('stock/adjust-inline', 'InventoryController::adjustStockInline');
     $routes->post('stock/edit-transaction', 'InventoryController::editTransaction');
     $routes->post('stock/delete-transaction', 'InventoryController::deleteTransaction');
     $routes->get('batchlist', 'ReportsController::batchlist');

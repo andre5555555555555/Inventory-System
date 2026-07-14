@@ -71,7 +71,8 @@ class InventoryController extends BaseController
         $service          = new InventoryService($db);
         $productModel     = new ProductModel();
         $officeModel      = new OfficeModel();
-        $referenceModel   = new ReferenceModel();
+                $referenceModel   = new ReferenceModel();
+        $reasonModel       = new AdjustmentReasonModel();
         $transactionModel = new TransactionModel();
         $userOfficeId     = $this->userOfficeId();
         $productId        = (int) ($this->request->getGet('item_id') ?? $this->request->getPost('item_id') ?? 0);
@@ -94,12 +95,14 @@ class InventoryController extends BaseController
         }
 
         return view('inventory/stock_form', [
-            'title'        => 'Add Stock',
-            'itemId'       => $productId,
-            'currentStock' => $productId > 0 ? $transactionModel->currentStock($productId, $userOfficeId) : 0,
-            'items'        => $productModel->listForSelect($userOfficeId),
-            'offices'      => $officeModel->orderedList($userOfficeId),
-            'references'   => $referenceModel->orderedList($userOfficeId),
+            'title'             => 'Add Stock',
+            'itemId'            => $productId,
+            'currentStock'      => $productId > 0 ? $transactionModel->currentStock($productId, $userOfficeId) : 0,
+            'items'             => $productModel->listForSelect($userOfficeId),
+            'offices'           => $officeModel->orderedList($userOfficeId),
+            'references'        => $referenceModel->orderedList($userOfficeId),
+            'transactionTypes'  => db_connect()->table('transaction_type_table')->orderBy('transaction_type_id', 'ASC')->get()->getResultArray(),
+            'adjustmentReasons' => $reasonModel->orderedList(),
         ]);
     }
 
@@ -124,12 +127,7 @@ class InventoryController extends BaseController
             }
         }
 
-        return view('inventory/adjust_form', [
-            'title'        => 'Adjust Stock',
-            'itemId'       => $productId,
-            'currentStock' => $productId > 0 ? $transactionModel->currentStock($productId, $userOfficeId) : 0,
-            'items'        => $productModel->listForSelect($userOfficeId),
-        ]);
+        return redirect()->to(site_url('stockcard?item_id=' . $productId));
     }
 
     /**
@@ -200,8 +198,8 @@ class InventoryController extends BaseController
         }
 
         $currentBatchQty = (int) $batch['current_qty'];
-        $oldIsReceipt    = in_array($oldTypeId, [1, 3], true);
-        $newIsReceipt    = in_array($finalType,  [1, 3], true);
+        $oldIsReceipt    = $oldTypeId === 1;
+        $newIsReceipt    = $finalType === 1;
 
         // Undo old transaction effect, then apply new
         // Undo: receipt gave +qty; issue gave -qty
@@ -289,7 +287,7 @@ class InventoryController extends BaseController
         $qty       = (int) $txn['transaction_qty'];
         $batchId   = (int) $txn['batch_id'];
         $typeId    = (int) $txn['transaction_type_id'];
-        $isReceipt = in_array($typeId, [1, 3], true);
+        $isReceipt = $typeId === 1;
 
         $batch = $db->table('batch_table')->where('batch_id', $batchId)->get(1)->getRowArray();
         if (! $batch) {
@@ -336,7 +334,7 @@ class InventoryController extends BaseController
         $month     = (int) $this->request->getPost('month');
 
         // Map cost_type → transaction_type_id
-        $typeMap = ['purchase' => 1, 'used' => 2, 'spoiled' => 4];
+        $typeMap = ['purchase' => 1, 'used' => 2, 'spoiled' => 3];
         $typeId  = $typeMap[$costType] ?? null;
 
         if (! $typeId || $productId <= 0 || $newCost < 0 || $year <= 0 || $month <= 0) {
@@ -363,3 +361,17 @@ class InventoryController extends BaseController
         return $this->response->setJSON(['ok' => true]);
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+

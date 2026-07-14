@@ -1,4 +1,4 @@
-﻿<?= $this->extend('layouts/main') ?>
+<?= $this->extend('layouts/main') ?>
 
 <?= $this->section('content') ?>
 
@@ -38,7 +38,7 @@
                 </div>
             </div>
 
-            <!-- Inline filter bar â€” matches report page style -->
+            <!-- Inline filter bar — matches report page style -->
             <form method="get" action="<?= site_url('stockcard') ?>" class="toolbar-card report-toolbar stockcard-filter-bar">
                 <input type="hidden" name="item_id" value="<?= (int) $itemId ?>">
 
@@ -126,7 +126,7 @@
                                     <tr class="sc-empty-row">
                                         <td colspan="7" class="sc-empty-cell">
                                             <div class="sc-empty-state">
-                                                <span class="sc-empty-icon">ðŸ“‹</span>
+                                                <span class="sc-empty-icon">📋</span>
                                                 <p>No records found for the selected filter.</p>
                                                 <a href="<?= site_url('stockcard?item_id=' . (int) $itemId) ?>">Clear filters</a>
                                             </div>
@@ -137,6 +137,7 @@
                                         <?php
                                             $isReceipt = (int) $row['receipt_qty'] > 0;
                                             $origQty   = $isReceipt ? (int) $row['receipt_qty'] : (int) $row['issue_qty'];
+                                                $reasonValue = trim((string) ($row['adjustment_reason'] ?? ''));
                                         ?>
                                         <tr class="sc-data-row"
                                             data-transaction-id="<?= (int) $row['transaction_id'] ?>"
@@ -148,6 +149,7 @@
                                             <!-- Receipt qty: editable only for receipt rows -->
                                             <td class="sc-receipt-cell sc-qty-cell">
                                                 <span class="sc-qty-text"><?= $isReceipt ? $origQty : '' ?></span>
+                                                <span class="sc-reason-text"><?php if ($reasonValue !== ""): ?><?= esc($reasonValue) ?><?php endif; ?></span>
                                                 <input type="number" min="1"
                                                     class="sc-qty-input sc-receipt-input"
                                                     value="<?= $isReceipt ? $origQty : '' ?>"
@@ -157,6 +159,7 @@
                                             <!-- Issue qty: editable only for issue rows -->
                                             <td class="sc-issue-cell sc-qty-cell">
                                                 <span class="sc-qty-text"><?= !$isReceipt ? $origQty : '' ?></span>
+                                                <span class="sc-reason-text"><?php if ($reasonValue !== ""): ?><?= esc($reasonValue) ?><?php endif; ?></span>
                                                 <input type="number" min="1"
                                                     class="sc-qty-input sc-issue-input"
                                                     value="<?= !$isReceipt ? $origQty : '' ?>"
@@ -205,7 +208,7 @@
 </div>
 
 <style>
-/* â”€â”€ Toolbar layout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Toolbar layout ─────────────────────────────────────── */
 .stockcard-filter-bar.report-toolbar {
     flex-wrap: wrap;
     align-items: flex-end;
@@ -223,7 +226,7 @@
 }
 
 
-/* â”€â”€ Stockcard table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Stockcard table ────────────────────────────────────── */
 .sc-table {
     width: 100%;
     border-collapse: collapse;
@@ -260,7 +263,7 @@
     background: rgba(239, 68, 68, 0.07) !important;
 }
 
-/* â”€â”€ Qty input â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Qty input ──────────────────────────────────────────── */
 .sc-qty-input {
     width: 72px;
     padding: 5px 7px;
@@ -272,7 +275,7 @@
     text-align: center;
 }
 
-/* â”€â”€ Delete button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Delete button ──────────────────────────────────────── */
 .sc-delete-btn {
     padding: 5px 10px;
     border-radius: 6px;
@@ -290,7 +293,7 @@
     color: #6b7280;
 }
 
-/* â”€â”€ Empty state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Empty state ────────────────────────────────────────── */
 .sc-empty-cell { padding: 40px 20px !important; }
 .sc-empty-state {
     display: flex;
@@ -309,7 +312,7 @@
     cursor: pointer;
 }
 
-/* â”€â”€ Edit Mode button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Edit Mode button ───────────────────────────────────── */
 
 .sc-edit-mode-btn {
     display: inline-flex;
@@ -343,7 +346,7 @@
     color: #fff;
 }
 
-/* â”€â”€ Save All button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Save All button ────────────────────────────────────── */
 .sc-save-all-btn {
     display: inline-flex;
     align-items: center;
@@ -361,12 +364,12 @@
 .sc-save-all-btn:hover { background: #d97706; }
 .sc-save-all-btn:disabled { opacity: .6; cursor: not-allowed; }
 
-/* â”€â”€ Edit mode table highlight â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Edit mode table highlight ──────────────────────────── */
 #stockcard-table.edit-mode-on .sc-data-row {
     background: rgba(251, 191, 36, 0.07);
 }
 
-/* â”€â”€ Qty input inside cells â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Qty input inside cells ─────────────────────────────── */
 .sc-qty-input {
     width: 72px;
     padding: 4px 6px;
@@ -377,7 +380,7 @@
     font-size: 0.9rem;
 }
 
-/* â”€â”€ Type select â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Type select ────────────────────────────────────────── */
 .sc-type-select {
     padding: 4px 6px;
     border-radius: 5px;
@@ -388,7 +391,7 @@
     font-weight: 600;
 }
 
-/* â”€â”€ Delete button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Delete button ──────────────────────────────────────── */
 .sc-delete-btn {
     padding: 3px 8px;
     border-radius: 5px;
@@ -401,7 +404,7 @@
 }
 .sc-delete-btn:hover { background: #ef4444; color: #fff; }
 
-/* â”€â”€ Pending delete row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Pending delete row ─────────────────────────────────── */
 .sc-data-row.sc-pending-delete {
     opacity: 0.45;
     text-decoration: line-through;
@@ -412,7 +415,7 @@
     color: #6b7280;
 }
 
-/* â”€â”€ Status bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Status bar ─────────────────────────────────────────── */
 .sc-edit-status {
     padding: 8px 14px;
     border-radius: 8px;
@@ -461,7 +464,7 @@
     const deleteUrl = '<?= site_url('stock/delete-transaction') ?>';
     const pendingDeletes = new Set(); // transaction IDs marked for deletion
 
-    // â”€â”€ Edit Mode toggle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Edit Mode toggle ──────────────────────────────────
     if (editToggle) {
         editToggle.addEventListener('click', function () {
             editMode = !editMode;
@@ -496,7 +499,7 @@
         });
     }
 
-    // â”€â”€ Delete button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Delete button ─────────────────────────────────────
     document.addEventListener('click', function (e) {
         const btn = e.target.closest('.sc-delete-btn');
         if (!btn) return;
@@ -505,24 +508,24 @@
         if (pendingDeletes.has(tid)) {
             pendingDeletes.delete(tid);
             row.classList.remove('sc-pending-delete');
-            btn.textContent = 'ðŸ—‘';
+            btn.textContent = '🗑';
             btn.title = 'Delete this transaction';
         } else {
             pendingDeletes.add(tid);
             row.classList.add('sc-pending-delete');
-            btn.textContent = 'â†©';
-            btn.title = 'Undo â€” keep this row';
+            btn.textContent = '↩';
+            btn.title = 'Undo — keep this row';
         }
     });
 
-    // â”€â”€ Save All â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Save All ──────────────────────────────────────────
     if (saveAllBtn) {
         saveAllBtn.addEventListener('click', async function () {
             const csrf = getCsrf();
             let errors = [];
             let ops    = 0;
 
-            // â‘  Process deletions first
+            // ① Process deletions first
             for (const tid of pendingDeletes) {
                 ops++;
                 const data = new FormData();
@@ -537,7 +540,7 @@
                 }
             }
 
-            // â‘¡ Process qty changes
+            // ② Process qty changes
             document.querySelectorAll('.sc-data-row:not(.sc-pending-delete)').forEach(row => {
                 const origQty  = parseInt(row.dataset.origQty, 10);
                 const input      = row.querySelector('.sc-qty-input:not([style*="none"])')
@@ -576,7 +579,7 @@
             if (ops === 0) { showStatus('No changes detected.', 'error'); return; }
 
             if (errors.length === 0) {
-                showStatus('âœ“ Saved. Reloadingâ€¦', 'success');
+                showStatus('✓ Saved. Reloading…', 'success');
                 setTimeout(() => location.reload(), 900);
             } else {
                 showStatus('Errors: ' + errors.join(' | '), 'error');

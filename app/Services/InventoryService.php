@@ -64,20 +64,30 @@ class InventoryService
     {
         $this->db->transException(true)->transStart();
 
-        $productId    = (int) $payload['product_id'];
-        $qty          = (int) $payload['quantity'];
-        $type         = $payload['adjust_type']; // 'IN' or 'OUT'
-        $unitCost     = (float) ($payload['unit_cost'] ?? 0);
-        $officeId     = $this->resolveOfficeId($payload);
-        $referenceId  = $this->resolveReferenceId($payload);
-        $entityId     = $this->currentEntityId($productId);
-        $dateTime     = $this->dateTime($payload['date'] ?? date('Y-m-d'));
-        $expDate      = ($payload['expiration_date'] ?? '') ?: null;
+        $productId   = (int) $payload['product_id'];
+        $qty         = (int) $payload['quantity'];
+        $typeId      = (int) ($payload['transaction_type_id'] ?? 0);
+        $legacyType  = (string) ($payload['adjust_type'] ?? '');
+        $unitCost    = (float) ($payload['unit_cost'] ?? 0);
+        $officeId    = $this->resolveOfficeId($payload);
+        $referenceId = $this->resolveReferenceId($payload);
+        $reasonId    = (int) ($payload['adjustment_reason_id'] ?? 0);
+        $entityId    = $this->currentEntityId($productId);
+        $dateTime    = $this->dateTime($payload['date'] ?? date('Y-m-d'));
+        $expDate     = ($payload['expiration_date'] ?? '') ?: null;
         $dateReceived = $payload['date'] ?? date('Y-m-d');
         $userOfficeId = (int) ($payload['user_office_id'] ?? 0);
-        $userId       = (int) ($payload['user_id'] ?? 0);
+        $userId      = (int) ($payload['user_id'] ?? 0);
 
-        // Get user_office_name for stock_no generation
+        if ($typeId <= 0) {
+            $typeId = match ($legacyType) {
+                'IN' => 1,
+                'OUT' => 2,
+                'SPOILED' => 3,
+                default => 1,
+            };
+        }
+
         $officeRow = $this->db->table('user_office_table')
             ->where('user_office_id', $userOfficeId)
             ->get(1)->getRowArray();
@@ -91,20 +101,13 @@ class InventoryService
             throw new DomainException('Quantity must be greater than 0.');
         }
 
-        $currentStock = $this->currentStock($productId, $userOfficeId);
-        if ($type === 'OUT' && $qty > $currentStock) {
-            throw new DomainException('Not enough stock.');
-        }
-
-        if ($type === 'IN' && $unitCost <= 0) {
+        if ($typeId === 1 && $unitCost <= 0) {
             throw new DomainException('Unit cost is required for stock-in.');
         }
 
-        if ($type === 'IN') {
-            // Generate batch_no
+        if ($typeId === 1) {
             $batchNo = 'B-' . strtoupper($userOfficeName) . '-' . date('Ymd') . '-' . str_pad((string) $productId, 4, '0', STR_PAD_LEFT);
 
-            // Create batch
             $this->db->table('batch_table')->insert([
                 'batch_no'            => $batchNo,
                 'product_id'          => $productId,
@@ -119,16 +122,14 @@ class InventoryService
             ]);
             $batchId = (int) $this->db->insertID();
 
-            // Ensure product has stock_no
             $product = $this->db->table('product_table')->where('product_id', $productId)->get(1)->getRowArray();
             if (($product['stock_no'] ?? '') === '' && $userOfficeName !== '') {
                 $stockNo = strtoupper($userOfficeName) . '-' . str_pad((string) ($product['product_no'] ?? $productId), 4, '0', STR_PAD_LEFT);
                 $this->db->table('product_table')->where('product_id', $productId)->update(['stock_no' => $stockNo]);
             }
 
-            // Create transaction
             $this->db->table('transaction_table')->insert([
-                'transaction_type_id'   => 1, // receipt
+                'transaction_type_id'   => 1,
                 'transaction_qty'       => $qty,
                 'transaction_unit_cost' => $unitCost,
                 'transaction_date'      => $dateTime,
@@ -141,9 +142,59 @@ class InventoryService
                 'created_at'            => $dateTime,
                 'updated_at'            => $dateTime,
             ]);
+        } elseif ($typeId === 2) {
+            $this->depleteBatches($productId, $qty, $userOfficeId, $officeId, $referenceId, $userId, $dateTime, 0, 2);
+        } elseif ($typeId === 3) {
+            $latestBatch = $this->db->table('batch_table')
+                ->where('product_id', $productId)
+                ->where('user_office_id', $userOfficeId)
+                ->where('current_qty >', 0)
+                ->orderBy('date_received', 'DESC')
+                ->orderBy('batch_id', 'DESC')
+                ->get(1)
+                ->getRowArray();
+
+            if (! $latestBatch) {
+                throw new DomainException('No receipt batch found to spoil from.');
+            }
+
+            $latestQty = (int) $latestBatch['current_qty'];
+            if ($qty > $latestQty) {
+                throw new DomainException('Adjustment out quantity cannot exceed the latest receipt batch quantity.');
+            }
+
+            $receiptRow = $this->db->table('transaction_table')
+                ->select('transaction_unit_cost')
+                ->where('batch_id', $latestBatch['batch_id'])
+                ->whereIn('transaction_type_id', [1])
+                ->orderBy('transaction_id', 'DESC')
+                ->get(1)
+                ->getRowArray();
+            $spoiledUnitCost = (float) ($receiptRow['transaction_unit_cost'] ?? 0);
+
+            $this->db->table('batch_table')
+                ->where('batch_id', $latestBatch['batch_id'])
+                ->update([
+                    'current_qty' => $latestQty - $qty,
+                    'updated_at'  => $dateTime,
+                ]);
+
+            $this->db->table('transaction_table')->insert([
+                'transaction_type_id'   => 3,
+                'transaction_qty'       => $qty,
+                'transaction_unit_cost' => $spoiledUnitCost,
+                'transaction_date'      => $dateTime,
+                'batch_id'              => (int) $latestBatch['batch_id'],
+                'reference_id'          => $referenceId ?: null,
+                'office_id'             => $officeId,
+                'user_id'               => $userId ?: null,
+                'user_office_id'        => $userOfficeId,
+                'adjustment_reason_id'  => $reasonId ?: null,
+                'created_at'            => $dateTime,
+                'updated_at'            => $dateTime,
+            ]);
         } else {
-            // Stock-out: deplete batches FIFO and create issue transaction per batch
-            $this->depleteBatches($productId, $qty, $userOfficeId, $officeId, $referenceId, $userId, $dateTime);
+            throw new DomainException('Unsupported transaction type.');
         }
 
         $this->db->transComplete();
@@ -166,6 +217,8 @@ class InventoryService
         $qty          = (int) $payload['quantity'];
         $type         = $payload['adjust_type'];
         $userOfficeId = (int) ($payload['user_office_id'] ?? 0);
+        $userId       = (int) ($payload['user_id'] ?? 0);
+        $now          = date('Y-m-d H:i:s');
 
         if ($productId <= 0) {
             throw new DomainException('Select a product first.');
@@ -181,7 +234,6 @@ class InventoryService
                 throw new DomainException('Not enough stock to subtract.');
             }
 
-            // FIFO depletion â€” no transaction record
             $batches = $this->db->table('batch_table')
                 ->where('product_id', $productId)
                 ->where('current_qty >', 0)
@@ -201,12 +253,60 @@ class InventoryService
                     ->where('batch_id', $batch['batch_id'])
                     ->update([
                         'current_qty' => (int) $batch['current_qty'] - $take,
-                        'updated_at'  => date('Y-m-d H:i:s'),
+                        'updated_at'  => $now,
                     ]);
                 $remaining -= $take;
             }
+        } elseif ($type === 'SPOILED') {
+            $latestBatch = $this->db->table('batch_table')
+                ->where('product_id', $productId)
+                ->where('user_office_id', $userOfficeId)
+                ->where('current_qty >', 0)
+                ->orderBy('date_received', 'DESC')
+                ->orderBy('batch_id', 'DESC')
+                ->get(1)
+                ->getRowArray();
+
+            if (! $latestBatch) {
+                throw new DomainException('No receipt batch found to spoil from.');
+            }
+
+            $latestQty = (int) $latestBatch['current_qty'];
+            if ($qty > $latestQty) {
+                throw new DomainException('Spoiled quantity cannot exceed the latest receipt batch quantity.');
+            }
+
+            $receiptRow = $this->db->table('transaction_table')
+                ->select('transaction_unit_cost')
+                ->where('batch_id', $latestBatch['batch_id'])
+                ->whereIn('transaction_type_id', [1])
+                ->orderBy('transaction_id', 'DESC')
+                ->get(1)
+                ->getRowArray();
+            $spoiledUnitCost = (float) ($receiptRow['transaction_unit_cost'] ?? 0);
+
+            $this->db->table('batch_table')
+                ->where('batch_id', $latestBatch['batch_id'])
+                ->update([
+                    'current_qty' => $latestQty - $qty,
+                    'updated_at'  => $now,
+                ]);
+
+            $this->db->table('transaction_table')->insert([
+                'transaction_type_id'   => 3,
+                'transaction_qty'       => $qty,
+                'transaction_unit_cost' => $spoiledUnitCost,
+                'transaction_date'      => $now,
+                'batch_id'              => (int) $latestBatch['batch_id'],
+                'reference_id'          => null,
+                'office_id'             => null,
+                'user_id'               => $userId ?: null,
+                'user_office_id'        => $userOfficeId,
+                'adjustment_reason_id'  => null,
+                'created_at'            => $now,
+                'updated_at'            => $now,
+            ]);
         } else {
-            // IN â€” add to most recent non-zero batch, or create a correction batch
             $latestBatch = $this->db->table('batch_table')
                 ->where('product_id', $productId)
                 ->where('user_office_id', $userOfficeId)
@@ -221,18 +321,17 @@ class InventoryService
                     ->where('batch_id', $latestBatch['batch_id'])
                     ->update([
                         'current_qty' => (int) $latestBatch['current_qty'] + $qty,
-                        'updated_at'  => date('Y-m-d H:i:s'),
+                        'updated_at'  => $now,
                     ]);
             } else {
-                // No existing batch â€” create a minimal correction entry
                 $this->db->table('batch_table')->insert([
                     'batch_no'        => 'ADJ-' . date('YmdHis') . '-P' . $productId,
                     'product_id'      => $productId,
                     'user_office_id'  => $userOfficeId,
                     'current_qty'     => $qty,
                     'date_received'   => date('Y-m-d'),
-                    'created_at'      => date('Y-m-d H:i:s'),
-                    'updated_at'      => date('Y-m-d H:i:s'),
+                    'created_at'      => $now,
+                    'updated_at'      => $now,
                 ]);
             }
         }
@@ -381,3 +480,8 @@ class InventoryService
         return (int) $this->db->insertID();
     }
 }
+
+
+
+
+

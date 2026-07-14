@@ -81,7 +81,7 @@ class TransactionModel extends Model
                     t.transaction_id,
                     t.batch_id,
                     t.transaction_date                                          AS date,
-                    CASE WHEN tt.transaction_type IN ('receipt','adjust_in')
+                    CASE WHEN tt.transaction_type IN ('receipt')
                          THEN t.transaction_qty ELSE 0 END                     AS receipt_qty,
                     CASE WHEN tt.transaction_type IN ('issue','adjust_out')
                          THEN t.transaction_qty ELSE 0 END                     AS issue_qty,
@@ -98,7 +98,7 @@ class TransactionModel extends Model
                     COALESCE(et.fund_cluster, '-') AS fund_cluster,
                     tt.transaction_type,
                     b.product_id,
-                    SUM(CASE WHEN tt.transaction_type IN ('receipt','adjust_in') THEN t.transaction_qty
+                    SUM(CASE WHEN tt.transaction_type IN ('receipt') THEN t.transaction_qty
                              ELSE -t.transaction_qty END)
                         OVER (PARTITION BY b.product_id ORDER BY t.transaction_date ASC, t.transaction_id ASC) AS balance
                 FROM transaction_table t
@@ -111,7 +111,7 @@ class TransactionModel extends Model
                 LEFT JOIN entity_table et ON p.entity_id = et.entity_id
                 WHERE b.product_id = ? {$officeFilter}
             ) AS base
-            WHERE transaction_type_id IN (1, 2) {$searchFilter} {$dateFilter}
+            WHERE transaction_type_id IN (1, 2, 3) {$searchFilter} {$dateFilter}
             ORDER BY date {$order}, transaction_id {$order}
             LIMIT {$limit} OFFSET {$offset}",
             $params
@@ -123,7 +123,7 @@ class TransactionModel extends Model
                      FROM transaction_table t
                      INNER JOIN batch_table b ON t.batch_id = b.batch_id
                      WHERE b.product_id = ?
-                       AND t.transaction_type_id IN (1, 2)';
+                       AND t.transaction_type_id IN (1, 2, 3)';
 
         if ($userOfficeId > 0) {
             $totalSql   .= ' AND t.user_office_id = ?';
@@ -143,3 +143,7 @@ class TransactionModel extends Model
         ];
     }
 }
+
+
+
+

@@ -1,4 +1,4 @@
-﻿<?= $this->extend('layouts/main') ?>
+<?= $this->extend('layouts/main') ?>
 
 <?= $this->section('content') ?>
 <div class="main-content-stockcard stock-form-page">
@@ -8,7 +8,7 @@
                 <p class="stock-form-eyebrow">Inventory Transaction</p>
                 <h1><?= esc($title) ?></h1>
                 <p class="stock-form-subtitle">
-                    Record stock movement with a cleaner desktop workspace and a simple mobile form.
+                    Record stock movement using your transaction types and adjustment reasons.
                 </p>
             </div>
 
@@ -88,10 +88,23 @@
                         <?php endforeach; ?>
                     </datalist>
 
-                    <label>Type</label>
-                    <select name="adjust_type">
-                        <option value="IN" <?= old('adjust_type', 'IN') === 'IN' ? 'selected' : '' ?>>RECEIPT</option>
-                        <option value="OUT" <?= old('adjust_type') === 'OUT' ? 'selected' : '' ?>>ISSUE</option>
+                    <label>Transaction Type</label>
+                    <select name="transaction_type_id" id="transactionTypeSelect" required>
+                        <?php foreach ($transactionTypes as $transactionType): ?>
+                            <option value="<?= (int) $transactionType['transaction_type_id'] ?>" <?= (string) old('transaction_type_id', '1') === (string) $transactionType['transaction_type_id'] ? 'selected' : '' ?>>
+                                <?= esc(ucfirst($transactionType['transaction_type'])) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+
+                    <label>Adjustment Reason</label>
+                    <select name="adjustment_reason_id" id="adjustmentReasonSelect">
+                        <option value="">No reason</option>
+                        <?php foreach ($adjustmentReasons as $reason): ?>
+                            <option value="<?= (int) $reason['adjustment_reason_id'] ?>" <?= (string) old('adjustment_reason_id') === (string) $reason['adjustment_reason_id'] ? 'selected' : '' ?>>
+                                <?= esc($reason['adjustment_reason']) ?>
+                            </option>
+                        <?php endforeach; ?>
                     </select>
 
                     <div class="stock-form-inline">
@@ -116,5 +129,24 @@
         </form>
     </div>
 </div>
+<script>
+(function () {
+    const typeSelect = document.getElementById('transactionTypeSelect');
+    const reasonSelect = document.getElementById('adjustmentReasonSelect');
+    if (!typeSelect || !reasonSelect) return;
+
+    function syncReason() {
+        const isAdjustment = ['3', '4'].includes(typeSelect.value);
+        reasonSelect.disabled = !isAdjustment;
+        if (!isAdjustment) {
+            reasonSelect.value = '';
+        }
+    }
+
+    typeSelect.addEventListener('change', syncReason);
+    syncReason();
+})();
+</script>
 <?= $this->endSection() ?>
+
 

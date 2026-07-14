@@ -38,7 +38,7 @@ class ReportModel extends Model
 
             [$purchaseQty, $purchaseCost, $purchaseTotal] = $this->purchaseValues($row, $batchMemory[$productId], $runningQty[$productId], $runningValue[$productId]);
             [$usedQty, $usedCost, $usedTotal]             = $this->issueValues($row, 0, $batchMemory[$productId], $runningQty[$productId], $runningValue[$productId]);
-            [$spoiledQty, $spoiledCost, $spoiledTotal]    = $this->issueValues($row, 4, $batchMemory[$productId], $runningQty[$productId], $runningValue[$productId]);
+            [$spoiledQty, $spoiledCost, $spoiledTotal]    = $this->issueValues($row, 3, $batchMemory[$productId], $runningQty[$productId], $runningValue[$productId]);
 
             $endingQty  = $runningQty[$productId];
             $endingCost = $endingQty > 0 ? $runningValue[$productId] / $endingQty : 0.0;
@@ -119,7 +119,7 @@ class ReportModel extends Model
         $builder->join('type_of_product pt', 'p.type_id = pt.type_id', 'left');
         $builder->where('t.transaction_date >=', $monthStart);
         $builder->where('t.transaction_date <', $nextMonth);
-        $builder->whereIn('t.transaction_type_id', [1, 2]); // only receipt & issue; exclude adjustments
+        $builder->whereIn('t.transaction_type_id', [1, 2, 3]); // include spoiled adjustments
 
         if ($userOfficeId > 0) {
             $builder->where('t.user_office_id', $userOfficeId);
@@ -149,7 +149,7 @@ class ReportModel extends Model
 
         $typeId = (int) ($row['transaction_type_id'] ?? 0);
 
-        if ($typeId === 1 || $typeId === 3) { // receipt or adjust_in
+        if ($typeId === 1) { // receipt
             $unitCost              = (float) ($row['transaction_unit_cost'] ?? 0);
             $qty                   = (int) ($row['transaction_qty'] ?? 0);
             $batchMemory[$productId][] = ['qty' => $qty, 'cost' => $unitCost];
@@ -157,7 +157,7 @@ class ReportModel extends Model
             $runningValue[$productId] += $qty * $unitCost;
         }
 
-        if ($typeId === 2 || $typeId === 4) { // issue or adjust_out
+        if ($typeId === 2 || $typeId === 3) { // issue or adjust_out
             $qty         = (int) ($row['transaction_qty'] ?? 0);
             $issuedCost  = $this->fifoIssue($batchMemory[$productId], $qty);
             $runningQty[$productId]   -= $qty;
@@ -168,7 +168,7 @@ class ReportModel extends Model
     private function purchaseValues(array $row, array &$batches, int &$runningQty, float &$runningValue): array
     {
         $typeId = (int) ($row['transaction_type_id'] ?? 0);
-        if ($typeId !== 1 && $typeId !== 3) { // not receipt or adjust_in
+        if ($typeId !== 1) { // not receipt
             return [0, 0.0, 0.0];
         }
 
@@ -197,14 +197,14 @@ class ReportModel extends Model
             return [0, 0.0, 0.0];
         }
 
-        // $spoiledTypeId 4 means adjust_out, 0 means regular issue
-        if ($spoiledTypeId === 4 && $typeId !== 4) {
+        // $spoiledTypeId 3 means adjust_out, 0 means regular issue
+        if ($spoiledTypeId === 3 && $typeId !== 3) {
             return [0, 0.0, 0.0];
         }
-        if ($spoiledTypeId === 0 && $typeId === 4) {
+        if ($spoiledTypeId === 0 && $typeId === 3) {
             return [0, 0.0, 0.0];
         }
-        if ($typeId !== 2 && $typeId !== 4) {
+        if ($typeId !== 2 && $typeId !== 3) {
             return [0, 0.0, 0.0];
         }
 
@@ -237,3 +237,6 @@ class ReportModel extends Model
         return $totalCost;
     }
 }
+
+
+

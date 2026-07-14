@@ -21,7 +21,6 @@ class DatabaseSeeder extends Seeder
         $this->db->table('transaction_type_table')->insertBatch([
             ['transaction_type' => 'receipt'],
             ['transaction_type' => 'issue'],
-            ['transaction_type' => 'adjust_in'],
             ['transaction_type' => 'adjust_out'],
         ]);
 
@@ -57,3 +56,4 @@ class DatabaseSeeder extends Seeder
         ]);
     }
 }
+
