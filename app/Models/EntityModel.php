@@ -20,4 +20,26 @@ class EntityModel extends Model
         }
         return $builder->findAll();
     }
+
+    public function firstOrCreate(string $name, int $userOfficeId): int
+    {
+        $name = trim($name);
+        if ($name === '') {
+            return 0;
+        }
+
+        $existing = $this->where('entity', $name)
+                         ->where('user_office_id', $userOfficeId)
+                         ->first();
+        if ($existing) {
+            return (int) $existing['entity_id'];
+        }
+
+        $id = $this->insert([
+            'entity'         => $name,
+            'user_office_id' => $userOfficeId,
+            'fund_cluster'   => '',
+        ]);
+        return (int) $id;
+    }
 }

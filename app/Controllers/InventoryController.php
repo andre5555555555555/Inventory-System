@@ -174,6 +174,7 @@ class InventoryController extends BaseController
         $newTypeInput  = $this->request->getPost('new_type');
         $newTypeId     = $newTypeInput !== null ? (int) $newTypeInput : null;
         $newOffice     = trim((string) ($this->request->getPost('new_office') ?? ''));
+        $newRef        = trim((string) ($this->request->getPost('new_reference') ?? ''));
 
         if ($transactionId <= 0) {
             return $this->response->setStatusCode(422)->setJSON(['ok' => false, 'error' => 'Invalid transaction.']);
@@ -238,6 +239,26 @@ class InventoryController extends BaseController
             }
         } else {
             $updateFields['office_id'] = null;
+        }
+
+        if ($newRef !== '') {
+            $refQuery = $db->table('reference_table')->select('reference_id')->where('reference', $newRef);
+            if ($userOfficeId > 0) {
+                $refQuery->where('user_office_id', $userOfficeId);
+            }
+            $existingRef = $refQuery->get(1)->getRowArray();
+            if ($existingRef) {
+                $updateFields['reference_id'] = (int) $existingRef['reference_id'];
+            } else {
+                $refInsert = ['reference' => $newRef];
+                if ($userOfficeId > 0) {
+                    $refInsert['user_office_id'] = $userOfficeId;
+                }
+                $db->table('reference_table')->insert($refInsert);
+                $updateFields['reference_id'] = (int) $db->insertID();
+            }
+        } else {
+            $updateFields['reference_id'] = null;
         }
         // Map display type (1=receipt, 2=issue) to transaction_type_id
         if ($newTypeId !== null && $newTypeId !== $oldTypeId) {

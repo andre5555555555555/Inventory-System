@@ -45,14 +45,21 @@ class ProductModel extends Model
 
     public function findProduct(int $id): ?array
     {
-        $product = $this->find($id);
-        if ($product === null) {
+        $builder = $this->db->table($this->table);
+        $builder->select('product_table.*, entity_table.entity as entity_name, unit_table.unit as unit_name, type_of_product.type as type_name');
+        $builder->join('entity_table', 'product_table.entity_id = entity_table.entity_id', 'left');
+        $builder->join('unit_table', 'product_table.unit_id = unit_table.unit_id', 'left');
+        $builder->join('type_of_product', 'product_table.type_id = type_of_product.type_id', 'left');
+        $builder->where('product_table.product_id', $id);
+        
+        $product = $builder->get()->getRowArray();
+        if (!$product) {
             return null;
         }
         $product['product_reorder_point'] = (int) ($product['product_reorder_point'] ?? 0);
-        $product['entity_id']             = $product['entity_id'] ?? '';
-        $product['unit_id']               = $product['unit_id'] ?? '';
-        $product['type_id']               = $product['type_id'] ?? '';
+        $product['entity_name']           = $product['entity_name'] ?? '';
+        $product['unit_name']             = $product['unit_name'] ?? '';
+        $product['type_name']             = $product['type_name'] ?? '';
         return $product;
     }
 

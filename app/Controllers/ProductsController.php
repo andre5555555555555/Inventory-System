@@ -49,10 +49,10 @@ class ProductsController extends BaseController
             'product_no'            => '',
             'product'               => '',
             'product_description'   => '',
-            'product_reorder_point' => 0,
-            'entity_id'             => '',
-            'unit_id'               => '',
-            'type_id'               => '',
+            'product_reorder_point' => 10,
+            'entity_name'           => '',
+            'unit_name'             => '',
+            'type_name'             => '',
         ];
 
         if ($id !== null) {
@@ -68,9 +68,9 @@ class ProductsController extends BaseController
                 'product'               => 'required|min_length[2]|max_length[255]',
                 'product_description'   => 'permit_empty|max_length[1000]',
                 'product_reorder_point' => 'required|integer|greater_than_equal_to[0]',
-                'entity_id'             => 'required|integer|greater_than[0]',
-                'unit_id'               => 'required|integer',
-                'type_id'               => 'required|integer',
+                'entity_name'           => 'required|max_length[255]',
+                'unit_name'             => 'required|max_length[255]',
+                'type_name'             => 'required|max_length[255]',
             ];
 
             if (! $this->validate($rules)) {
@@ -84,14 +84,22 @@ class ProductsController extends BaseController
             $officeName  = $officeRow['user_office_name'] ?? '';
             $stockNo     = $officeName !== '' ? strtoupper($officeName) . '-' . str_pad((string) $productNo, 4, '0', STR_PAD_LEFT) : '';
 
+            $entityName = trim((string) $this->request->getPost('entity_name'));
+            $unitName   = trim((string) $this->request->getPost('unit_name'));
+            $typeName   = trim((string) $this->request->getPost('type_name'));
+
+            $entityId = $entityModel->firstOrCreate($entityName, $userOfficeId);
+            $unitId   = $unitModel->firstOrCreate($unitName, $userOfficeId);
+            $typeId   = $productTypeModel->firstOrCreate($typeName, $userOfficeId);
+
             $payload = [
                 'product_no'            => $productNo,
                 'product'               => trim((string) $this->request->getPost('product')),
                 'product_description'   => trim((string) $this->request->getPost('product_description')),
                 'product_reorder_point' => (int) $this->request->getPost('product_reorder_point'),
-                'entity_id'             => (int) $this->request->getPost('entity_id'),
-                'unit_id'               => (int) $this->request->getPost('unit_id'),
-                'type_id'               => (int) $this->request->getPost('type_id'),
+                'entity_id'             => $entityId,
+                'unit_id'               => $unitId,
+                'type_id'               => $typeId,
                 'user_office_id'        => $userOfficeId,
                 'stock_no'              => $stockNo,
             ];

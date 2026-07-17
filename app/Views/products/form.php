@@ -22,37 +22,37 @@
         <textarea name="product_description"><?= esc(old('product_description', $product['product_description'])) ?></textarea>
 
         <label>Re-order Point:</label>
-        <input type="number" name="product_reorder_point" min="0" value="<?= esc((string) old('product_reorder_point', $product['product_reorder_point'] ?? 0)) ?>" required>
+        <input type="number" name="product_reorder_point" min="0" value="<?= esc((string) old('product_reorder_point', $product['product_reorder_point'] ?? 10)) ?>" required>
 
         <label>Entity:</label>
-        <select name="entity_id" required>
-            <option value="">Select entity</option>
-            <?php foreach ($entities as $entity): ?>
-                <option value="<?= (int) $entity['entity_id'] ?>" <?= (string) old('entity_id', $product['entity_id'] ?? '') === (string) $entity['entity_id'] ? 'selected' : '' ?>>
-                    <?= esc($entity['entity']) ?>
-                </option>
-            <?php endforeach; ?>
-        </select>
+        <div class="hover-dropdown">
+            <input type="text" name="entity_name" class="hover-input" autocomplete="off" placeholder="Select or type entity" value="<?= esc(old('entity_name', $product['entity_name'] ?? '')) ?>" required>
+            <div class="hover-dropdown-content">
+                <?php foreach ($entities as $entity): ?>
+                    <div class="hover-option"><?= esc($entity['entity']) ?></div>
+                <?php endforeach; ?>
+            </div>
+        </div>
 
         <label>Unit:</label>
-        <select name="unit_id" required>
-            <option value="">Select unit</option>
-            <?php foreach ($units as $unit): ?>
-                <option value="<?= (int) $unit['unit_id'] ?>" <?= (string) old('unit_id', $product['unit_id'] ?? '') === (string) $unit['unit_id'] ? 'selected' : '' ?>>
-                    <?= esc($unit['unit']) ?>
-                </option>
-            <?php endforeach; ?>
-        </select>
+        <div class="hover-dropdown">
+            <input type="text" name="unit_name" class="hover-input" autocomplete="off" placeholder="Select or type unit" value="<?= esc(old('unit_name', $product['unit_name'] ?? '')) ?>" required>
+            <div class="hover-dropdown-content">
+                <?php foreach ($units as $unit): ?>
+                    <div class="hover-option"><?= esc($unit['unit']) ?></div>
+                <?php endforeach; ?>
+            </div>
+        </div>
 
         <label>Product Type:</label>
-        <select name="type_id" required>
-            <option value="">Select product type</option>
-            <?php foreach ($productTypes as $pType): ?>
-                <option value="<?= (int) $pType['type_id'] ?>" <?= (string) old('type_id', $product['type_id'] ?? '') === (string) $pType['type_id'] ? 'selected' : '' ?>>
-                    <?= esc($pType['type']) ?>
-                </option>
-            <?php endforeach; ?>
-        </select>
+        <div class="hover-dropdown">
+            <input type="text" name="type_name" class="hover-input" autocomplete="off" placeholder="Select or type product type" value="<?= esc(old('type_name', $product['type_name'] ?? '')) ?>" required>
+            <div class="hover-dropdown-content">
+                <?php foreach ($productTypes as $pType): ?>
+                    <div class="hover-option"><?= esc($pType['type']) ?></div>
+                <?php endforeach; ?>
+            </div>
+        </div>
 
         <button type="submit"><?= $product['product_id'] ? 'Update' : 'Save Product' ?></button>
     </form>

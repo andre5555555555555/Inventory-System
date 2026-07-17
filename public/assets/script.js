@@ -1,4 +1,4 @@
-﻿(() => {
+(() => {
 
     // =========================
     // HELPERS
@@ -682,12 +682,55 @@
     }
 
     // =========================
+    // HOVER DROPDOWN MODULE
+    // =========================
+
+    function initHoverDropdowns() {
+        document.querySelectorAll('.hover-dropdown').forEach(container => {
+            const input = container.querySelector('.hover-input');
+            const options = container.querySelectorAll('.hover-option');
+            const dropdownContent = container.querySelector('.hover-dropdown-content');
+
+            if (!input || !dropdownContent) return;
+
+            input.addEventListener('input', () => {
+                const query = input.value.trim().toLowerCase();
+                options.forEach(option => {
+                    const text = (option.textContent || '').toLowerCase();
+                    if (query === '' || text.includes(query)) {
+                        option.classList.remove('hidden');
+                    } else {
+                        option.classList.add('hidden');
+                    }
+                });
+            });
+
+            input.addEventListener('focus', () => {
+                dropdownContent.classList.add('force-show');
+            });
+            input.addEventListener('blur', () => {
+                setTimeout(() => {
+                    dropdownContent.classList.remove('force-show');
+                }, 200);
+            });
+
+            options.forEach(option => {
+                option.addEventListener('click', () => {
+                    input.value = option.textContent.trim();
+                    dropdownContent.classList.remove('force-show');
+                });
+            });
+        });
+    }
+
+    // =========================
     // INIT
     // =========================
 
     document.addEventListener("DOMContentLoaded", () => {
         initThemeToggle();
         bindSubmitGuards();
+        initHoverDropdowns();
 
         document.querySelector("[data-menu-toggle]")?.addEventListener("click", toggleMenu);
 

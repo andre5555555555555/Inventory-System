@@ -20,4 +20,25 @@ class UnitModel extends Model
         }
         return $builder->findAll();
     }
+
+    public function firstOrCreate(string $name, int $userOfficeId): int
+    {
+        $name = trim($name);
+        if ($name === '') {
+            return 0;
+        }
+
+        $existing = $this->where('unit', $name)
+                         ->where('user_office_id', $userOfficeId)
+                         ->first();
+        if ($existing) {
+            return (int) $existing['unit_id'];
+        }
+
+        $id = $this->insert([
+            'unit'           => $name,
+            'user_office_id' => $userOfficeId,
+        ]);
+        return (int) $id;
+    }
 }

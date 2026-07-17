@@ -145,7 +145,11 @@
                                             data-orig-type="<?= $isReceipt ? '1' : '2' ?>"
                                             data-orig-qty="<?= $origQty ?>">
                                             <td class="sc-col-date"><?= esc(date('m/d/Y', strtotime($row['date']))) ?></td>
-                                            <td class="sc-col-ref"><?= esc($row['reference']) ?></td>
+                                            <td class="sc-ref-cell sc-col-ref">
+                                                <?php $refValue = trim((string) ($row['reference'] ?? '')); ?>
+                                                <span class="sc-ref-text"><?= esc($refValue) ?></span>
+                                                <input type="text" class="sc-ref-input" value="<?= esc($refValue, 'attr') ?>" style="display:none" placeholder="Reference">
+                                            </td>
                                             <!-- Receipt qty: editable only for receipt rows -->
                                             <td class="sc-receipt-cell sc-qty-cell">
                                                 <span class="sc-qty-text"><?= $isReceipt ? $origQty : '' ?></span>
@@ -244,6 +248,7 @@
 .sc-col-act   { width: 90px; text-align: center; }
 .sc-qty-cell  { text-align: center; }
 .sc-office-cell { font-size: 0.85rem; color: #476a6c; max-width: 180px; white-space: normal; }
+.sc-ref-cell { font-size: 0.85rem; color: #476a6c; max-width: 180px; white-space: normal; }
 .sc-balance-cell { font-weight: 700; text-align: right; }
 
 /* Edit mode: amber row tint */
@@ -379,6 +384,15 @@
     color: #0f3d3e;
     font-size: 0.9rem;
 }
+.sc-ref-input, .sc-office-input {
+    width: 100%;
+    padding: 4px 6px;
+    border-radius: 5px;
+    border: 1.5px solid #f59e0b;
+    background: rgba(255,255,255,0.8);
+    color: #0f3d3e;
+    font-size: 0.85rem;
+}
 
 /* ── Type select ────────────────────────────────────────── */
 .sc-type-select {
@@ -485,13 +499,16 @@
                 // toggle text vs input
                 row.querySelectorAll('.sc-qty-text').forEach(s => s.style.display = editMode ? 'none' : '');
                 row.querySelectorAll('.sc-office-text').forEach(s => s.style.display = editMode ? 'none' : '');
+                row.querySelectorAll('.sc-ref-text').forEach(s => s.style.display = editMode ? 'none' : '');
                 // Only reveal the input that belongs to this row's type (not disabled)
                 row.querySelectorAll('.sc-qty-input:not([disabled])').forEach(i => i.style.display = editMode ? '' : 'none');
                 row.querySelectorAll('.sc-office-input').forEach(i => i.style.display = editMode ? '' : 'none');
+                row.querySelectorAll('.sc-ref-input').forEach(i => i.style.display = editMode ? '' : 'none');
                 // reset on toggle off
                 if (!editMode) {
                     row.querySelectorAll('.sc-qty-input:not([disabled])').forEach(i => i.value = row.dataset.origQty);
                     row.querySelectorAll('.sc-office-input').forEach(i => i.value = row.querySelector('.sc-office-text')?.textContent ?? '');
+                    row.querySelectorAll('.sc-ref-input').forEach(i => i.value = row.querySelector('.sc-ref-text')?.textContent ?? '');
                     row.classList.remove('sc-pending-delete');
                     pendingDeletes.delete(row.dataset.transactionId);
                 }
@@ -546,26 +563,30 @@
                 const input      = row.querySelector('.sc-qty-input:not([style*="none"])')
                                   ?? row.querySelector('.sc-receipt-input');
                 const officeInput = row.querySelector('.sc-office-input');
+                const refInput    = row.querySelector('.sc-ref-input');
                 const newQty      = parseInt(input?.value ?? origQty, 10);
                 const newOffice   = (officeInput?.value ?? '').trim();
                 const origOffice  = (row.querySelector('.sc-office-text')?.textContent ?? '').trim();
+                const newRef      = (refInput?.value ?? '').trim();
+                const origRef     = (row.querySelector('.sc-ref-text')?.textContent ?? '').trim();
 
-                if (newQty === origQty && newOffice === origOffice) return;
+                if (newQty === origQty && newOffice === origOffice && newRef === origRef) return;
                 if (isNaN(newQty) || newQty <= 0) { errors.push('Invalid qty in a row'); return; }
 
                 ops++;
-                row._pendingSave = { transactionId: row.dataset.transactionId, newQty, newOffice };
+                row._pendingSave = { transactionId: row.dataset.transactionId, newQty, newOffice, newRef };
             });
 
             const editRows = [...document.querySelectorAll('.sc-data-row[data-transaction-id]')]
                 .filter(r => r._pendingSave);
 
             for (const row of editRows) {
-                const { transactionId, newQty, newOffice } = row._pendingSave;
+                const { transactionId, newQty, newOffice, newRef } = row._pendingSave;
                 const data = new FormData();
                 data.append('transaction_id', transactionId);
                 data.append('new_qty', newQty);
                 data.append('new_office', newOffice);
+                data.append('new_reference', newRef);
                 if (csrf.name) data.append(csrf.name, csrf.hash);
                 try {
                     const res  = await fetch(editUrl, { method: 'POST', body: data });

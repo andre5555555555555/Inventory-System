@@ -5419,3 +5419,55 @@ html[data-theme="bsu"] .report-edit-controls .sc-edit-mode-btn {
         min-width: 0;
     }
 }
+/* HOVER DROPDOWN COMPONENTS */
+.hover-dropdown {
+    position: relative;
+    width: 100%;
+}
+
+.hover-dropdown input {
+    width: 100%;
+    /* Keep existing input styles */
+}
+
+.hover-dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: white;
+    width: 100%;
+    max-height: 200px;
+    box-shadow: 0px 5px 12px rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    overflow-y: auto;
+    z-index: 9999;
+    flex-direction: column;
+    top: 100%;
+    left: 0;
+    margin-top: 5px;
+    border: 1px solid #ccc;
+}
+
+.hover-dropdown:hover .hover-dropdown-content,
+.hover-dropdown-content.force-show {
+    display: flex;
+}
+
+.hover-option {
+    padding: 10px;
+    color: #333;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+}
+
+.hover-option:last-child {
+    border-bottom: none;
+}
+
+.hover-option:hover {
+    background-color: #0f766e;
+    color: white;
+}
+
+.hover-option.hidden {
+    display: none;
+}
