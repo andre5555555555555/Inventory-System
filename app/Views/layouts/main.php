@@ -97,13 +97,15 @@
                 <ul class="submenu">
                     <li><a href="<?= site_url('stockcard') ?>">Stockcard</a></li>
                     <li><a href="<?= site_url('stock/add') ?>">Stock In/Out</a></li>
+                    <li><a href="<?= site_url('export/stockcard') ?>">Export Stockcard</a></li>
                 </ul>
             </li>
             <li class="has-submenu">
                 <a href="<?= site_url('products') ?>">PRODUCTS</a>
                 <ul class="submenu">
                     <li><a href="<?= site_url('products') ?>">Product List</a></li>
-                    <li><a href="<?= site_url('batchlist') ?>">Per Batch List</a></li>
+                    <li><a href="<?= site_url('batches') ?>">Batch Inventory</a></li>
+                    <li><a href="<?= site_url('batchlist') ?>">Summary Report</a></li>
                     <li><a href="<?= site_url('products/create') ?>">Product In</a></li>
                 </ul>
             </li>

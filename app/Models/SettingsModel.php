@@ -279,13 +279,75 @@ class SettingsModel extends Model
     private function preserveRelationsBeforeDelete(BaseConnection $db, string $type, int $id): void
     {
         match ($type) {
-            'entity_table'    => $db->table('product_table')->where('entity_id', $id)->set('entity_id', null)->update(),
-            'unit_table'      => $db->table('product_table')->where('unit_id', $id)->set('unit_id', null)->update(),
+            'entity_table'    => $this->guardEntityDelete($db, $id),
+            'unit_table'      => $this->guardUnitDelete($db, $id),
+            'type_of_product' => $this->guardTypeDelete($db, $id),
+            'office_table'    => $this->guardOfficeDelete($db, $id),
+            'user_office_table' => $this->guardUserOfficeDelete($db, $id),
+            // reference_table: nullify only — references are optional metadata
             'reference_table' => $db->table('transaction_table')->where('reference_id', $id)->set('reference_id', null)->update(),
-            'type_of_product' => $db->table('product_table')->where('type_id', $id)->set('type_id', null)->update(),
-            'office_table'    => $this->clearOfficeRelations($db, $id),
             default           => null,
         };
+    }
+
+    private function guardEntityDelete(BaseConnection $db, int $id): void
+    {
+        $count = (int) $db->table('product_table')->where('entity_id', $id)->countAllResults();
+        if ($count > 0) {
+            throw new \DomainException(
+                "Cannot delete: this entity is used by {$count} product(s). Remove or reassign them first."
+            );
+        }
+    }
+
+    private function guardUnitDelete(BaseConnection $db, int $id): void
+    {
+        $count = (int) $db->table('product_table')->where('unit_id', $id)->countAllResults();
+        if ($count > 0) {
+            throw new \DomainException(
+                "Cannot delete: this unit is used by {$count} product(s). Remove or reassign them first."
+            );
+        }
+    }
+
+    private function guardTypeDelete(BaseConnection $db, int $id): void
+    {
+        $count = (int) $db->table('product_table')->where('type_id', $id)->countAllResults();
+        if ($count > 0) {
+            throw new \DomainException(
+                "Cannot delete: this product type is used by {$count} product(s). Remove or reassign them first."
+            );
+        }
+    }
+
+    private function guardOfficeDelete(BaseConnection $db, int $id): void
+    {
+        $txnCount   = (int) $db->table('transaction_table')->where('office_id', $id)->countAllResults();
+        $batchCount = (int) $db->table('batch_table')->where('office_id', $id)->countAllResults();
+        $total = $txnCount + $batchCount;
+        if ($total > 0) {
+            throw new \DomainException(
+                "Cannot delete: this office is referenced by {$total} transaction(s) or batch(es)."
+            );
+        }
+    }
+
+    private function guardUserOfficeDelete(BaseConnection $db, int $id): void
+    {
+        $users    = (int) $db->table('user_table')->where('user_office_id', $id)->countAllResults();
+        $products = (int) $db->table('product_table')->where('user_office_id', $id)->countAllResults();
+        $batches  = (int) $db->table('batch_table')->where('user_office_id', $id)->countAllResults();
+
+        $issues = [];
+        if ($users    > 0) $issues[] = "{$users} user(s)";
+        if ($products > 0) $issues[] = "{$products} product(s)";
+        if ($batches  > 0) $issues[] = "{$batches} batch(es)";
+
+        if ($issues) {
+            throw new \DomainException(
+                'Cannot delete: this user office is still used by ' . implode(', ', $issues) . '.'
+            );
+        }
     }
 
     private function clearOfficeRelations(BaseConnection $db, int $officeId): void

@@ -431,6 +431,7 @@ tr:hover {
 .delete-btn {
     background-color: #ef4444;
     color: white;
+    box-shadow: none;
 }
 
 .delete-btn:hover {

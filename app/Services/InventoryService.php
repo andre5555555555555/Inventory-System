@@ -122,6 +122,15 @@ class InventoryService
             ]);
             $batchId = (int) $this->db->insertID();
 
+            // ── Auto-generate Code 128 barcode for this batch ──────────────────
+            $barcodeService = new \App\Services\BarcodeService();
+            $barcodeValue   = $barcodeService->generateBatchValue($batchId);
+            $barcodeService->saveBatchBarcode($barcodeValue);          // writes SVG to disk
+            $this->db->table('batch_table')
+                ->where('batch_id', $batchId)
+                ->update(['barcode_value' => $barcodeValue]);
+            // ───────────────────────────────────────────────────────────────────
+
             $product = $this->db->table('product_table')->where('product_id', $productId)->get(1)->getRowArray();
             if (($product['stock_no'] ?? '') === '' && $userOfficeName !== '') {
                 $stockNo = strtoupper($userOfficeName) . '-' . str_pad((string) ($product['product_no'] ?? $productId), 4, '0', STR_PAD_LEFT);
@@ -346,11 +355,11 @@ class InventoryService
         int $productId,
         int $qty,
         int $userOfficeId,
-        int $officeId,
-        int $referenceId,
-        int $userId,
+        ?int $officeId,
+        ?int $referenceId,
+        ?int $userId,
         string $dateTime,
-        int $reasonId = 0,
+        ?int $reasonId = 0,
         int $transactionTypeId = 2
     ): void {
         $builder = $this->db->table('batch_table')

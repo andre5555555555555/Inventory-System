@@ -708,17 +708,77 @@
             input.addEventListener('focus', () => {
                 dropdownContent.classList.add('force-show');
             });
+
             input.addEventListener('blur', () => {
-                setTimeout(() => {
+                // Only hide if mouse is not hovering over the dropdown content
+                if (!dropdownContent.matches(':hover')) {
+                    setTimeout(() => {
+                        if (!dropdownContent.matches(':hover')) {
+                            dropdownContent.classList.remove('force-show');
+                        }
+                    }, 150);
+                }
+            });
+
+            // Keep dropdown open while hovering over it
+            dropdownContent.addEventListener('mouseenter', () => {
+                dropdownContent.classList.add('force-show');
+            });
+
+            dropdownContent.addEventListener('mouseleave', () => {
+                // Only hide if input is also not focused
+                if (document.activeElement !== input) {
                     dropdownContent.classList.remove('force-show');
-                }, 200);
+                }
             });
 
             options.forEach(option => {
-                option.addEventListener('click', () => {
+                // Use mousedown + preventDefault to prevent the input from losing focus
+                option.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
                     input.value = option.textContent.trim();
                     dropdownContent.classList.remove('force-show');
+                    input.blur();
                 });
+            });
+        });
+    }
+
+    // =========================
+    // PRODUCT DELETE MODULE
+    // =========================
+
+    function initProductDelete() {
+        document.addEventListener('click', async (e) => {
+            const btn = e.target.closest('[data-delete-url]');
+            if (!btn) return;
+
+            const url = btn.dataset.deleteUrl;
+            const name = btn.dataset.productName || 'this product';
+
+            if (!confirm(`Delete "${name}"?\n\nThis cannot be undone. Products with existing stock or transactions cannot be deleted.`)) return;
+
+            await runOnce(`product-delete-${url}`, btn, async () => {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: csrfHeaders(),
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    showToast(data.message ?? 'Delete failed', 'error');
+                    return;
+                }
+
+                showToast(data.message ?? 'Deleted successfully', 'success');
+                // Remove the row from the table
+                const row = btn.closest('tr');
+                if (row) {
+                    row.style.transition = 'opacity 0.3s';
+                    row.style.opacity = '0';
+                    setTimeout(() => row.remove(), 300);
+                }
             });
         });
     }
@@ -747,6 +807,7 @@
         bindStockcardTools();
         initSettingsPage();
         initStockoutApproval();
+        initProductDelete();
           const flash = document.querySelector(".flash-message");
 
         if (flash) {

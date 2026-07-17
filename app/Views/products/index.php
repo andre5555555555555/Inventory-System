@@ -31,7 +31,7 @@
                 <th>Unit</th>
                 <th>Stock</th>
                 <?php if ((int) (session('user')['level_id'] ?? 0) >= 2): ?>
-                    <th>Action</th>
+                    <th style="width:1%;white-space:nowrap;">Action</th>
                 <?php endif; ?>
             </tr>
             <?php foreach ($products as $product): ?>
@@ -42,7 +42,14 @@
                     <td><?= esc((string) $product['unit_name']) ?></td>
                     <td><?= esc((string) $product['total_stock']) ?></td>
                     <?php if ((int) (session('user')['level_id'] ?? 0) >= 2): ?>
-                        <td><a class="action-btn edit-btn" href="<?= site_url('products/edit/' . (int) $product['product_id']) ?>">Edit</a></td>
+                        <td style="width:1%;white-space:nowrap;">
+                            <a class="action-btn edit-btn" href="<?= site_url('products/edit/' . (int) $product['product_id']) ?>">Edit</a>
+                            <button
+                                class="action-btn delete-btn"
+                                data-delete-url="<?= site_url('products/delete/' . (int) $product['product_id']) ?>"
+                                data-product-name="<?= esc($product['product']) ?>"
+                            >Delete</button>
+                        </td>
                     <?php endif; ?>
                 </tr>
             <?php endforeach; ?>

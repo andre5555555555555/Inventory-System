@@ -19,6 +19,13 @@ $routes->group('', ['filter' => 'auth'], static function ($routes): void {
     $routes->get('products', 'ProductsController::index');
     $routes->match(['get', 'post'], 'products/create', 'ProductsController::create');
     $routes->match(['get', 'post'], 'products/edit/(:num)', 'ProductsController::edit/$1');
+    $routes->post('products/delete/(:num)', 'ProductsController::delete/$1');
+
+    // ── Batch inventory list + barcode endpoints ──────────────────────────────
+    $routes->get('batches', 'ReportsController::batches');
+    $routes->get('barcode/product/(:num)', 'BarcodeController::product/$1');
+    $routes->get('barcode/batch/(:num)', 'BarcodeController::batch/$1');
+    $routes->get('barcode/lookup', 'BarcodeController::lookupByValue');
 
     $routes->get('stockcard', 'InventoryController::stockcard');
     $routes->match(['get', 'post'], 'stock/add', 'InventoryController::addStock');
@@ -26,6 +33,10 @@ $routes->group('', ['filter' => 'auth'], static function ($routes): void {
     $routes->post('stock/delete-transaction', 'InventoryController::deleteTransaction');
     $routes->get('batchlist', 'ReportsController::batchlist');
     $routes->post('stock/edit-report-cost', 'InventoryController::editReportCost');
+
+    // ── Stockcard export ──────────────────────────────────────────────────────
+    $routes->get('export/stockcard',  'ExportController::stockcardForm');
+    $routes->post('export/stockcard', 'ExportController::stockcardDownload');
 
     $routes->get('settings', 'SettingsController::index');
     $routes->get('settings/fetch/(:segment)/(:num)', 'SettingsController::fetch/$1/$2');
