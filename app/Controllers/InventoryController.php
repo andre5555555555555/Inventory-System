@@ -344,39 +344,22 @@ class InventoryController extends BaseController
 
     /**
      * POST stock/edit-report-cost
-     * Updates transaction_unit_cost for a product in a given month/year for a given type.
+     * Updates transaction_unit_cost for a single transaction by transaction_id.
      */
     public function editReportCost(): \CodeIgniter\HTTP\ResponseInterface
     {
-        $productId = (int) $this->request->getPost('product_id');
-        $costType  = (string) ($this->request->getPost('cost_type') ?? '');
-        $newCost   = (float) $this->request->getPost('new_cost');
-        $year      = (int) $this->request->getPost('year');
-        $month     = (int) $this->request->getPost('month');
+        $transactionId = (int) $this->request->getPost('transaction_id');
+        $newCost       = (float) $this->request->getPost('new_cost');
 
-        // Map cost_type → transaction_type_id
-        $typeMap = ['purchase' => 1, 'used' => 2, 'spoiled' => 3];
-        $typeId  = $typeMap[$costType] ?? null;
-
-        if (! $typeId || $productId <= 0 || $newCost < 0 || $year <= 0 || $month <= 0) {
+        if ($transactionId <= 0 || $newCost < 0) {
             return $this->response->setStatusCode(422)
                 ->setJSON(['ok' => false, 'error' => 'Invalid input.']);
         }
 
-        $monthStart = sprintf('%04d-%02d-01', $year, $month);
-        $nextMonth  = date('Y-m-d', strtotime($monthStart . ' +1 month'));
-
         $db = \Config\Database::connect();
         $db->query(
-            "UPDATE transaction_table t
-             INNER JOIN batch_table b ON t.batch_id = b.batch_id
-             SET t.transaction_unit_cost = ?,
-                 t.updated_at = NOW()
-             WHERE b.product_id = ?
-               AND t.transaction_type_id = ?
-               AND t.transaction_date >= ?
-               AND t.transaction_date < ?",
-            [$newCost, $productId, $typeId, $monthStart, $nextMonth]
+            'UPDATE transaction_table SET transaction_unit_cost = ?, updated_at = NOW() WHERE transaction_id = ?',
+            [$newCost, $transactionId]
         );
 
         return $this->response->setJSON(['ok' => true]);

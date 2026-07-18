@@ -38,7 +38,7 @@
                 <tr>
                     <td><?= esc((string) $product['product_no']) ?></td>
                     <td><?= esc((string) $product['stock_no']) ?></td>
-                    <td class="item-link"><a href="<?= site_url('stockcard?item_id=' . (int) $product['product_id']) ?>"><?= esc($product['product']) ?></a></td>
+                    <td><?= esc($product['product']) ?></td>
                     <td><?= esc((string) $product['unit_name']) ?></td>
                     <td><?= esc((string) $product['total_stock']) ?></td>
                     <?php if ((int) (session('user')['level_id'] ?? 0) >= 2): ?>

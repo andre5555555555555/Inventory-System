@@ -24,10 +24,11 @@ class ProductModel extends Model
 
     public function listForSelect(int $userOfficeId = 0): array
     {
-        $builder = $this->select('product_id, product, product_no, product_description')
-            ->orderBy('product', 'ASC');
+        $builder = $this->select('product_table.product_id, product_table.product, product_table.product_no, product_table.product_description, unit_table.unit')
+            ->join('unit_table', 'product_table.unit_id = unit_table.unit_id', 'left')
+            ->orderBy('product_table.product', 'ASC');
         if ($userOfficeId > 0) {
-            $builder->where('user_office_id', $userOfficeId);
+            $builder->where('product_table.user_office_id', $userOfficeId);
         }
         return $builder->findAll();
     }

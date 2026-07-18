@@ -44,25 +44,27 @@ class ReportModel extends Model
             $endingCost = $endingQty > 0 ? $runningValue[$productId] / $endingQty : 0.0;
 
             $ledgerRows[] = [
-                'counter'        => $counter++,
-                'product_id'     => $productId,
-                'product_type'   => $row['product_type'] ?: 'Uncategorized',
-                'stock_no'       => $row['stock_no'],
-                'item'           => $row['product'],
-                'unit_name'      => $row['unit_name'],
-                'begin_qty'      => $beginQty,
-                'begin_cost'     => $beginCost,
-                'purchase_qty'   => $purchaseQty,
-                'purchase_cost'  => $purchaseCost,
-                'purchase_total' => $purchaseTotal,
-                'used_qty'       => $usedQty,
-                'used_cost'      => $usedCost,
-                'used_total'     => $usedTotal,
-                'spoiled_qty'    => $spoiledQty,
-                'spoiled_cost'   => $spoiledCost,
-                'spoiled_total'  => $spoiledTotal,
-                'ending_qty'     => $endingQty,
-                'ending_cost'    => $endingCost,
+                'counter'           => $counter++,
+                'product_id'        => $productId,
+                'transaction_id'    => (int) ($row['transaction_id'] ?? 0),
+                'transaction_type'  => (int) ($row['transaction_type_id'] ?? 0),
+                'product_type'      => $row['product_type'] ?: 'Uncategorized',
+                'stock_no'          => $row['stock_no'],
+                'item'              => $row['product'],
+                'unit_name'         => $row['unit_name'],
+                'begin_qty'         => $beginQty,
+                'begin_cost'        => $beginCost,
+                'purchase_qty'      => $purchaseQty,
+                'purchase_cost'     => $purchaseCost,
+                'purchase_total'    => $purchaseTotal,
+                'used_qty'          => $usedQty,
+                'used_cost'         => $usedCost,
+                'used_total'        => $usedTotal,
+                'spoiled_qty'       => $spoiledQty,
+                'spoiled_cost'      => $spoiledCost,
+                'spoiled_total'     => $spoiledTotal,
+                'ending_qty'        => $endingQty,
+                'ending_cost'       => $endingCost,
             ];
         }
 
@@ -91,7 +93,7 @@ class ReportModel extends Model
         $officeFilter = $userOfficeId > 0 ? ' AND t.user_office_id = ' . (int) $userOfficeId : '';
 
         return $this->db->query(
-            'SELECT b.product_id, t.transaction_qty, t.transaction_unit_cost, t.transaction_type_id
+            'SELECT b.product_id, t.transaction_id, t.transaction_qty, t.transaction_unit_cost, t.transaction_type_id
              FROM transaction_table t
              INNER JOIN batch_table b ON t.batch_id = b.batch_id
              WHERE t.transaction_date < ?' . $officeFilter . '
@@ -109,6 +111,7 @@ class ReportModel extends Model
             'p.stock_no',
             'COALESCE(pt.type, "Uncategorized") AS product_type',
             'COALESCE(ut.unit, "Deleted Unit") AS unit_name',
+            't.transaction_id',
             't.transaction_qty',
             't.transaction_unit_cost',
             't.transaction_type_id',
@@ -208,8 +211,18 @@ class ReportModel extends Model
             return [0, 0.0, 0.0];
         }
 
-        $issueTotal = $this->fifoIssue($batches, $issueQty);
-        $issueCost  = $issueQty > 0 ? $issueTotal / $issueQty : 0.0;
+        $storedUnitCost = (float) ($row['transaction_unit_cost'] ?? 0);
+
+        if ($storedUnitCost > 0) {
+            // Manually overridden cost — use it directly and drain FIFO silently
+            $issueTotal = $storedUnitCost * $issueQty;
+            $this->fifoIssue($batches, $issueQty); // drain FIFO so running balance stays consistent
+        } else {
+            // No manual override — fall back to FIFO
+            $issueTotal = $this->fifoIssue($batches, $issueQty);
+        }
+
+        $issueCost = $issueQty > 0 ? $issueTotal / $issueQty : 0.0;
 
         $runningQty   -= $issueQty;
         $runningValue -= $issueTotal;

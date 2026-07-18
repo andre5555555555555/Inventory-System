@@ -59,7 +59,12 @@ class StockoutModel extends Model
         return $this->db->table('temp_stockout_item AS tsi')
             ->select('tsi.product_id, p.product AS item_name, tsi.unit, tsi.description,
                       SUM(tsi.quantity) AS quantity, MIN(tsi.status) AS status,
-                      GROUP_CONCAT(tsi.temp_stockout_item_id) AS item_ids')
+                      GROUP_CONCAT(tsi.temp_stockout_item_id) AS item_ids,
+                      COALESCE((
+                          SELECT SUM(b.current_qty)
+                          FROM batch_table b
+                          WHERE b.product_id = tsi.product_id
+                      ), 0) AS current_stock')
             ->join('product_table p', 'tsi.product_id = p.product_id', 'left')
             ->where('tsi.temp_stockout_id', $tempStockoutId)
             ->groupBy('tsi.product_id, p.product, tsi.unit, tsi.description')
@@ -381,22 +386,30 @@ class StockoutModel extends Model
      */
     public function availableItems(int $userOfficeId = 0): array
     {
-        $sql = 'SELECT p.product_id, p.product, p.product_description AS description,
-                       ut.unit AS unit_name,
-                       COALESCE(SUM(b.current_qty), 0) AS current_stock
-                FROM product_table p
-                LEFT JOIN unit_table ut ON p.unit_id = ut.unit_id
-                LEFT JOIN batch_table b ON p.product_id = b.product_id
-                WHERE 1=1';
-
         $params = [];
-        if ($userOfficeId > 0) {
-            $sql      .= ' AND p.user_office_id = ?';
-            $params[] = $userOfficeId;
-        }
 
-        $sql .= ' GROUP BY p.product_id, p.product, p.product_description, ut.unit
-                   ORDER BY p.product ASC';
+        if ($userOfficeId > 0) {
+            $sql = 'SELECT p.product_id, p.product, p.product_description AS description,
+                           ut.unit AS unit_name,
+                           COALESCE(SUM(b.current_qty), 0) AS current_stock
+                    FROM product_table p
+                    LEFT JOIN unit_table ut ON p.unit_id = ut.unit_id
+                    LEFT JOIN batch_table b ON p.product_id = b.product_id
+                                           AND b.user_office_id = ?
+                    WHERE p.user_office_id = ?
+                    GROUP BY p.product_id, p.product, p.product_description, ut.unit
+                    ORDER BY p.product ASC';
+            $params = [$userOfficeId, $userOfficeId];
+        } else {
+            $sql = 'SELECT p.product_id, p.product, p.product_description AS description,
+                           ut.unit AS unit_name,
+                           COALESCE(SUM(b.current_qty), 0) AS current_stock
+                    FROM product_table p
+                    LEFT JOIN unit_table ut ON p.unit_id = ut.unit_id
+                    LEFT JOIN batch_table b ON p.product_id = b.product_id
+                    GROUP BY p.product_id, p.product, p.product_description, ut.unit
+                    ORDER BY p.product ASC';
+        }
 
         return $this->db->query($sql, $params)->getResultArray();
     }

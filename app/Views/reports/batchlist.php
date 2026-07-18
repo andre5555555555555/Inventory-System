@@ -92,6 +92,8 @@
                     <?php foreach ($typeRows as $row): ?>
                         <tr class="rpt-data-row"
                             data-product-id="<?= (int) $row['product_id'] ?>"
+                            data-transaction-id="<?= (int) $row['transaction_id'] ?>"
+                            data-transaction-type="<?= (int) $row['transaction_type'] ?>"
                             data-year="<?= (int) $year ?>"
                             data-month="<?= (int) $month ?>">
                             <td><?= $row['counter'] ?></td>
@@ -104,10 +106,10 @@
                             <td><?= number_format($row['begin_qty'] * $row['begin_cost'], 2) ?></td>
                             <!-- PURCHASE -->
                             <td><?= $row['purchase_qty'] ?></td>
-                            <td class="rpt-cost-cell<?= $row['purchase_cost'] > 0 ? ' rpt-editable' : '' ?>" data-cost-type="purchase" data-qty="<?= $row['purchase_qty'] ?>">
+                            <td class="rpt-cost-cell<?= $row['purchase_qty'] > 0 ? ' rpt-editable' : '' ?>" data-cost-type="purchase" data-qty="<?= $row['purchase_qty'] ?>" data-transaction-id="<?= (int) $row['transaction_id'] ?>">
                                 <span class="rpt-cost-text"><?= number_format($row['purchase_cost'], 2) ?></span>
-                                <?php if ($row['purchase_cost'] > 0): ?>
-                                <input type="number" min="0.01" step="0.01"
+                                <?php if ($row['purchase_qty'] > 0): ?>
+                                <input type="number" min="0" step="0.01"
                                     class="rpt-cost-input"
                                     value="<?= number_format($row['purchase_cost'], 2, '.', '') ?>"
                                     style="display:none">
@@ -116,10 +118,10 @@
                             <td class="rpt-amount-purchase"><?= number_format($row['purchase_total'], 2) ?></td>
                             <!-- USED -->
                             <td><?= $row['used_qty'] ?></td>
-                            <td class="rpt-cost-cell<?= $row['used_cost'] > 0 ? ' rpt-editable' : '' ?>" data-cost-type="used" data-qty="<?= $row['used_qty'] ?>">
+                            <td class="rpt-cost-cell<?= $row['used_qty'] > 0 ? ' rpt-editable' : '' ?>" data-cost-type="used" data-qty="<?= $row['used_qty'] ?>" data-transaction-id="<?= (int) $row['transaction_id'] ?>">
                                 <span class="rpt-cost-text"><?= number_format($row['used_cost'], 2) ?></span>
-                                <?php if ($row['used_cost'] > 0): ?>
-                                <input type="number" min="0.01" step="0.01"
+                                <?php if ($row['used_qty'] > 0): ?>
+                                <input type="number" min="0" step="0.01"
                                     class="rpt-cost-input"
                                     value="<?= number_format($row['used_cost'], 2, '.', '') ?>"
                                     style="display:none">
@@ -128,10 +130,10 @@
                             <td class="rpt-amount-used"><?= number_format($row['used_total'], 2) ?></td>
                             <!-- SPOILED -->
                             <td><?= $row['spoiled_qty'] ?></td>
-                            <td class="rpt-cost-cell<?= $row['spoiled_cost'] > 0 ? ' rpt-editable' : '' ?>" data-cost-type="spoiled" data-qty="<?= $row['spoiled_qty'] ?>">
+                            <td class="rpt-cost-cell<?= $row['spoiled_qty'] > 0 ? ' rpt-editable' : '' ?>" data-cost-type="spoiled" data-qty="<?= $row['spoiled_qty'] ?>" data-transaction-id="<?= (int) $row['transaction_id'] ?>">
                                 <span class="rpt-cost-text"><?= number_format($row['spoiled_cost'], 2) ?></span>
-                                <?php if ($row['spoiled_cost'] > 0): ?>
-                                <input type="number" min="0.01" step="0.01"
+                                <?php if ($row['spoiled_qty'] > 0): ?>
+                                <input type="number" min="0" step="0.01"
                                     class="rpt-cost-input"
                                     value="<?= number_format($row['spoiled_cost'], 2, '.', '') ?>"
                                     style="display:none">
@@ -254,29 +256,24 @@
         let ops = 0, errors = [];
 
         for (const row of rows) {
-            const productId = row.dataset.productId;
-            const year      = row.dataset.year;
-            const month     = row.dataset.month;
-
             for (const cell of row.querySelectorAll('.rpt-cost-cell.rpt-edited')) {
-                const costType = cell.dataset.costType;
-                const newCost  = parseFloat(cell.querySelector('.rpt-cost-input')?.value ?? 0);
+                const transactionId = cell.dataset.transactionId;
+                const newCost       = parseFloat(cell.querySelector('.rpt-cost-input')?.value ?? 0);
+
+                if (!transactionId) continue;
                 ops++;
 
                 const data = new FormData();
-                data.append('product_id', productId);
-                data.append('cost_type',  costType);
-                data.append('new_cost',   newCost);
-                data.append('year',       year);
-                data.append('month',      month);
+                data.append('transaction_id', transactionId);
+                data.append('new_cost',        newCost);
                 if (csrf.name) data.append(csrf.name, csrf.hash);
 
                 try {
                     const res  = await fetch(saveUrl, { method: 'POST', body: data });
                     const json = await res.json();
-                    if (!json.ok) errors.push(json.error ?? 'Error saving ' + costType + ' cost');
+                    if (!json.ok) errors.push(json.error ?? 'Error saving cost for transaction ' + transactionId);
                 } catch {
-                    errors.push('Network error for product ' + productId);
+                    errors.push('Network error for transaction ' + transactionId);
                 }
             }
         }

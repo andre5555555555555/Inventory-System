@@ -1,6 +1,18 @@
 <?= $this->extend('layouts/main') ?>
 
 <?= $this->section('content') ?>
+<?php
+// Pre-compute description & unit for the currently selected product
+$selectedDesc = '';
+$selectedUnit = '';
+foreach ($items as $_item) {
+    if ((int) $itemId === (int) $_item['product_id']) {
+        $selectedDesc = $_item['product_description'] ?? '';
+        $selectedUnit = $_item['unit'] ?? '';
+        break;
+    }
+}
+?>
 <div class="main-content-stockcard stock-form-page">
     <div class="stock-form-shell">
         <div class="stock-form-hero">
@@ -30,15 +42,40 @@
                         <p>Choose the product and where this transaction belongs.</p>
                     </div>
 
-                    <label>Product</label>
-                    <select name="product_id" id="stockItemSelect" data-stock-item-select data-target-url="<?= site_url('stock/add') ?>" required>
-                        <option value="">Select product</option>
-                        <?php foreach ($items as $item): ?>
-                            <option value="<?= (int) $item['product_id'] ?>" <?= (int) $itemId === (int) $item['product_id'] ? 'selected' : '' ?>>
-                                <?= esc($item['product']) ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
+                    <label for="productSearch">Product</label>
+                    <div style="position: relative;">
+                        <input
+                            type="text"
+                            id="productSearch"
+                            class="styled-datalist-input"
+                            list="stockProductsList"
+                            placeholder="Select product or scan barcode..."
+                            autocomplete="off"
+                            required
+                        >
+                        <datalist id="stockProductsList">
+                            <?php foreach ($items as $item): ?>
+                                <option value="<?= esc($item['product']) ?>"
+                                        data-id="<?= (int) $item['product_id'] ?>"
+                                        data-unit="<?= esc($item['unit'] ?? '') ?>"
+                                        data-desc="<?= esc($item['product_description'] ?? '') ?>">
+                                </option>
+                            <?php endforeach; ?>
+                        </datalist>
+                    </div>
+                    <input type="hidden" name="product_id" id="product_id_hidden" value="<?= (int) $itemId > 0 ? (int) $itemId : '' ?>" required>
+                    <div id="barcodeError" style="display:none; color: #ef4444; font-size: 13px; margin-top: 4px;"></div>
+
+                    <div class="stock-form-inline">
+                        <div>
+                            <label>Description</label>
+                            <input type="text" id="descriptionInput" value="<?= esc($selectedDesc) ?>" readonly style="background: var(--sidebar-bg, #f9fafb); color: var(--text-muted, #6b7280); cursor: not-allowed; border-color: var(--border-color, #e5e7eb);" placeholder="—">
+                        </div>
+                        <div>
+                            <label>Unit</label>
+                            <input type="text" id="unitInput" value="<?= esc($selectedUnit) ?>" readonly style="background: var(--sidebar-bg, #f9fafb); color: var(--text-muted, #6b7280); cursor: not-allowed; border-color: var(--border-color, #e5e7eb);" placeholder="—">
+                        </div>
+                    </div>
 
                     <label>Date</label>
                     <input type="date" name="date" value="<?= esc(old('date', date('Y-m-d'))) ?>" required>
@@ -223,9 +260,159 @@
     transition: background 0.15s;
 }
 .expiry-btn-proceed:hover { background: #92400e; }
+
+/* ── Styled Native Datalist ────────────────────────────────────────────── */
+.styled-datalist-input {
+    width: 100%;
+    padding: 10px 36px 10px 14px;
+    border: 1.5px solid var(--border-color, #d1d5db);
+    border-radius: 10px;
+    font-size: 14px;
+    font-family: inherit;
+    background-color: var(--input-bg, #fff);
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.75rem center;
+    background-repeat: no-repeat;
+    background-size: 1.25em 1.25em;
+    color: var(--text-primary, #111827);
+    box-sizing: border-box;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    outline: none;
+    cursor: pointer;
+    margin-bottom: 12px;
+}
+.styled-datalist-input:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.12);
+    cursor: text;
+}
+.styled-datalist-input.has-value {
+    border-color: #0f766e;
+    background-color: rgba(15,118,110,0.04);
+}
+/* Hide the native datalist arrow in webkit since we provide our own SVG */
+.styled-datalist-input::-webkit-calendar-picker-indicator {
+    opacity: 0;
+}
 </style>
 
 <script>
+// ── Native Datalist Autofill & Barcode Logic ─────────────────────────────────
+(function () {
+    const searchInput  = document.getElementById('productSearch');
+    const hiddenInput  = document.getElementById('product_id_hidden');
+    const descInput    = document.getElementById('descriptionInput');
+    const unitInput    = document.getElementById('unitInput');
+    const datalist     = document.getElementById('stockProductsList');
+    const form         = document.querySelector('.stock-form');
+
+    // Build dictionary for fast lookup
+    const itemsDict = {};
+    let initialItem = null;
+    const initialId = parseInt(hiddenInput.value) || 0;
+
+    for (const option of datalist.options) {
+        const id = parseInt(option.dataset.id);
+        const item = {
+            id: id,
+            name: option.value,
+            unit: option.dataset.unit,
+            desc: option.dataset.desc
+        };
+        itemsDict[option.value] = item;
+        
+        if (id === initialId) {
+            initialItem = item;
+        }
+    }
+
+    // Pre-fill if there's an initial value (e.g. from validation error or redirect)
+    if (initialItem) {
+        searchInput.value = initialItem.name;
+        searchInput.classList.add('has-value');
+        descInput.value = initialItem.desc;
+        unitInput.value = initialItem.unit;
+    }
+
+    function selectItem(item) {
+        hiddenInput.value = item.id;
+        searchInput.value = item.name;
+        searchInput.classList.add('has-value');
+        descInput.value = item.desc;
+        unitInput.value = item.unit;
+    }
+
+    function clearSelection() {
+        hiddenInput.value = '';
+        searchInput.classList.remove('has-value');
+        descInput.value = '';
+        unitInput.value = '';
+    }
+
+    // Triggered on type or select
+    searchInput.addEventListener('input', () => {
+        const val = searchInput.value;
+        if (itemsDict[val]) {
+            selectItem(itemsDict[val]);
+        } else {
+            clearSelection();
+        }
+    });
+
+    // Handle Enter key for Barcode scanning
+    searchInput.addEventListener('keydown', async e => {
+        if (e.key === 'Enter') {
+            e.preventDefault(); // prevent form submit
+            if (hiddenInput.value) return; // already a valid product
+
+            const value = searchInput.value.trim();
+            if (value) {
+                // We use the same lookup endpoint as stockout
+                await doBarcodeLookup(value);
+            }
+        }
+    });
+
+    async function doBarcodeLookup(value) {
+        const errorDiv = document.getElementById('barcodeError');
+        const lookupUrl = searchInput.getAttribute('data-lookup-url') || '<?= site_url('barcode/lookup') ?>';
+        errorDiv.style.display = 'none';
+        
+        try {
+            const res = await fetch(lookupUrl + '?value=' + encodeURIComponent(value), {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            });
+            const data = await res.json();
+            
+            if (!res.ok) {
+                errorDiv.textContent = data.error ?? 'Barcode not found.';
+                errorDiv.style.display = '';
+            } else if (data.product_id) {
+                const item = Object.values(itemsDict).find(i => i.id === data.product_id);
+                if (item) {
+                    selectItem(item);
+                } else {
+                    errorDiv.textContent = 'Product associated with barcode not found.';
+                    errorDiv.style.display = '';
+                }
+            }
+        } catch (e) {
+            errorDiv.textContent = 'Network error. Please try again.';
+            errorDiv.style.display = '';
+        }
+    }
+
+    // Prevent manual form submit if not matched
+    form?.addEventListener('submit', e => {
+        if (!hiddenInput.value) {
+            e.preventDefault();
+            searchInput.focus();
+            searchInput.style.borderColor = '#ef4444';
+            setTimeout(() => searchInput.style.borderColor = '', 1200);
+        }
+    });
+})();
+
 (function () {
     const typeSelect   = document.getElementById('transactionTypeSelect');
     const reasonGroup  = document.getElementById('adjustmentReasonGroup');
