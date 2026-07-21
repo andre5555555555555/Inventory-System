@@ -38,6 +38,10 @@ $routes->group('', ['filter' => 'auth'], static function ($routes): void {
     $routes->get('export/stockcard',  'ExportController::stockcardForm');
     $routes->post('export/stockcard', 'ExportController::stockcardDownload');
 
+    // ── Summary Report export ─────────────────────────────────────────────────
+    $routes->get('export/summary',  'ExportController::summaryForm');
+    $routes->post('export/summary', 'ExportController::summaryDownload');
+
     $routes->get('settings', 'SettingsController::index');
     $routes->get('settings/fetch/(:segment)/(:num)', 'SettingsController::fetch/$1/$2');
     $routes->post('settings/save/(:segment)', 'SettingsController::save/$1');

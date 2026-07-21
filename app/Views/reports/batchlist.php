@@ -52,6 +52,8 @@
 
         <!-- Edit mode controls (right-aligned) -->
         <div class="report-edit-controls">
+            <a href="<?= site_url('export/summary') ?>" class="sc-save-all-btn" id="sumExportLink"
+               style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;padding:7px 14px;">⬇ Export</a>
             <button type="button" id="rptEditToggle" class="sc-edit-mode-btn" aria-pressed="false">
                 <span>Edit Mode</span>
                 <span class="sc-edit-badge">OFF</span>

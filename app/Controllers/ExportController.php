@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Models\ProductModel;
+use App\Models\ReportModel;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 
@@ -13,9 +14,9 @@ class ExportController extends BaseController
         return (int) (session('user')['user_office_id'] ?? 0);
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     // GET /export/stockcard
-    // ─────────────────────────────────────────────────────────────────────────
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     public function stockcardForm()
     {
@@ -25,9 +26,9 @@ class ExportController extends BaseController
         ]);
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     // POST /export/stockcard
-    // ─────────────────────────────────────────────────────────────────────────
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     public function stockcardDownload()
     {
@@ -38,11 +39,11 @@ class ExportController extends BaseController
         $sortOrder = $this->request->getPost('sort_order')  === 'DESC' ? 'DESC' : 'ASC';
         $paperSize = $this->request->getPost('paper_size');
 
-        // Normalise paper size → dompdf paper name + CSS page size
+        // Normalise paper size â†’ dompdf paper name + CSS page size
         $paperMap  = [
             'a4'    => ['dompdf' => 'A4',     'css' => 'A4'],
             'long'  => ['dompdf' => 'folio',  'css' => '8.5in 13in'],   // Philippine Long Bond
-            'short' => ['dompdf' => 'letter', 'css' => 'letter'],        // 8.5 × 11
+            'short' => ['dompdf' => 'letter', 'css' => 'letter'],        // 8.5 Ã— 11
         ];
         $paper = $paperMap[$paperSize] ?? $paperMap['a4'];
 
@@ -70,9 +71,9 @@ class ExportController extends BaseController
         };
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     // Data: per-transaction rows grouped by product
-    // ─────────────────────────────────────────────────────────────────────────
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private function fetchExportData(
         string $dateFrom,
@@ -185,9 +186,9 @@ class ExportController extends BaseController
         return array_values($productMap);
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     // CSV
-    // ─────────────────────────────────────────────────────────────────────────
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private function downloadCsv(array $products, string $filename): \CodeIgniter\HTTP\Response
     {
@@ -227,9 +228,9 @@ class ExportController extends BaseController
             ->setBody($csv);
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     // Word
-    // ─────────────────────────────────────────────────────────────────────────
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private function downloadWord(array $products, string $filename, array $paper): \CodeIgniter\HTTP\Response
     {
@@ -240,9 +241,9 @@ class ExportController extends BaseController
             ->setBody($this->buildStockcardHtml($products, $paper['css']));
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     // PDF
-    // ─────────────────────────────────────────────────────────────────────────
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private function downloadPdf(array $products, string $filename, array $paper): \CodeIgniter\HTTP\Response
     {
@@ -263,9 +264,9 @@ class ExportController extends BaseController
             ->setBody($dompdf->output());
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     // HTML template
-    // ─────────────────────────────────────────────────────────────────────────
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private function buildStockcardHtml(array $products, string $cssPageSize = 'A4'): string
     {
@@ -324,7 +325,7 @@ class ExportController extends BaseController
     </tr>
   </table>
 
-  <!-- ONE unified table: info rows + header rows + data rows — columns always align -->
+  <!-- ONE unified table: info rows + header rows + data rows â€” columns always align -->
   <table class="sc-data">
 
     <!-- Info rows: left=cols1-5 (64%) | right=cols6-7 aligned with Balance -->
@@ -340,7 +341,7 @@ class ExportController extends BaseController
       <td class="i-left" colspan="7">Unit of Measurement : {$unit}</td>
     </tr>
 
-    <!-- ── Column headers ───────────────────────────────────────────── -->
+    <!-- â”€â”€ Column headers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
     <tr>
       <th rowspan="2" style="width:15%">Date</th>
       <th rowspan="2" style="width:15%">Reference</th>
@@ -356,7 +357,7 @@ class ExportController extends BaseController
       <th>Qty.</th>
     </tr>
 
-    <!-- ── Data rows ─────────────────────────────────────────────────── -->
+    <!-- â”€â”€ Data rows â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
     {$rows}
 
   </table>
@@ -371,7 +372,7 @@ CARD;
 
         return <<<HTML
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <title>Stock Card</title>
@@ -385,8 +386,8 @@ body {
     background: #fff;
 }
 
-/* ── Page wrapper ──────────────────────────────────────────────────────
-   NO width:100% here — block elements auto-fill their container.
+/* â”€â”€ Page wrapper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+   NO width:100% here â€” block elements auto-fill their container.
    In dompdf's content-box model, padding then correctly SUBTRACTS
    from the available width rather than adding to it.
    This gives proper left/right margins without overflow.            */
@@ -394,7 +395,7 @@ body {
     padding: 8mm 16mm 6mm 16mm;
 }
 
-/* Appendix 58 — upper right */
+/* Appendix 58 â€” upper right */
 .sc-appendix {
     text-align: right;
     font-style: italic;
@@ -424,7 +425,7 @@ body {
 .fc-lbl     { padding-left: 10px; white-space: nowrap; }
 .fc-val     { font-weight: bold; text-decoration: underline; width: 60px; text-align: center; }
 
-/* Info rows — inside .sc-data; !important overrides td{text-align:center} */
+/* Info rows â€” inside .sc-data; !important overrides td{text-align:center} */
 .sc-data td.i-left  { text-align: left !important; padding: 3px 6px; font-size: 12pt; }
 .sc-data td.i-rlbl  { text-align: left !important; padding: 3px 5px; font-size: 11pt; white-space: normal; vertical-align: middle; }
 .sc-data td.i-rval  { text-align: center !important; padding: 3px 5px; font-size: 12pt; font-weight: bold; vertical-align: middle; }
@@ -464,6 +465,438 @@ body {
 </head>
 <body>
 {$cards}
+</body>
+</html>
+HTML;
+    }
+
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+    // SUMMARY REPORT EXPORT  (Inventory Report / batchlist)
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // GET /export/summary
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+    public function summaryForm()
+    {
+        $reportModel  = new ReportModel();
+        $productTypes = $reportModel->orderedProductTypes($this->userOfficeId());
+        return view('export/summary_form', ['productTypes' => $productTypes]);
+    }
+
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // POST /export/summary
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+    public function summaryDownload()
+    {
+        $format    = trim((string) ($this->request->getPost('format')     ?? ''));
+        $monthFrom = trim((string) ($this->request->getPost('month_from') ?? ''));
+        $monthTo   = trim((string) ($this->request->getPost('month_to')   ?? ''));
+        $paperSize = $this->request->getPost('paper_size') ?? 'long';
+        $typeId    = (int) ($this->request->getPost('type_id') ?? 0);
+        $search    = trim((string) ($this->request->getPost('search') ?? ''));
+
+        $paperMap = [
+            'a4'    => ['dompdf' => 'A4',     'css' => 'A4'],
+            'long'  => ['dompdf' => 'folio',  'css' => '8.5in 13in'],
+            'short' => ['dompdf' => 'letter', 'css' => 'letter'],
+        ];
+        $paper = $paperMap[$paperSize] ?? $paperMap['long'];
+
+        if (! in_array($format, ['pdf', 'csv', 'word'], true)) {
+            return redirect()->to(site_url('export/summary'))->with('error', 'Please select a download format.');
+        }
+        if ($monthFrom === '' || $monthTo === '') {
+            return redirect()->to(site_url('export/summary'))->with('error', 'Please select a date range.');
+        }
+
+        $dateFrom = $monthFrom . '-01';
+        $dateTo   = date('Y-m-d', strtotime($monthTo . '-01 +1 month'));
+
+        if ($dateFrom > $dateTo) {
+            return redirect()->to(site_url('export/summary'))->with('error', 'From Month must be before To Month.');
+        }
+
+        [$year, $month] = explode('-', $monthFrom);
+        $reportModel    = new ReportModel();
+        $report         = $reportModel->batchLedger($search, (int) $year, $month, $typeId, $this->userOfficeId());
+        $rows           = $report['rows']         ?? [];
+        $groupedRows    = $report['groupedRows']  ?? [];
+
+        // Resolve a human-readable report title
+        if ($typeId > 0) {
+            $allTypes    = $reportModel->orderedProductTypes($this->userOfficeId());
+            $typeName    = '';
+            foreach ($allTypes as $pt) {
+                if ((int) $pt['type_id'] === $typeId) {
+                    $typeName = $pt['type'];
+                    break;
+                }
+            }
+            $reportTitle = ($typeName !== '' ? $typeName . ' ' : '') . 'Inventory';
+        } else {
+            $reportTitle = 'Inventory Report';
+        }
+
+        $filename = 'SummaryReport_' . $monthFrom . '_to_' . $monthTo;
+
+        return match ($format) {
+            'csv'  => $this->downloadSummaryCsv($rows, $filename, $reportTitle),
+            'word' => $this->downloadSummaryWord($groupedRows, $filename, $reportTitle, $paper),
+            'pdf'  => $this->downloadSummaryPdf($groupedRows, $filename, $reportTitle, $paper),
+        };
+    }
+
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // Summary CSV
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+    private function downloadSummaryCsv(array $rows, string $filename, string $title): \CodeIgniter\HTTP\Response
+    {
+        ob_start();
+        $fp = fopen('php://output', 'w');
+        fwrite($fp, "\xEF\xBB\xBF"); // UTF-8 BOM
+
+        fputcsv($fp, [strtoupper($title)]);
+        fputcsv($fp, []);
+        fputcsv($fp, [
+            'No.', 'Items/Products',
+            'Beg. Qty', 'Unit', 'Beg. Unit Cost', 'Beg. Amount',
+            'Purch. Qty', 'Purch. Unit Cost', 'Purch. Amount',
+            'Used Qty',  'Used Unit Cost',  'Used Amount',
+            'Breakage Qty', 'Breakage Unit Cost', 'Breakage Amount',
+            'End. Qty', 'End. Unit Cost', 'End. Amount',
+        ]);
+
+        foreach ($rows as $row) {
+            fputcsv($fp, [
+                $row['counter'],
+                $row['item'],
+                $row['begin_qty'],
+                $row['unit_name'],
+                number_format($row['begin_cost'],    2, '.', ''),
+                number_format($row['begin_qty']  * $row['begin_cost'],    2, '.', ''),
+                $row['purchase_qty'],
+                number_format($row['purchase_cost'], 2, '.', ''),
+                number_format($row['purchase_total'],2, '.', ''),
+                $row['used_qty'],
+                number_format($row['used_cost'],     2, '.', ''),
+                number_format($row['used_total'],    2, '.', ''),
+                $row['spoiled_qty'],
+                number_format($row['spoiled_cost'],  2, '.', ''),
+                number_format($row['spoiled_total'], 2, '.', ''),
+                $row['ending_qty'],
+                number_format($row['ending_cost'],   2, '.', ''),
+                number_format($row['ending_qty'] * $row['ending_cost'], 2, '.', ''),
+            ]);
+        }
+
+        // Totals row
+        $totals = array_reduce($rows, function ($carry, $r) {
+            $carry['begin_amt']   += $r['begin_qty']   * $r['begin_cost'];
+            $carry['purch_total'] += $r['purchase_total'];
+            $carry['used_total']  += $r['used_total'];
+            $carry['spoil_total'] += $r['spoiled_total'];
+            $carry['end_amt']     += $r['ending_qty']  * $r['ending_cost'];
+            return $carry;
+        }, ['begin_amt' => 0, 'purch_total' => 0, 'used_total' => 0, 'spoil_total' => 0, 'end_amt' => 0]);
+
+        fputcsv($fp, []);
+        fputcsv($fp, [
+            '', 'TOTAL', '', '', '', number_format($totals['begin_amt'],   2, '.', ''),
+            '', '', number_format($totals['purch_total'], 2, '.', ''),
+            '', '', number_format($totals['used_total'],  2, '.', ''),
+            '', '', number_format($totals['spoil_total'], 2, '.', ''),
+            '', '', number_format($totals['end_amt'],     2, '.', ''),
+        ]);
+
+        fclose($fp);
+        $csv = ob_get_clean();
+
+        return $this->response
+            ->setHeader('Content-Type', 'text/csv; charset=UTF-8')
+            ->setHeader('Content-Disposition', 'attachment; filename="' . $filename . '.csv"')
+            ->setHeader('Cache-Control', 'no-store')
+            ->setBody($csv);
+    }
+
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // Summary Word
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+    private function downloadSummaryWord(array $groupedRows, string $filename, string $title, array $paper): \CodeIgniter\HTTP\Response
+    {
+        return $this->response
+            ->setHeader('Content-Type', 'application/vnd.ms-word')
+            ->setHeader('Content-Disposition', 'attachment; filename="' . $filename . '.doc"')
+            ->setHeader('Cache-Control', 'no-store')
+            ->setBody($this->buildSummaryHtml($groupedRows, $title, $paper['css'], wordMode: true));
+    }
+
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // Summary PDF
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+    private function downloadSummaryPdf(array $groupedRows, string $filename, string $title, array $paper): \CodeIgniter\HTTP\Response
+    {
+        $options = new Options();
+        $options->set('defaultFont', 'DejaVu Sans');
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isRemoteEnabled', false);
+
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml($this->buildSummaryHtml($groupedRows, $title, $paper['css']), 'UTF-8');
+        $dompdf->setPaper($paper['dompdf'], 'landscape');
+        $dompdf->render();
+
+        return $this->response
+            ->setHeader('Content-Type', 'application/pdf')
+            ->setHeader('Content-Disposition', 'attachment; filename="' . $filename . '.pdf"')
+            ->setHeader('Cache-Control', 'no-store')
+            ->setBody($dompdf->output());
+    }
+
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // HTML template for summary report
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+    private function buildSummaryHtml(array $groupedRows, string $title, string $cssPageSize = '8.5in 13in', bool $wordMode = false): string
+    {
+        // â”€â”€ Word-specific landscape CSS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        $wordCss = $wordMode ? '
+@page WordSection1 {
+    size: 13.0in 8.5in;
+    mso-page-orientation: landscape;
+    margin: 10mm;
+}
+div.WordSection1 { page: WordSection1; }
+body { mso-page-orientation: landscape; }
+' : '';
+
+        $wordOpen  = $wordMode ? '<div class="WordSection1">' : '';
+        $wordClose = $wordMode ? '</div>' : '';
+        $xmlNs     = $wordMode
+            ? '<?xml version="1.0" encoding="UTF-8"?>'
+              . '<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View>'
+              . '<w:Zoom>75</w:Zoom><w:DoNotOptimizeForBrowser/></w:WordDocument></xml><![endif]-->'
+            : '';
+
+        // â”€â”€ Shared table header HTML â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        $tableHead = <<<THEAD
+    <thead>
+      <tr>
+        <th rowspan="2" class="c-no">NO.</th>
+        <th rowspan="2" class="c-item">ITEMS/PRODUCTS</th>
+        <th colspan="4">BEGINNING INVENTORY</th>
+        <th colspan="3">PURCHASES</th>
+        <th colspan="3">USED</th>
+        <th colspan="3">BREAKAGE</th>
+        <th colspan="3">ENDING INVENTORY</th>
+      </tr>
+      <tr>
+        <th class="c-qty">Qty</th>
+        <th class="c-unit">Unit</th>
+        <th class="c-cost">Unit Cost</th>
+        <th class="c-amt">Amount</th>
+        <th class="c-qty">Qty</th>
+        <th class="c-cost">Unit Cost</th>
+        <th class="c-amt">Amount</th>
+        <th class="c-qty">Qty</th>
+        <th class="c-cost">Unit Cost</th>
+        <th class="c-amt">Amount</th>
+        <th class="c-qty">Qty</th>
+        <th class="c-cost">Unit Cost</th>
+        <th class="c-amt">Amount</th>
+        <th class="c-qty">Qty</th>
+        <th class="c-cost">Unit Cost</th>
+        <th class="c-amt">Amount</th>
+      </tr>
+    </thead>
+THEAD;
+
+        // â”€â”€ Build one page per product type â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        $pages     = '';
+        $pageIndex = 0;
+
+        foreach ($groupedRows as $typeName => $typeRows) {
+            $pageTitle  = htmlspecialchars($typeName . ' Inventory');
+            $breakStyle = $pageIndex > 0 ? ' style="page-break-before:always;"' : '';
+
+            $tbody       = '';
+            $typeCounter = 1;   // resets to 1 for every product type
+            $secTotals   = [
+                'begin_amt'   => 0,
+                'purch_total' => 0,
+                'used_total'  => 0,
+                'spoil_total' => 0,
+                'end_amt'     => 0,
+            ];
+
+            foreach ($typeRows as $row) {
+                $item    = htmlspecialchars($row['item']      ?? '');
+                $unit    = htmlspecialchars($row['unit_name'] ?? '');
+                $counter = $typeCounter++;
+
+                $beginQty  = (int)   $row['begin_qty'];
+                $beginCost = (float) $row['begin_cost'];
+                $beginAmt  = $beginQty * $beginCost;
+
+                $purchQty   = (int)   $row['purchase_qty'];
+                $purchCost  = (float) $row['purchase_cost'];
+                $purchTotal = (float) $row['purchase_total'];
+
+                $usedQty   = (int)   $row['used_qty'];
+                $usedCost  = (float) $row['used_cost'];
+                $usedTotal = (float) $row['used_total'];
+
+                $spoilQty   = (int)   $row['spoiled_qty'];
+                $spoilCost  = (float) $row['spoiled_cost'];
+                $spoilTotal = (float) $row['spoiled_total'];
+
+                $endQty  = (int)   $row['ending_qty'];
+                $endCost = (float) $row['ending_cost'];
+                $endAmt  = $endQty * $endCost;
+
+                $secTotals['begin_amt']   += $beginAmt;
+                $secTotals['purch_total'] += $purchTotal;
+                $secTotals['used_total']  += $usedTotal;
+                $secTotals['spoil_total'] += $spoilTotal;
+                $secTotals['end_amt']     += $endAmt;
+
+                $f = fn($v) => $v != 0 ? number_format($v, 2) : '-';
+                $q = fn($v) => $v != 0 ? $v : '-';
+
+                $tbody .= '<tr>'
+                    . "<td class='c-no'>{$counter}</td>"
+                    . "<td class='c-item'>{$item}</td>"
+                    . "<td class='c-qty'>{$q($beginQty)}</td>"
+                    . "<td class='c-unit'>{$unit}</td>"
+                    . "<td class='c-cost'>{$f($beginCost)}</td>"
+                    . "<td class='c-amt'>{$f($beginAmt)}</td>"
+                    . "<td class='c-qty'>{$q($purchQty)}</td>"
+                    . "<td class='c-cost'>{$f($purchCost)}</td>"
+                    . "<td class='c-amt'>{$f($purchTotal)}</td>"
+                    . "<td class='c-qty'>{$q($usedQty)}</td>"
+                    . "<td class='c-cost'>{$f($usedCost)}</td>"
+                    . "<td class='c-amt'>{$f($usedTotal)}</td>"
+                    . "<td class='c-qty'>{$q($spoilQty)}</td>"
+                    . "<td class='c-cost'>{$f($spoilCost)}</td>"
+                    . "<td class='c-amt'>{$f($spoilTotal)}</td>"
+                    . "<td class='c-qty'>{$q($endQty)}</td>"
+                    . "<td class='c-cost'>{$f($endCost)}</td>"
+                    . "<td class='c-amt'>{$f($endAmt)}</td>"
+                    . '</tr>';
+            }
+
+            // Total row for this type
+            $f2 = fn($v) => number_format($v, 2);
+            $tbody .= '<tr class="sec-total">'
+                . "<td colspan='2' class='c-lbl'>TOTAL</td>"
+                . "<td colspan='4' class='c-amt'>{$f2($secTotals['begin_amt'])}</td>"
+                . "<td colspan='3' class='c-amt'>{$f2($secTotals['purch_total'])}</td>"
+                . "<td colspan='3' class='c-amt'>{$f2($secTotals['used_total'])}</td>"
+                . "<td colspan='3' class='c-amt'>{$f2($secTotals['spoil_total'])}</td>"
+                . "<td colspan='3' class='c-amt'>{$f2($secTotals['end_amt'])}</td>"
+                . '</tr>';
+
+            // One self-contained page per type
+            $pages .= <<<PAGE
+<div class="rpt-page"{$breakStyle}>
+  <div class="rpt-title">{$pageTitle}</div>
+  <table class="rpt-tbl">
+{$tableHead}
+    <tbody>
+      {$tbody}
+    </tbody>
+  </table>
+</div>
+PAGE;
+            $pageIndex++;
+        }
+
+        if ($pages === '') {
+            $pages = '<div class="rpt-page"><p style="text-align:center;padding:20px;">No data found for the selected period.</p></div>';
+        }
+
+        return <<<HTML
+<!DOCTYPE html>
+<html lang="en" xmlns:w="urn:schemas-microsoft-com:office:word">
+<head>
+<meta charset="UTF-8">
+<title>Inventory Report</title>
+{$xmlNs}
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+{$wordCss}
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 7.5pt;
+    color: #000;
+    background: #fff;
+}
+.rpt-page {
+    padding: 8mm 6mm 6mm 6mm;
+}
+.rpt-title {
+    text-align: center;
+    font-size: 12pt;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 6px;
+    text-decoration: underline;
+}
+table.rpt-tbl {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font-size: 7pt;
+}
+.rpt-tbl th, .rpt-tbl td {
+    border: 0.5pt solid #000;
+    padding: 2px 2px;
+    vertical-align: middle;
+    text-align: center;
+    height: 16px;
+    overflow: hidden;
+    word-break: break-word;
+}
+.rpt-tbl thead tr:first-child th {
+    background: #fff;
+    color: #000;
+    font-weight: bold;
+    font-size: 7pt;
+    border: 1pt solid #000;
+}
+.rpt-tbl thead tr:nth-child(2) th {
+    background: #fff;
+    color: #000;
+    font-size: 6.5pt;
+    border: 0.5pt solid #000;
+}
+.c-no   { width: 3%; text-align: center; }
+.c-item { width: 14%; text-align: left; padding-left: 3px; }
+.c-qty  { width: 4%; }
+.c-unit { width: 3.5%; }
+.c-cost { width: 5.5%; }
+.c-amt  { width: 6%; }
+.c-lbl  { text-align: left; padding-left: 4px; font-weight: bold; }
+tr.sec-total td {
+    background: #f0f0f0;
+    font-weight: bold;
+    font-size: 7pt;
+    border: 0.5pt solid #000;
+    border-top: 1.5pt solid #000;
+}
+@page { size: {$cssPageSize} landscape; margin: 8mm; }
+</style>
+</head>
+<body>
+{$wordOpen}
+{$pages}
+{$wordClose}
 </body>
 </html>
 HTML;
