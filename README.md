@@ -1,3 +1,6 @@
+FIRST SYSADMIN USER
+Username:admin_tech
+Password:admin123
 # CodeIgniter 4 Application Starter
 
 ## What is CodeIgniter?
