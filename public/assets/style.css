@@ -3344,6 +3344,7 @@ html[data-theme="dark"] .empty-state h3,
 html[data-theme="dark"] .stockout-form-card h2,
 html[data-theme="dark"] .dashboard-card-head h2,
 html[data-theme="dark"] .summary-card strong,
+html[data-theme="dark"] .dashboard-list-item strong,
 html[data-theme="dark"] .stock-form-panel-head h2,
 html[data-theme="dark"] .login-card-section h2,
 html[data-theme="dark"] .section-header h2 {
@@ -3355,6 +3356,7 @@ html[data-theme="dark"] .request-meta,
 html[data-theme="dark"] .empty-state,
 html[data-theme="dark"] .dashboard-card-head span,
 html[data-theme="dark"] .summary-card span,
+html[data-theme="dark"] .dashboard-list-item span,
 html[data-theme="dark"] .dashboard-empty,
 html[data-theme="dark"] .stock-form-panel-head p,
 html[data-theme="dark"] .stock-form-help,
@@ -3380,12 +3382,40 @@ html[data-theme="dark"] .table-card,
 html[data-theme="dark"] .report-table-card,
 html[data-theme="dark"] .login-card,
 html[data-theme="dark"] .modal-content,
-html[data-theme="dark"] .filter-content {
+html[data-theme="dark"] .filter-content,
+html[data-theme="dark"] .dropdown-content,
+html[data-theme="dark"] .search-suggestions,
+html[data-theme="dark"] .hover-dropdown-content {
     background:
         linear-gradient(180deg, rgba(20, 30, 38, 0.96), rgba(13, 23, 30, 0.96));
     border-color: rgba(148, 163, 184, 0.18);
     color: #dce7ea;
     box-shadow: 0 18px 38px rgba(0, 0, 0, 0.32);
+}
+
+html[data-theme="dark"] .dropdown-content a,
+html[data-theme="dark"] .search-suggestions a,
+html[data-theme="dark"] .hover-dropdown-content a {
+    color: #dce7ea;
+}
+
+html[data-theme="dark"] .pagination a,
+html[data-theme="dark"] .pagination span {
+    color: #5eead4;
+    border-color: rgba(94, 234, 212, 0.26);
+    background: transparent;
+}
+
+html[data-theme="dark"] .pagination a:hover {
+    background: #0f766e;
+    color: #ffffff;
+}
+
+html[data-theme="dark"] .pagination span.active,
+html[data-theme="dark"] .pagination .active-page {
+    background: #14b8a6;
+    border-color: #14b8a6;
+    color: #ffffff;
 }
 
 html[data-theme="dark"] .section-body,

@@ -432,6 +432,55 @@ document.addEventListener('DOMContentLoaded', updatePreview);
 @media (max-width: 520px) {
     .ex-two-col { flex-direction: column; }
 }
+
+/* ── Theme Overrides ──────────────────────────────────────── */
+/* Dark Theme */
+html[data-theme="dark"] .ex-layout {
+    --card-bg: rgba(20, 30, 38, 0.96);
+    --sidebar-bg: rgba(18, 31, 39, 0.95);
+    --border-color: rgba(148, 163, 184, 0.18);
+    --text-primary: #f8fafc;
+    --text-secondary: #dce7ea;
+    --text-muted: #9fb2bb;
+    --input-bg: #0b151c;
+}
+html[data-theme="dark"] .ex-card-radio-body:hover {
+    border-color: #2dd4bf;
+    background: rgba(45, 212, 191, 0.10);
+}
+html[data-theme="dark"] .ex-card-radio input:checked + .ex-card-radio-body {
+    border-color: #2dd4bf;
+    background: rgba(45, 212, 191, 0.14);
+    box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.10);
+}
+html[data-theme="dark"] .ex-preview-header {
+    background: linear-gradient(135deg, #071316 0%, #0f766e 100%);
+    border-color: rgba(148, 163, 184, 0.28);
+}
+
+/* BSU Theme */
+html[data-theme="bsu"] .ex-layout {
+    --card-bg: rgba(255, 247, 237, 0.98);
+    --sidebar-bg: rgba(255, 250, 234, 0.96);
+    --border-color: rgba(146, 64, 14, 0.28);
+    --text-primary: #2b170c;
+    --text-secondary: #3b220f;
+    --text-muted: #6b3f1d;
+    --input-bg: #fff7ed;
+}
+html[data-theme="bsu"] .ex-card-radio-body:hover {
+    border-color: #b45309;
+    background: rgba(245, 158, 11, 0.15);
+}
+html[data-theme="bsu"] .ex-card-radio input:checked + .ex-card-radio-body {
+    border-color: #b45309;
+    background: rgba(245, 158, 11, 0.20);
+    box-shadow: 0 0 0 3px rgba(180, 83, 9, 0.15);
+}
+html[data-theme="bsu"] .ex-preview-header {
+    background: linear-gradient(135deg, #5b3314 0%, #92400e 100%);
+    border-color: rgba(146, 64, 14, 0.34);
+}
 </style>
 
 <?= $this->endSection() ?>
