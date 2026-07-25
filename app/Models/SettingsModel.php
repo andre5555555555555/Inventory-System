@@ -54,11 +54,8 @@ class SettingsModel extends Model
                 'pk'     => 'user_id',
                 'fields' => ['username', 'email', 'password', 'lvl_of_access_id', 'user_office_id'],
                 'labels' => [
-                    'username'         => 'Username',
-                    'email'            => 'Email',
-                    'password'         => 'Password',
-                    'lvl_of_access_id' => 'Level of Access',
-                    'user_office_id'   => 'User Office',
+                    'username' => 'Username',
+                    'email'    => 'Email',
                 ],
             ],
             'entity_table' => [

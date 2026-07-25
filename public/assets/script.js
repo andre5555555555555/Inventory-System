@@ -825,3 +825,306 @@
 })();
 
 
+
+// ═══════════════════════════════════════════════════════════════
+//  BACKUP MODULE  (global — called from settings view)
+// ═══════════════════════════════════════════════════════════════
+// ================================================================
+//  BACKUP MODULE  (global -- called from settings view)
+// ================================================================
+// ================================================================
+//  BACKUP MODULE
+// ================================================================
+// ================================================================
+//  BACKUP MODULE
+// ================================================================
+
+(function initBackupModule() {
+    var BASE = (window.appConfig && window.appConfig.baseUrl) ? window.appConfig.baseUrl : '/';
+    var LS_LAST_KEY = 'bsu_lastAutoBackup';
+    var LS_DATE_KEY = 'bsu_lastAutoBackupDate';
+
+    function csrfH() {
+        var n = (window.appConfig && window.appConfig.csrfHeader) ? window.appConfig.csrfHeader : '';
+        var m = document.querySelector('meta[name="' + n + '"]');
+        var h = { 'X-Requested-With': 'XMLHttpRequest' };
+        if (m && n) h[n] = m.content;
+        return h;
+    }
+
+    function fmtSize(b) {
+        b = parseInt(b, 10);
+        if (b < 1024) return b + ' B';
+        if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
+        return (b / 1048576).toFixed(2) + ' MB';
+    }
+
+    function setStatus(msg, ok) {
+        var el = document.getElementById('backupStatusText');
+        if (!el) return;
+        el.textContent = msg;
+        el.style.color = (ok !== false) ? 'var(--color-success,#16a34a)' : '#dc2626';
+    }
+
+    function convertTo12h(hhmm) {
+        var parts = (hhmm || '00:00').split(':');
+        var h = parseInt(parts[0], 10);
+        var m = parts[1] || '00';
+        var suffix = h >= 12 ? 'PM' : 'AM';
+        h = h % 12 || 12;
+        return h + ':' + m + ' ' + suffix;
+    }
+
+    function updateHint(hours, time) {
+        var hint = document.querySelector('.backup-dir-hint');
+        if (!hint) return;
+        hours = parseInt(hours, 10);
+        if (!hours || hours <= 0) {
+            hint.innerHTML = 'Auto-backup is <strong>disabled</strong> (Manual only).';
+            return;
+        }
+        if (hours >= 24) {
+            var ampm = convertTo12h(time);
+            var lastDateStr = localStorage.getItem(LS_DATE_KEY) || '';
+            var todayStr = new Date().toISOString().slice(0, 10);
+            if (lastDateStr === todayStr) {
+                hint.innerHTML = 'Auto-backup runs <strong>once per day at ' + ampm + '</strong>. Already ran today.';
+            } else {
+                hint.innerHTML = 'Auto-backup runs <strong>once per day at ' + ampm + '</strong>. Will run on next page load after that time.';
+            }
+        } else {
+            var lastMs = parseInt(localStorage.getItem(LS_LAST_KEY) || '0', 10);
+            var nextMs = lastMs + hours * 3600000;
+            var nowMs = Date.now();
+            if (!lastMs || nextMs <= nowMs) {
+                hint.innerHTML = 'Auto-backup every <strong>' + hours + ' hour(s)</strong>. Runs on next page load.';
+            } else {
+                hint.innerHTML = 'Auto-backup every <strong>' + hours + ' hour(s)</strong>. Next: <strong>' + new Date(nextMs).toLocaleString() + '</strong>.';
+            }
+        }
+    }
+
+    function applyConfigToUI(data) {
+        var dirInput  = document.getElementById('backupDirInput');
+        var dirInput2 = document.getElementById('backupDirInput2');
+        if (dirInput  && data.backup_dir)   dirInput.value  = data.backup_dir;
+        if (dirInput2 && data.backup_dir_2 !== undefined) dirInput2.value = data.backup_dir_2 || '';
+
+        var sel = document.getElementById('backupIntervalSelect');
+        if (sel && data.backup_interval_hours !== undefined) {
+            var v = String(data.backup_interval_hours);
+            var matched = false;
+            for (var i = 0; i < sel.options.length; i++) {
+                if (sel.options[i].value === v) { sel.options[i].selected = true; matched = true; break; }
+            }
+            if (!matched) {
+                var custom = document.createElement('option');
+                custom.value = v;
+                custom.textContent = 'Every ' + v + ' hours (custom)';
+                custom.selected = true;
+                sel.insertBefore(custom, sel.firstChild);
+            }
+        }
+
+        var timeInput = document.getElementById('backupTimeInput');
+        if (timeInput && data.backup_time) timeInput.value = data.backup_time;
+
+        updateHint(
+            parseInt((data && data.backup_interval_hours) || 24, 10),
+            (data && data.backup_time) ? data.backup_time : '00:00'
+        );
+    }
+
+    document.addEventListener('change', function (e) {
+        if (!e.target) return;
+        if (e.target.id === 'backupIntervalSelect' || e.target.id === 'backupTimeInput') {
+            var sel = document.getElementById('backupIntervalSelect');
+            var ti  = document.getElementById('backupTimeInput');
+            updateHint(parseInt(sel ? sel.value : '24', 10), ti ? ti.value : '00:00');
+        }
+    });
+
+    // ---- drive status badge ----------------------------------
+
+    function driveBadge(b) {
+        var hasDr2 = b.backup_filepath_2 && b.backup_filepath_2.length > 0;
+        if (!hasDr2) return '<span style="font-size:11px;color:#94a3b8;">Drive 1 only</span>';
+        var ok2 = parseInt(b.drive2_ok, 10) === 1;
+        return ok2
+            ? '<span style="font-size:11px;color:#16a34a;font-weight:600;">Both drives</span>'
+            : '<span style="font-size:11px;color:#dc2626;">Drive 2 failed</span>';
+    }
+
+    // ---- load backup list -----------------------------------
+
+    async function loadBackupList() {
+        var table = document.getElementById('backup-list-table');
+        if (!table) return;
+        try {
+            var resp = await fetch(BASE + 'settings/backup/list', { headers: csrfH() });
+            var data = await resp.json();
+            applyConfigToUI(data);
+
+            var loadingRow = document.getElementById('backup-loading-row');
+            if (loadingRow) loadingRow.remove();
+            table.querySelectorAll('tr.backup-row').forEach(function (r) { r.remove(); });
+
+            // Update header to show Drives column
+            var headerRow = table.querySelector('tr');
+            if (headerRow) {
+                var ths = headerRow.querySelectorAll('th');
+                if (ths.length === 7 && ths[6].textContent === 'Action') {
+                    var drTh = document.createElement('th');
+                    drTh.textContent = 'Drives';
+                    headerRow.insertBefore(drTh, ths[6]);
+                }
+            }
+
+            var backups = data.backups || [];
+            if (!backups.length) {
+                var er = document.createElement('tr');
+                er.className = 'backup-row';
+                er.innerHTML = '<td colspan="8" style="text-align:center;padding:20px;color:#94a3b8;">No backups yet. Click <strong>Backup Now</strong> to create the first one.</td>';
+                table.appendChild(er);
+                return;
+            }
+            backups.forEach(function (b) {
+                var tr = document.createElement('tr');
+                tr.className = 'backup-row';
+                var safe = b.backup_filename.replace(/'/g, "\\'");
+                tr.innerHTML =
+                    '<td><span class="status-badge" style="background:#e0f2fe;color:#075985;border:1px solid #bae6fd;">#' + b.backup_slot + '</span></td>' +
+                    '<td style="font-size:12px;word-break:break-all;">' + b.backup_filename + '</td>' +
+                    '<td>' + (b.created_at || '') + '</td>' +
+                    '<td>' + fmtSize(b.file_size_bytes) + '</td>' +
+                    '<td>' + (b.office_name || '') + '</td>' +
+                    '<td>' + (b.created_by_name || '') + '</td>' +
+                    '<td>' + driveBadge(b) + '</td>' +
+                    '<td><a class="action-btn edit-btn" href="' + BASE + 'settings/backup/download/' + b.backup_id + '" style="text-decoration:none;">Download</a> ' +
+                    '<a class="action-btn activate-btn" href="#" onclick="restoreFromBackupId(' + b.backup_id + ',\'' + safe + '\');return false;">Restore</a></td>';
+                table.appendChild(tr);
+            });
+        } catch (e) { setStatus('Failed to load: ' + e.message, false); }
+    }
+
+    // ---- manual backup --------------------------------------
+
+    window.triggerBackup = async function () {
+        var btn = document.getElementById('backupNowBtn');
+        if (btn) { btn.disabled = true; btn.textContent = 'Backing up...'; }
+        setStatus('Creating backup...', true);
+        try {
+            var resp = await fetch(BASE + 'settings/backup/run', { method: 'POST', headers: csrfH() });
+            var data = await resp.json();
+            if (resp.ok) {
+                var now = Date.now();
+                localStorage.setItem(LS_LAST_KEY, String(now));
+                localStorage.setItem(LS_DATE_KEY, new Date().toISOString().slice(0, 10));
+                setStatus('Backup created! ' + (data.message || ''), true);
+                await loadBackupList();
+            } else {
+                setStatus('Backup failed: ' + (data.message || ''), false);
+            }
+        } catch (e) { setStatus('Network error: ' + e.message, false); }
+        finally { if (btn) { btn.disabled = false; btn.textContent = 'Backup Now'; } }
+    };
+
+    // ---- save settings (dir1, dir2, interval, time) ---------
+
+    window.saveBackupSettings = async function () {
+        var dirInput  = document.getElementById('backupDirInput');
+        var dirInput2 = document.getElementById('backupDirInput2');
+        var sel       = document.getElementById('backupIntervalSelect');
+        var timeInput = document.getElementById('backupTimeInput');
+
+        var dir      = (dirInput  ? dirInput.value  : '').trim();
+        var dir2     = (dirInput2 ? dirInput2.value : '').trim();
+        var interval = parseInt(sel ? sel.value : '24', 10);
+        var bkTime   = (timeInput ? timeInput.value : '00:00') || '00:00';
+
+        if (!dir) { setStatus('Drive 1 directory path cannot be empty.', false); return; }
+
+        var body = new URLSearchParams({ backup_dir: dir, backup_dir_2: dir2, backup_interval_hours: interval, backup_time: bkTime });
+        try {
+            var resp = await fetch(BASE + 'settings/backup/config', { method: 'POST', headers: csrfH(), body: body });
+            var data = await resp.json();
+            if (resp.ok) {
+                var drive2note = data.backup_dir_2 ? ' Drive 2: ' + data.backup_dir_2 : ' (Drive 2 not set)';
+                setStatus('Settings saved!' + drive2note, true);
+                updateHint(data.backup_interval_hours !== undefined ? data.backup_interval_hours : interval, data.backup_time || bkTime);
+                if (dirInput2 && data.backup_dir_2 !== undefined) dirInput2.value = data.backup_dir_2;
+            } else {
+                setStatus('Save failed: ' + (data.message || ''), false);
+            }
+        } catch (e) { setStatus('Error: ' + e.message, false); }
+    };
+
+    // ---- restore from file ----------------------------------
+
+    window.restoreFromFile = async function (input) {
+        var file = input.files[0];
+        if (!file) return;
+        if (!confirm('Restore from "' + file.name + '"?\n\nThis will OVERWRITE all existing data for your office.\nThis action cannot be undone.')) {
+            input.value = ''; return;
+        }
+        setStatus('Restoring...', true);
+        var fd = new FormData();
+        fd.append('sql_file', file);
+        var n = (window.appConfig && window.appConfig.csrfHeader) ? window.appConfig.csrfHeader : '';
+        var m = document.querySelector('meta[name="' + n + '"]');
+        if (m && window.appConfig && window.appConfig.csrfTokenName) fd.append(window.appConfig.csrfTokenName, m.content);
+        try {
+            var resp = await fetch(BASE + 'settings/backup/restore', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd });
+            var data = await resp.json();
+            setStatus(resp.ok ? 'Restored! ' + (data.message || '') : 'Restore failed: ' + (data.message || ''), resp.ok);
+        } catch (e) { setStatus('Error: ' + e.message, false); }
+        input.value = '';
+    };
+
+    window.restoreFromBackupId = async function (id, filename) {
+        if (!confirm('Restore backup "' + filename + '"?\n\nThis will OVERWRITE all existing data for your office.\nThis action cannot be undone.')) return;
+        setStatus('Restoring...', true);
+        var body = new URLSearchParams({ backup_id: id });
+        try {
+            var resp = await fetch(BASE + 'settings/backup/restore', { method: 'POST', headers: csrfH(), body: body });
+            var data = await resp.json();
+            setStatus(resp.ok ? 'Restored! ' + (data.message || '') : 'Restore failed: ' + (data.message || ''), resp.ok);
+        } catch (e) { setStatus('Error: ' + e.message, false); }
+    };
+
+    // ---- auto-backup ----------------------------------------
+
+    async function runAutoBackupIfNeeded() {
+        var levelId = parseInt((window.appConfig && window.appConfig.levelId) || '0', 10);
+        if (levelId < 2 || levelId > 3) return;
+        var intervalHours = 24, backupTime = '00:00';
+        try {
+            var resp = await fetch(BASE + 'settings/backup/list', { headers: csrfH() });
+            if (resp.ok) { var data = await resp.json(); intervalHours = parseInt(data.backup_interval_hours || '24', 10); backupTime = data.backup_time || '00:00'; }
+        } catch (_) {}
+        if (!intervalHours || intervalHours <= 0) return;
+        var nowMs = Date.now();
+        var nowDate = new Date();
+        if (intervalHours >= 24) {
+            var lastDateStr = localStorage.getItem(LS_DATE_KEY) || '';
+            var todayStr = nowDate.toISOString().slice(0, 10);
+            if (lastDateStr === todayStr) return;
+            var parts = backupTime.split(':');
+            var schedMins = parseInt(parts[0], 10) * 60 + parseInt(parts[1] || '0', 10);
+            var nowMins = nowDate.getHours() * 60 + nowDate.getMinutes();
+            if (nowMins < schedMins) return;
+        } else {
+            var lastMs = parseInt(localStorage.getItem(LS_LAST_KEY) || '0', 10);
+            if (lastMs && (nowMs - lastMs) < intervalHours * 3600000) return;
+        }
+        localStorage.setItem(LS_LAST_KEY, String(nowMs));
+        localStorage.setItem(LS_DATE_KEY, nowDate.toISOString().slice(0, 10));
+        try { await fetch(BASE + 'settings/backup/auto', { method: 'POST', headers: csrfH() }); } catch (_) {}
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        if (document.getElementById('backup-list-table')) loadBackupList();
+        runAutoBackupIfNeeded();
+    });
+
+})();

@@ -84,6 +84,7 @@ class AuthController extends BaseController
             'level_id'       => $levelId,
             'user_office_id' => $user['user_office_id'] ? (int) $user['user_office_id'] : 0,
         ]);
+        session()->set('login_time', time()); // for 24-hour auto-logout
 
         return redirect()->to(site_url('/'));
     }

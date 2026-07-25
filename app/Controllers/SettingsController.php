@@ -37,6 +37,17 @@ class SettingsController extends BaseController
 
     public function fetch(string $type, int $id): ResponseInterface
     {
+        // Whitelist: only allow types the settings model actually handles.
+        // This prevents URL-crafted table-name injection even if the route is
+        // somehow accessed directly.
+        $allowed = [
+            'units', 'types', 'entities', 'references',
+            'offices', 'users', 'user_office_table',
+        ];
+        if (! in_array($type, $allowed, true)) {
+            return $this->response->setStatusCode(404)->setJSON(['message' => 'Unknown resource type.']);
+        }
+
         $this->settingsModel->definition($type, $this->levelId());
         return $this->response->setJSON($this->settingsModel->fetchRecord($type, $id));
     }
@@ -44,9 +55,18 @@ class SettingsController extends BaseController
     public function save(string $type): ResponseInterface
     {
         $levelId      = $this->levelId();
-        $definition   = $this->settingsModel->definition($type, $levelId);
         $id           = (int) ($this->request->getPost('id') ?? 0);
         $userOfficeId = $this->userOfficeId();
+
+        $allowed = [
+            'units', 'types', 'entities', 'references',
+            'offices', 'users', 'user_office_table',
+        ];
+        if (! in_array($type, $allowed, true)) {
+            return $this->response->setStatusCode(404)->setJSON(['message' => 'Unknown resource type.']);
+        }
+
+        $definition = $this->settingsModel->definition($type, $levelId);
 
         if ($type === 'users') {
             if ($id === 0) {
@@ -79,6 +99,14 @@ class SettingsController extends BaseController
     {
         $levelId     = $this->levelId();
         $sessionUser = session('user');
+
+        $allowed = [
+            'units', 'types', 'entities', 'references',
+            'offices', 'users', 'user_office_table',
+        ];
+        if (! in_array($type, $allowed, true)) {
+            return $this->response->setStatusCode(404)->setJSON(['message' => 'Unknown resource type.']);
+        }
 
         $this->settingsModel->definition($type, $levelId);
 

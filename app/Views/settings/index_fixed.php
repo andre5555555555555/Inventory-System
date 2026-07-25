@@ -15,6 +15,7 @@
     'activateBase' => site_url('settings/activate'),
     'deactivateBase' => site_url('settings/deactivate'),
     'levelId' => $levelId,
+    'currentUserId' => (int) (session('user')['id'] ?? 0),
 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?></script>
   
 <div id="settingsPage" class="page-shell settings-page">
@@ -25,6 +26,114 @@
             <p class="page-subtitle">Maintain references, units, item types, offices, roles, and related records in a flatter management view.</p>
         </div>
     </div>
+
+    <?php if ($levelId >= 2 && $levelId <= 3): ?>
+    <!-- ── Backup Section ── -->
+    <div class="section-card settings-section-card backup-section" id="backup-section-card">
+        <button type="button" class="section-header settings-section-header active" onclick="toggleSection('section-backup', this)">
+            <h2> Data Backup &amp; Restore &#9662;</h2>
+        </button>
+        <div class="section-body settings-section-body is-open" id="section-backup">
+
+            <!-- Backup settings (level 3 only) -->
+            <?php if ($levelId >= 3): ?>
+            <div class="backup-dir-row" id="backup-dir-row">
+                <label class="backup-dir-label">Backup Settings</label>
+
+                <div class="backup-dir-controls" style="flex-wrap:wrap; gap:12px;">
+                    <!-- Drive 1 directory -->
+                    <div style="display:flex;flex-direction:column;gap:4px;flex:2;min-width:200px;">
+                        <label for="backupDirInput" style="font-size:11px;font-weight:600;color:#64748b;letter-spacing:.06em;">
+                            Storage Directory — Drive 1
+                        </label>
+                        <input type="text" id="backupDirInput" class="search-input backup-dir-input"
+                               placeholder="e.g. writable/backups/" value="" autocomplete="off">
+                    </div>
+
+                    <!-- Drive 2 directory (optional mirror) -->
+                    <div style="display:flex;flex-direction:column;gap:4px;flex:2;min-width:200px;">
+                        <label for="backupDirInput2" style="font-size:11px;font-weight:600;color:#16a34a;letter-spacing:.06em;">
+                            Storage Directory — Drive 2 <span style="font-weight:400;color:#94a3b8;">(optional mirror)</span>
+                        </label>
+                        <input type="text" id="backupDirInput2" class="search-input backup-dir-input"
+                               placeholder="e.g. D:\Backups\BSU\ (leave blank to skip)" value="" autocomplete="off">
+                    </div>
+
+                    <!-- Auto-backup interval -->
+                    <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:160px;">
+                        <label for="backupIntervalSelect" style="font-size:11px;font-weight:600;color:#64748b;letter-spacing:.06em;">Auto-Backup Every</label>
+                        <select id="backupIntervalSelect" class="search-input" style="height:44px;padding:0 12px;">
+                            <option value="1">Every 1 hour</option>
+                            <option value="2">Every 2 hours</option>
+                            <option value="4">Every 4 hours</option>
+                            <option value="6">Every 6 hours</option>
+                            <option value="8">Every 8 hours</option>
+                            <option value="12">Every 12 hours</option>
+                            <option value="24" selected>Once a day (24 h)</option>
+                            <option value="48">Every 2 days</option>
+                            <option value="72">Every 3 days</option>
+                            <option value="168">Once a week</option>
+                            <option value="720">Once a month</option>
+                            <option value="0">Manual only</option>
+                        </select>
+                    </div>
+
+                    <!-- Auto-backup time of day -->
+                    <div style="display:flex;flex-direction:column;gap:4px;min-width:130px;">
+                        <label for="backupTimeInput" style="font-size:11px;font-weight:600;color:#64748b;letter-spacing:.06em;">At Time</label>
+                        <input type="time" id="backupTimeInput" class="search-input"
+                               value="00:00"
+                               style="height:44px;padding:0 12px;min-width:110px;"
+                               title="Time of day to run the auto-backup (24-hour format)">
+                    </div>
+
+                    <div style="display:flex;align-items:flex-end;">
+                        <button type="button" class="btn-add" onclick="saveBackupSettings()">Save Settings</button>
+                    </div>
+                </div>
+
+                <p class="backup-dir-hint">Auto-backup runs silently in the background when you log in (at most once per interval). Set to <em>Manual only</em> to disable auto-backup.</p>
+            </div>
+            <?php endif; ?>
+
+            <!-- Action bar -->
+            <div class="backup-action-bar">
+                <button type="button" class="btn-primary backup-now-btn" id="backupNowBtn" onclick="triggerBackup()">
+                    ⬆ Backup Now
+                </button>
+                <span class="backup-status-text" id="backupStatusText"></span>
+
+                <!-- Restore from file -->
+                <div class="backup-restore-file">
+                    <label class="backup-restore-label">Restore from File</label>
+                    <input type="file" id="restoreFileInput" accept=".sql" style="display:none" onchange="restoreFromFile(this)">
+                    <button type="button" class="btn-secondary" onclick="document.getElementById('restoreFileInput').click()">
+                        📂 Choose .sql File
+                    </button>
+                </div>
+            </div>
+
+            <!-- Backup list -->
+            <div class="backup-list-wrap" style="overflow-x:auto; margin-top:14px;">
+                <table class="data-table" id="backup-list-table">
+                    <tr>
+                        <th>Slot</th>
+                        <th>Filename</th>
+                        <th>Date Created</th>
+                        <th>Size</th>
+                        <th>Office</th>
+                        <th>Created By</th>
+                        <th>Action</th>
+                    </tr>
+                    <tr id="backup-loading-row">
+                        <td colspan="7" style="text-align:center;padding:24px;color:#94a3b8;">Loading backups…</td>
+                    </tr>
+                </table>
+            </div>
+
+        </div>
+    </div>
+    <?php endif; ?>
 
     <!-- ── Pending Users Section (Level 3+ only) ── -->
     <?php if ($levelId >= 3 && ! empty($pendingUsers)): ?>
@@ -115,11 +224,18 @@
 
                     <?php foreach ($records[$type] as $row): ?>
                         <?php
-                            // Hide Technical Staff role (level_id=4) from roles list
-                            if ($type === 'roles' && (int) ($row['level_id'] ?? 0) === 4) {
+                        // Skip manager's own account row
+                        if ($type === 'users' && $levelId < 4) {
+                            $currentUserId = (int) (session('user')['id'] ?? 0);
+                            if ($currentUserId > 0 && (int) ($row[$definition['pk']] ?? 0) === $currentUserId) {
                                 continue;
                             }
-                        ?>
+                        }
+                        // Hide Technical Staff role (level_id=4) from roles list
+                        if ($type === 'roles' && (int) ($row['level_id'] ?? 0) === 4) {
+                            continue;
+                        }
+                    ?>
                         <tr>
                             <?php foreach ($columns as $column): ?>
                                 <td>

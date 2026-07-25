@@ -39,7 +39,7 @@
             </div>
 
             <!-- Inline filter bar — matches report page style -->
-            <form method="get" action="<?= site_url('stockcard') ?>" class="toolbar-card report-toolbar stockcard-filter-bar">
+            <form method="get" action="<?= site_url('stockcard') ?>" class="toolbar-card report-toolbar stockcard-filter-bar" style="background-color: rgba(15, 61, 62, 0.34);">
                 <input type="hidden" name="item_id" value="<?= (int) $itemId ?>">
 
                 <div class="report-filter-group">
@@ -70,9 +70,11 @@
                 </div>
 
                 <div class="report-filter-actions sc-filter-actions">
+                    <?php if ($levelId >= 2): ?>
                     <a href="<?= site_url('stock/add?item_id=' . (int) $itemId) ?>" class="add-btn sc-add-btn">+/- Stock</a>
+                    <?php endif; ?>
                     <button type="submit" style="color:white;">Apply Filter</button>
-                    <?php if ($stockcard): ?>
+                    <?php if ($stockcard && $levelId >= 2): ?>
                     <button type="button" id="editModeToggle" class="sc-edit-mode-btn" aria-pressed="false">
                         <span>Edit Mode</span>
                         <span class="sc-edit-badge">OFF</span>
@@ -113,7 +115,9 @@
                                     <th class="sc-col-group" style="text-align:center">Receipt</th>
                                     <th class="sc-col-group" colspan="2" style="text-align:center">Issue</th>
                                     <th rowspan="2" class="sc-col-bal">Balance</th>
+                                    <?php if ($levelId >= 2): ?>
                                     <th rowspan="2" class="sc-edit-col sc-col-act" style="display:none">Action</th>
+                                    <?php endif; ?>
                                 </tr>
                                 <tr>
                                     <th class="sc-sub">Qty</th>
@@ -176,10 +180,12 @@
                                                 <input type="text" class="sc-office-input" value="<?= esc($officeValue, 'attr') ?>" style="display:none" placeholder="Office">
                                             </td>
                                             <td class="sc-balance-cell sc-col-bal"><?= esc((string) $row['balance']) ?></td>
-                                            <!-- Action cell: visible only in edit mode -->
+                                            <!-- Action cell: visible only in edit mode, level 2+ only -->
+                                            <?php if ($levelId >= 2): ?>
                                             <td class="sc-edit-col sc-col-act" style="display:none">
                                                 <button type="button" class="sc-delete-btn">Delete</button>
                                             </td>
+                                            <?php endif; ?>
                                         </tr>
                                     <?php endforeach; ?>
                                 <?php endif; ?>

@@ -1,0 +1,6 @@
+{
+    "backup_dir": "E:\\xampp\\htdocs\\Inventory-System\\writable\\backups\\",
+    "backup_dir_2": "",
+    "backup_interval_hours": 24,
+    "backup_time": "00:00"
+}

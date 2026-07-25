@@ -62,6 +62,7 @@ class InventoryController extends BaseController
             'selectedMonth' => $month,
             'page'          => $page,
             'totalPages'    => $totalPages,
+            'levelId'       => (int) (session('user')['level_id'] ?? 0),
         ]);
     }
 

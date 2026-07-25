@@ -183,9 +183,57 @@ window.appConfig = {
     csrfHeader: <?= json_encode(csrf_header()) ?>,
     csrfTokenName: <?= json_encode(csrf_token()) ?>,
     csrfHash: <?= json_encode(csrf_hash()) ?>,
-    levelId: <?= $levelId ?>
+    levelId: <?= $levelId ?>,
+    sessionExpiresAt: <?= (int) (session('login_time') ?? 0) + 86400 ?> // Unix seconds
 };
 </script>
 <script src="<?= base_url('assets/script.js?v=' . filemtime(FCPATH . 'assets/script.js')) ?>"></script>
+<script>
+// ── Session-expiry watcher ───────────────────────────────────────────────────
+(function () {
+    var expiresAt = (window.appConfig && window.appConfig.sessionExpiresAt)
+        ? window.appConfig.sessionExpiresAt * 1000  // convert to ms
+        : 0;
+
+    if (!expiresAt) return;
+
+    var warningShown = false;
+
+    function tick() {
+        var remaining = expiresAt - Date.now();
+
+        if (remaining <= 0) {
+            // Session expired — redirect immediately
+            window.location.href = (window.appConfig.baseUrl || '/') + 'logout';
+            return;
+        }
+
+        // Show a warning banner 5 minutes before expiry
+        if (!warningShown && remaining <= 300000) {
+            warningShown = true;
+            var mins = Math.ceil(remaining / 60000);
+            var banner = document.createElement('div');
+            banner.id = 'session-expiry-banner';
+            banner.style.cssText = [
+                'position:fixed', 'bottom:16px', 'right:16px', 'z-index:99999',
+                'background:#b45309', 'color:#fff', 'padding:12px 20px',
+                'border-radius:10px', 'font-size:14px', 'font-weight:600',
+                'box-shadow:0 4px 16px rgba(0,0,0,.3)', 'max-width:340px',
+                'line-height:1.5'
+            ].join(';');
+            banner.innerHTML = '&#9201; Your session will expire in <strong>' + mins + ' minute' + (mins !== 1 ? 's' : '') + '</strong>.'
+                + ' <a href="' + (window.appConfig.baseUrl || '/') + 'logout" '
+                + 'style="color:#fde68a;text-decoration:underline;">Log out now</a>';
+            document.body.appendChild(banner);
+        }
+
+        // Update countdown every 30 seconds
+        setTimeout(tick, 30000);
+    }
+
+    // Start the watcher
+    setTimeout(tick, 30000);
+})();
+</script>
 </body>
 </html>
