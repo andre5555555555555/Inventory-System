@@ -43,13 +43,20 @@ class StockoutModel extends Model
     public function getItems(int $tempStockoutId): array
     {
         return $this->db->table('temp_stockout_item AS tsi')
-            ->select('tsi.*, p.product AS item_name')
+            ->select('tsi.*,
+                      p.product AS item_name,
+                      COALESCE((
+                          SELECT SUM(b.current_qty)
+                          FROM batch_table b
+                          WHERE b.product_id = tsi.product_id
+                      ), 0) AS current_stock')
             ->join('product_table p', 'tsi.product_id = p.product_id', 'left')
             ->where('tsi.temp_stockout_id', $tempStockoutId)
             ->orderBy('tsi.temp_stockout_item_id', 'ASC')
             ->get()
             ->getResultArray();
     }
+
 
     /**
      * Get items in a request, grouped/summed by product_id.
@@ -186,8 +193,11 @@ class StockoutModel extends Model
 
     /**
      * Approve a single item and deduct from batch_table.current_qty.
+     * Returns true on success, or a string error key on failure.
+     *
+     * @return true|string
      */
-    public function approveItem(int $tempStockoutItemId, int $approvedByUserId): bool
+    public function approveItem(int $tempStockoutItemId, int $approvedByUserId)
     {
         $item = $this->db->table('temp_stockout_item')
             ->where('temp_stockout_item_id', $tempStockoutItemId)
@@ -204,6 +214,17 @@ class StockoutModel extends Model
         }
 
         $userOfficeId = (int) ($header['user_office_id'] ?? 0);
+
+        // ── Stock availability check ─────────────────────────────────────────
+        $availableStock = (int) ($this->db->table('batch_table')
+            ->selectSum('current_qty', 'total')
+            ->where('product_id', $item['product_id'])
+            ->where('user_office_id', $userOfficeId)
+            ->get()->getRowArray()['total'] ?? 0);
+
+        if ($availableStock < (int) $item['quantity']) {
+            return 'insufficient_stock';
+        }
 
         // Deduct stock from batches (FIFO)
         $this->deductStock((int) $item['product_id'], (int) $item['quantity'], $userOfficeId);
@@ -231,13 +252,16 @@ class StockoutModel extends Model
     }
 
     /**
-     * Approve all pending items in a request.
+     * Approve all pending items in a request that have sufficient stock.
+     * Items with insufficient stock are silently skipped (left as pending).
+     *
+     * @return array{approved: int, skipped: int}
      */
-    public function approveAll(int $tempStockoutId, int $approvedByUserId): bool
+    public function approveAll(int $tempStockoutId, int $approvedByUserId): array
     {
         $header = $this->find($tempStockoutId);
         if (! $header) {
-            return false;
+            return ['approved' => 0, 'skipped' => 0];
         }
 
         $userOfficeId = (int) ($header['user_office_id'] ?? 0);
@@ -248,7 +272,22 @@ class StockoutModel extends Model
             ->get()
             ->getResultArray();
 
+        $approved = 0;
+        $skipped  = 0;
+
         foreach ($items as $item) {
+            // Check stock before approving
+            $availableStock = (int) ($this->db->table('batch_table')
+                ->selectSum('current_qty', 'total')
+                ->where('product_id', $item['product_id'])
+                ->where('user_office_id', $userOfficeId)
+                ->get()->getRowArray()['total'] ?? 0);
+
+            if ($availableStock < (int) $item['quantity']) {
+                $skipped++;
+                continue; // Leave as pending — not enough stock
+            }
+
             $this->deductStock((int) $item['product_id'], (int) $item['quantity'], $userOfficeId);
             $this->createStockoutTransaction(
                 (int) $item['product_id'],
@@ -259,15 +298,19 @@ class StockoutModel extends Model
             $this->db->table('temp_stockout_item')
                 ->where('temp_stockout_item_id', $item['temp_stockout_item_id'])
                 ->update(['status' => 'approved']);
+            $approved++;
         }
 
-        $this->update($tempStockoutId, [
-            'status'      => 'approved',
-            'approved_by' => $approvedByUserId,
-            'approved_at' => date('Y-m-d H:i:s'),
-        ]);
+        if ($approved > 0) {
+            $this->update($tempStockoutId, [
+                'approved_by' => $approvedByUserId,
+                'approved_at' => date('Y-m-d H:i:s'),
+            ]);
+        }
 
-        return true;
+        $this->checkAndFinalizeRequest($tempStockoutId);
+
+        return ['approved' => $approved, 'skipped' => $skipped];
     }
 
     /**

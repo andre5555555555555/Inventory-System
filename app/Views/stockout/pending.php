@@ -102,6 +102,7 @@
 
                             <td class="action-cell" id="action-cell-<?= $firstItemId ?>">
                                 <?php if ($isPending): ?>
+                                    <?php $canApprove = $currentStock >= $quantity; ?>
                                     <?php if ($levelId >= 2): ?>
                                         <button class="action-btn edit-btn"
                                                 onclick="startEdit(<?= $firstItemId ?>)"
@@ -109,7 +110,13 @@
                                     <?php endif; ?>
                                     <button class="action-btn activate-btn"
                                             onclick="approveStockoutItem(<?= $firstItemId ?>)"
-                                            id="approve-btn-<?= $firstItemId ?>">Accept</button>
+                                            id="approve-btn-<?= $firstItemId ?>"
+                                            <?php if (! $canApprove): ?>
+                                                disabled
+                                                title="Cannot approve: only <?= $currentStock ?> in stock but <?= $quantity ?> requested"
+                                                style="opacity:.5;cursor:not-allowed;"
+                                            <?php endif; ?>
+                                    >Accept</button>
                                     <button class="action-btn delete-btn"
                                             onclick="rejectStockoutItem(<?= $firstItemId ?>)">Reject</button>
                                 <?php else: ?>

@@ -94,6 +94,9 @@ class StockoutController extends BaseController
         $unit        = trim((string) $this->request->getPost('unit'));
 
         if ($quantity <= 0) {
+            if ($this->request->isAJAX()) {
+                return $this->response->setStatusCode(422)->setJSON(['message' => 'Quantity must be greater than 0.']);
+            }
             return redirect()->to(site_url('stockout/temp'))->with('error', 'Quantity must be greater than 0.');
         }
 
@@ -103,6 +106,9 @@ class StockoutController extends BaseController
             'unit'        => $unit,
         ]);
 
+        if ($this->request->isAJAX()) {
+            return $this->response->setJSON(['message' => 'Item updated.']);
+        }
         return redirect()->to(site_url('stockout/temp'))->with('success', 'Item updated.');
     }
 
@@ -113,6 +119,10 @@ class StockoutController extends BaseController
     {
         $model = new StockoutModel();
         $model->removeItem($itemId);
+
+        if ($this->request->isAJAX()) {
+            return $this->response->setJSON(['message' => 'Item removed.']);
+        }
         return redirect()->to(site_url('stockout/temp'))->with('success', 'Item removed from list.');
     }
 
@@ -171,6 +181,12 @@ class StockoutController extends BaseController
         $model  = new StockoutModel();
         $result = $model->approveItem($itemId, $this->userId());
 
+        if ($result === 'insufficient_stock') {
+            return $this->response->setStatusCode(422)->setJSON([
+                'message' => 'Cannot approve: requested quantity exceeds available stock.',
+            ]);
+        }
+
         if (! $result) {
             return $this->response->setStatusCode(422)->setJSON(['message' => 'Item could not be approved.']);
         }
@@ -187,10 +203,24 @@ class StockoutController extends BaseController
             return $this->response->setStatusCode(403)->setJSON(['message' => 'Access denied.']);
         }
 
-        $model = new StockoutModel();
-        $model->approveAll($requestId, $this->userId());
+        $model  = new StockoutModel();
+        $result = $model->approveAll($requestId, $this->userId());
 
-        return $this->response->setJSON(['message' => 'All items approved and stock deducted.']);
+        $approved = $result['approved'];
+        $skipped  = $result['skipped'];
+
+        if ($approved === 0 && $skipped > 0) {
+            return $this->response->setStatusCode(422)->setJSON([
+                'message' => "No items approved — all {$skipped} item(s) have insufficient stock.",
+            ]);
+        }
+
+        $msg = "{$approved} item(s) approved and stock deducted.";
+        if ($skipped > 0) {
+            $msg .= " {$skipped} item(s) skipped (insufficient stock).";
+        }
+
+        return $this->response->setJSON(['message' => $msg]);
     }
 
     /**

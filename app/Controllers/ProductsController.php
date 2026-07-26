@@ -120,6 +120,30 @@ class ProductsController extends BaseController
                 return redirect()->to(site_url('products'))->with('success', 'Product added successfully.');
             }
 
+            // Check if the user chose to treat this as a brand-new product
+            $productAction = trim((string) $this->request->getPost('product_action'));
+
+            if ($productAction === 'new') {
+                // UPDATE the existing row (inserting a new row would violate the unique
+                // constraint on product_no + user_office_id). Updating in-place keeps the
+                // same product_no slot but changes name / description / etc.
+                $productModel->update($id, $payload);
+
+                // Wipe all batches for this product.
+                // ‣ batch_table rows deleted  → stock resets to 0
+                // ‣ transaction_table.batch_id → SET NULL (FK cascade), so old
+                //   transactions are preserved in the DB but are invisible in the
+                //   stockcard (they're no longer linked to any product/batch).
+                db_connect()->table('batch_table')
+                    ->where('product_id', $id)
+                    ->delete();
+
+                return redirect()->to(site_url('products'))
+                    ->with('success', 'New product created under the same product no. All previous stock and transactions have been cleared.');
+            }
+
+
+            // Default: update the existing product in place (transactions kept)
             $productModel->update($id, $payload);
             return redirect()->to(site_url('products'))->with('success', 'Product updated successfully.');
         }
