@@ -9,8 +9,8 @@
             <p class="page-eyebrow">Reports</p>
             <h1>Export Summary Report</h1>
             <p class="page-subtitle">
-                Download the Inventory Summary Report (Beginning &rarr; Purchases &rarr; Used &rarr; Breakage &rarr; Ending)
-                as a print-ready PDF, an editable Word document, or a spreadsheet-friendly CSV.
+                Download the Inventory Summary Report (Beginning → Purchases → Used → Breakage → Ending)
+                as a print-ready PDF or an editable Word document.
             </p>
         </div>
     </div>
@@ -111,14 +111,6 @@
                                             <small>8.5″ × 11″ Letter</small>
                                         </div>
                                     </label>
-                                    <label class="ex-card-radio">
-                                        <input type="radio" name="paper_size" value="a4" onchange="sumUpdatePreview()">
-                                        <div class="ex-card-radio-body">
-                                            <span class="ex-card-radio-icon">📋</span>
-                                            <strong>A4</strong>
-                                            <small>210mm × 297mm</small>
-                                        </div>
-                                    </label>
                                 </div>
                             </div>
 
@@ -194,14 +186,6 @@
                         <span class="ex-dl-arrow">→</span>
                     </button>
 
-                    <button type="button" class="ex-dl-btn ex-dl-csv" id="sumBtnCsv" onclick="sumSubmitAs('csv')">
-                        <span class="ex-dl-icon">📊</span>
-                        <span class="ex-dl-info">
-                            <strong>CSV</strong>
-                            <small>Spreadsheet format</small>
-                        </span>
-                        <span class="ex-dl-arrow">→</span>
-                    </button>
                 </div>
 
             </div><!-- /.ex-sidebar -->
@@ -260,9 +244,6 @@ document.addEventListener('DOMContentLoaded', sumUpdatePreview);
     margin-top: 4px;
     text-align: center;
 }
-
-/* ── CSV button ──────────────────────────────────────────── */
-.ex-dl-csv { background: linear-gradient(135deg, #059669 0%, #047857 100%); color: #fff; }
 
 /* ── Inherit stockcard form styles ───────────────────────── */
 /* ── Layout ──────────────────────────────────────────────── */

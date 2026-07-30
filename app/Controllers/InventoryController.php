@@ -202,9 +202,12 @@ class InventoryController extends BaseController
         $oldTypeId = (int) $txn['transaction_type_id'];
         $finalType = $newTypeId ?? $oldTypeId;
 
-        // Resolve receipt type ID from DB — don't hardcode
-        $receiptRow    = $db->table('transaction_type_table')->select('transaction_type_id')->where('transaction_type', 'receipt')->get(1)->getRowArray();
-        $receiptTypeId = (int) ($receiptRow['transaction_type_id'] ?? 1);
+        // Resolve stock-adding type IDs from DB (both 'receipt' and 'return' add to stock)
+        $stockInTypes = $db->table('transaction_type_table')
+            ->select('transaction_type_id')
+            ->whereIn('transaction_type', ['receipt', 'return'])
+            ->get()->getResultArray();
+        $stockInTypeIds = array_column($stockInTypes, 'transaction_type_id');
 
         $batch = $db->table('batch_table')->where('batch_id', $batchId)->get(1)->getRowArray();
         if (! $batch) {
@@ -212,8 +215,8 @@ class InventoryController extends BaseController
         }
 
         $currentBatchQty = (int) $batch['current_qty'];
-        $oldIsReceipt    = $oldTypeId === $receiptTypeId;
-        $newIsReceipt    = $finalType === $receiptTypeId;
+        $oldIsReceipt    = in_array($oldTypeId, $stockInTypeIds);
+        $newIsReceipt    = in_array($finalType, $stockInTypeIds);
 
         // Undo old transaction effect, then apply new
         // Undo: receipt gave +qty; issue gave -qty
@@ -322,10 +325,13 @@ class InventoryController extends BaseController
         $batchId   = (int) $txn['batch_id'];
         $typeId    = (int) $txn['transaction_type_id'];
 
-        // Resolve receipt type ID from DB — don't hardcode
-        $receiptRow    = $db->table('transaction_type_table')->select('transaction_type_id')->where('transaction_type', 'receipt')->get(1)->getRowArray();
-        $receiptTypeId = (int) ($receiptRow['transaction_type_id'] ?? 1);
-        $isReceipt = $typeId === $receiptTypeId;
+        // Resolve stock-adding type IDs from DB (both 'receipt' and 'return' add to stock)
+        $stockInTypes = $db->table('transaction_type_table')
+            ->select('transaction_type_id')
+            ->whereIn('transaction_type', ['receipt', 'return'])
+            ->get()->getResultArray();
+        $stockInTypeIds = array_column($stockInTypes, 'transaction_type_id');
+        $isReceipt = in_array($typeId, $stockInTypeIds);
 
         $batch = $db->table('batch_table')->where('batch_id', $batchId)->get(1)->getRowArray();
         if (! $batch) {

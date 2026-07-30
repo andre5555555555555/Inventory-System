@@ -73,10 +73,32 @@ class TransactionModel extends Model
             array_push($params, $wild, $wild, $wild, $wild, $wild);
         }
 
-        // Running balance sub-query using window function
-        // Returns receipt_qty / issue_qty / date to match the original stockcard table layout
+        // Running balance sub-query using window function.
+        // For borrow/issue that span multiple FIFO batches, depleteBatches() creates one
+        // transaction per batch. We group those split rows by (date, type, office, reference)
+        // so the stockcard shows a single row with the total qty and the final balance.
         $rows = $this->db->query(
-            "SELECT * FROM (
+            "SELECT
+                MIN(transaction_id)        AS transaction_id,
+                MIN(batch_id)              AS batch_id,
+                date,
+                SUM(receipt_qty)           AS receipt_qty,
+                SUM(issue_qty)             AS issue_qty,
+                MIN(transaction_unit_cost) AS transaction_unit_cost,
+                transaction_type_id,
+                item_name,
+                description,
+                product_no,
+                stock_no,
+                unit_name,
+                office,
+                reference,
+                entity_name,
+                fund_cluster,
+                transaction_type,
+                product_id,
+                MAX(balance)               AS balance
+            FROM (
                 SELECT
                     t.transaction_id,
                     t.batch_id,
@@ -110,31 +132,48 @@ class TransactionModel extends Model
                 LEFT JOIN reference_table r ON t.reference_id = r.reference_id
                 LEFT JOIN entity_table et ON p.entity_id = et.entity_id
                 WHERE b.product_id = ? {$officeFilter}
+                  AND tt.transaction_type IN ('receipt','issue','adjust_out','borrow','return')
             ) AS base
-            WHERE transaction_type IN ('receipt','issue','adjust_out','borrow','return') {$searchFilter} {$dateFilter}
-            ORDER BY date {$order}, transaction_id {$order}
+            WHERE 1=1 {$searchFilter} {$dateFilter}
+            GROUP BY date, transaction_type_id, transaction_type, office, reference,
+                     item_name, description, product_no, stock_no, unit_name,
+                     entity_name, fund_cluster, product_id
+            ORDER BY date {$order}, MIN(transaction_id) {$order}
             LIMIT {$limit} OFFSET {$offset}",
             $params
         )->getResultArray();
 
-        // Count total for pagination
-        $totalParams = [$productId];
-        $totalSql = "SELECT COUNT(*) AS total
-                     FROM transaction_table t
-                     INNER JOIN batch_table b ON t.batch_id = b.batch_id
-                     INNER JOIN transaction_type_table tt ON t.transaction_type_id = tt.transaction_type_id
-                     WHERE b.product_id = ?
-                       AND tt.transaction_type IN ('receipt','issue','adjust_out','borrow','return')";
-
+        // Count total grouped rows for pagination (must match the GROUP BY in the main query)
+        $countOfficeFilter = $officeFilter;
+        $countSearchFilter = $searchFilter;
+        $countDateFilter   = '';
+        $totalParams       = [$productId];
         if ($userOfficeId > 0) {
-            $totalSql   .= ' AND t.user_office_id = ?';
             $totalParams[] = $userOfficeId;
         }
-
         if ($year > 0 && preg_match('/^\d{1,2}$/', $month)) {
-            $totalSql   .= " AND DATE_FORMAT(t.transaction_date, '%Y-%m') = ?";
-            $totalParams[] = sprintf('%04d-%02d', $year, (int) $month);
+            $countDateFilter  = " AND DATE_FORMAT(t.transaction_date, '%Y-%m') = ?";
+            $totalParams[]    = sprintf('%04d-%02d', $year, (int) $month);
         }
+        if ($search !== '') {
+            $wild = '%' . $search . '%';
+            array_push($totalParams, $wild, $wild, $wild, $wild, $wild);
+        }
+
+        $totalSql = "SELECT COUNT(*) AS total FROM (
+            SELECT 1
+            FROM transaction_table t
+            INNER JOIN transaction_type_table tt ON t.transaction_type_id = tt.transaction_type_id
+            INNER JOIN batch_table b ON t.batch_id = b.batch_id
+            INNER JOIN product_table p ON b.product_id = p.product_id
+            LEFT JOIN office_table ot ON t.office_id = ot.office_id
+            LEFT JOIN reference_table r ON t.reference_id = r.reference_id
+            WHERE b.product_id = ? {$countOfficeFilter}
+              AND tt.transaction_type IN ('receipt','issue','adjust_out','borrow','return')
+              {$countDateFilter}
+              {$countSearchFilter}
+            GROUP BY DATE(t.transaction_date), t.transaction_type_id, t.office_id, t.reference_id
+        ) AS grouped";
 
         $total = (int) ($this->db->query($totalSql, $totalParams)->getRowArray()['total'] ?? 0);
 
