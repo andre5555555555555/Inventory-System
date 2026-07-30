@@ -98,9 +98,10 @@ class AuthController extends BaseController
     public function register()
     {
         $rules = [
+            'name'             => 'required|min_length[2]|max_length[150]',
             'username'         => 'required|min_length[3]|max_length[50]|is_unique[user_table.username]',
             'email'            => 'required|valid_email|max_length[255]',
-            'password'         => 'required|min_length[3]|max_length[255]',
+            'password'         => 'required|min_length[6]|max_length[255]',
             'confirm_password' => 'required|matches[password]',
             'lvl_of_access_id' => 'required|integer|greater_than[0]',
             'user_office_id'   => 'required|integer|greater_than[0]',
@@ -110,11 +111,29 @@ class AuthController extends BaseController
             return redirect()->to(site_url('register'))->withInput()->with('error', implode(' ', $this->validator->getErrors()));
         }
 
+        // ── Strong password checks ──
+        $password = (string) $this->request->getPost('password');
+
+        if (! preg_match('/[A-Z]/', $password)) {
+            return redirect()->to(site_url('register'))->withInput()->with('error', 'Password must contain at least one uppercase letter.');
+        }
+        if (! preg_match('/[a-z]/', $password)) {
+            return redirect()->to(site_url('register'))->withInput()->with('error', 'Password must contain at least one lowercase letter.');
+        }
+        if (! preg_match('/[0-9]/', $password)) {
+            return redirect()->to(site_url('register'))->withInput()->with('error', 'Password must contain at least one number.');
+        }
+        // No sequential numbers (e.g. 123, 234, 345…)
+        if (preg_match('/(?:0(?=1)|1(?=2)|2(?=3)|3(?=4)|4(?=5)|5(?=6)|6(?=7)|7(?=8)|8(?=9)){2}/', $password)) {
+            return redirect()->to(site_url('register'))->withInput()->with('error', 'Password must not contain sequential numbers (e.g. 123, 456).');
+        }
+
         $model = new UserModel();
         $model->insert([
+            'name'              => trim((string) $this->request->getPost('name')),
             'username'          => trim((string) $this->request->getPost('username')),
             'email'             => trim((string) $this->request->getPost('email')),
-            'password'          => password_hash((string) $this->request->getPost('password'), PASSWORD_DEFAULT),
+            'password'          => password_hash($password, PASSWORD_DEFAULT),
             'user_office_id'    => (int) $this->request->getPost('user_office_id'),
             'lvl_of_access_id'  => (int) $this->request->getPost('lvl_of_access_id'),
             'user_activity_id'  => 3, // Pending – must be activated by admin

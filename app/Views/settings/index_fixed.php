@@ -145,6 +145,7 @@
             <div class="section-body settings-section-body is-open" id="section-pending">
                 <table class="data-table" id="table-pending">
                     <tr>
+                        <th>Full Name</th>
                         <th>Username</th>
                         <th>Email</th>
                         <th>Role</th>
@@ -153,6 +154,7 @@
                     </tr>
                     <?php foreach ($pendingUsers as $pUser): ?>
                         <tr>
+                            <td><?= esc($pUser['name'] ?? '') ?></td>
                             <td><?= esc($pUser['username']) ?></td>
                             <td><?= esc($pUser['email'] ?? '') ?></td>
                             <td><?= esc($pUser['role']) ?></td>

@@ -24,9 +24,9 @@ foreach ($items as $_item) {
                 </p>
             </div>
 
-            <div class="stock-form-stock-chip">
+            <div class="stock-form-stock-chip" id="stockChip">
                 <span>Available Stock</span>
-                <strong style="color:white;"><?= (int) $currentStock ?></strong>
+                <strong id="stockChipValue" style="color:white;"><?= (int) $currentStock ?></strong>
             </div>
         </div>
 
@@ -58,7 +58,8 @@ foreach ($items as $_item) {
                                 <option value="<?= esc($item['product']) ?>"
                                         data-id="<?= (int) $item['product_id'] ?>"
                                         data-unit="<?= esc($item['unit'] ?? '') ?>"
-                                        data-desc="<?= esc($item['product_description'] ?? '') ?>">
+                                        data-desc="<?= esc($item['product_description'] ?? '') ?>"
+                                        data-stock="<?= (int) ($stockMap[(int)$item['product_id']] ?? 0) ?>">
                                 </option>
                             <?php endforeach; ?>
                         </datalist>
@@ -128,7 +129,9 @@ foreach ($items as $_item) {
                     <label>Transaction Type</label>
                     <select name="transaction_type_id" id="transactionTypeSelect" required>
                         <?php foreach ($transactionTypes as $transactionType): ?>
-                            <option value="<?= (int) $transactionType['transaction_type_id'] ?>" <?= (string) old('transaction_type_id', '1') === (string) $transactionType['transaction_type_id'] ? 'selected' : '' ?>>
+                            <option value="<?= (int) $transactionType['transaction_type_id'] ?>"
+                                    data-type="<?= esc(strtolower($transactionType['transaction_type'])) ?>"
+                                    <?= (string) old('transaction_type_id', '1') === (string) $transactionType['transaction_type_id'] ? 'selected' : '' ?>>
                                 <?= esc(ucfirst($transactionType['transaction_type'])) ?>
                             </option>
                         <?php endforeach; ?>
@@ -152,9 +155,9 @@ foreach ($items as $_item) {
                             <input type="number" name="quantity" min="1" value="<?= esc((string) old('quantity')) ?>" required>
                         </div>
 
-                        <div>
+                        <div id="unitCostGroup">
                             <label>Unit Cost</label>
-                            <input type="number" name="unit_cost" step="0.01" min="0.01" placeholder="0.00" required value="<?= esc((string) old('unit_cost')) ?>">
+                            <input type="number" id="unitCostInput" name="unit_cost" step="0.01" min="0.01" placeholder="0.00" required value="<?= esc((string) old('unit_cost')) ?>">
                         </div>
                     </div>
                 </section>
@@ -306,32 +309,38 @@ foreach ($items as $_item) {
     const datalist     = document.getElementById('stockProductsList');
     const form         = document.querySelector('.stock-form');
 
-    // Build dictionary for fast lookup
+    // OUT-type detection — check by transaction_type name, not hardcoded ID
+    // Names that reduce stock: issue, adjust_out, borrow
+    const OUT_TYPE_NAMES = ['issue', 'adjust_out', 'borrow'];
+
+    function isOutTypeId(typeSelectEl) {
+        const opt = typeSelectEl ? typeSelectEl.options[typeSelectEl.selectedIndex] : null;
+        return opt ? OUT_TYPE_NAMES.includes((opt.dataset.type || '').toLowerCase()) : false;
+    }
+
+    // Stock chip element
+    const stockChipValue = document.getElementById('stockChipValue');
+
+    function updateChipStock(stock) {
+        if (stockChipValue) stockChipValue.textContent = stock;
+    }
+
+    // Build dictionary for fast lookup (includes data-stock)
     const itemsDict = {};
     let initialItem = null;
     const initialId = parseInt(hiddenInput.value) || 0;
 
     for (const option of datalist.options) {
-        const id = parseInt(option.dataset.id);
+        const id   = parseInt(option.dataset.id);
         const item = {
-            id: id,
-            name: option.value,
-            unit: option.dataset.unit,
-            desc: option.dataset.desc
+            id:    id,
+            name:  option.value,
+            unit:  option.dataset.unit,
+            desc:  option.dataset.desc,
+            stock: parseInt(option.dataset.stock ?? '0') || 0,
         };
         itemsDict[option.value] = item;
-        
-        if (id === initialId) {
-            initialItem = item;
-        }
-    }
-
-    // Pre-fill if there's an initial value (e.g. from validation error or redirect)
-    if (initialItem) {
-        searchInput.value = initialItem.name;
-        searchInput.classList.add('has-value');
-        descInput.value = initialItem.desc;
-        unitInput.value = initialItem.unit;
+        if (id === initialId) initialItem = item;
     }
 
     function selectItem(item) {
@@ -340,6 +349,9 @@ foreach ($items as $_item) {
         searchInput.classList.add('has-value');
         descInput.value = item.desc;
         unitInput.value = item.unit;
+        const stock = parseInt(item.stock ?? '0') || 0;
+        updateChipStock(stock);
+        document.dispatchEvent(new CustomEvent('stockform:productchanged', { detail: { stock } }));
     }
 
     function clearSelection() {
@@ -347,6 +359,13 @@ foreach ($items as $_item) {
         searchInput.classList.remove('has-value');
         descInput.value = '';
         unitInput.value = '';
+        document.dispatchEvent(new CustomEvent('stockform:productchanged', { detail: { stock: null } }));
+    }
+
+    // Pre-fill if there's an initial value (e.g. from validation error or redirect)
+    // Use selectItem so the chip and validator are seeded correctly.
+    if (initialItem) {
+        selectItem(initialItem);
     }
 
     // Triggered on type or select
@@ -411,19 +430,105 @@ foreach ($items as $_item) {
             setTimeout(() => searchInput.style.borderColor = '', 1200);
         }
     });
+
+    // Expose for second IIFE
+    window._stockForm = {
+        isOutTypeId,
+        getInitialStock() { return <?= (int) $currentStock ?>; },
+    };
 })();
 
 (function () {
     const typeSelect   = document.getElementById('transactionTypeSelect');
     const reasonGroup  = document.getElementById('adjustmentReasonGroup');
     const reasonSelect = document.getElementById('adjustmentReasonSelect');
+    const submitBtn    = document.getElementById('saveTransactionBtn');
     if (!typeSelect || !reasonGroup) return;
+
+    // -- Zero-stock warning banner ----------------------------------------
+    let zeroStockBanner = document.getElementById('zeroStockBanner');
+    if (!zeroStockBanner) {
+        zeroStockBanner = document.createElement('div');
+        zeroStockBanner.id = 'zeroStockBanner';
+        Object.assign(zeroStockBanner.style, {
+            display:         'none',   // hidden by default
+            background:      'linear-gradient(135deg,#fef2f2,#fee2e2)',
+            border:          '1.5px solid #fca5a5',
+            borderRadius:    '10px',
+            padding:         '12px 18px',
+            marginBottom:    '12px',
+            color:           '#991b1b',
+            fontSize:        '0.9rem',
+            fontWeight:      '600',
+            alignItems:      'center',
+            gap:             '10px',
+        });
+        zeroStockBanner.innerHTML = '<span style="font-size:1.3rem">⛔</span><span id="zeroStockBannerMsg">Cannot perform this transaction — stock is 0.</span>';
+        const actionsDiv = document.querySelector('.stock-form-actions');
+        if (actionsDiv) actionsDiv.insertAdjacentElement('beforebegin', zeroStockBanner);
+    }
+    const bannerMsg = document.getElementById('zeroStockBannerMsg');
+
+    // Use the name-based helper shared from the first IIFE — works regardless of DB IDs
+    const _isOutTypeId = (window._stockForm && window._stockForm.isOutTypeId) || function () { return false; };
+
+    let currentProductStock = (window._stockForm && window._stockForm.getInitialStock) ? window._stockForm.getInitialStock() : 0;
+
+    function isOutType() {
+        return _isOutTypeId(typeSelect);
+    }
+
+    function getTypeName() {
+        const opt = typeSelect.options[typeSelect.selectedIndex];
+        return opt ? opt.text.trim() : 'this transaction type';
+    }
+
+    function validate() {
+        if (isOutType() && currentProductStock === 0) {
+            const typeName = getTypeName();
+            if (bannerMsg) bannerMsg.textContent = `Cannot perform "${typeName}" — Available Stock is 0.`;
+            zeroStockBanner.style.display = 'flex';
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.style.opacity = '0.5';
+                submitBtn.style.cursor  = 'not-allowed';
+            }
+        } else {
+            zeroStockBanner.style.display = 'none';
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.style.opacity = '';
+                submitBtn.style.cursor  = '';
+            }
+        }
+    }
 
     function isAdjustOut() {
         const selectedOption = typeSelect.options[typeSelect.selectedIndex];
         return selectedOption
-            ? selectedOption.text.toLowerCase().replace(/[\s-]/g, '_').includes('adjust_out')
+            ? (selectedOption.dataset.type || '').toLowerCase() === 'adjust_out'
             : false;
+    }
+
+    function isReceipt() {
+        const selectedOption = typeSelect.options[typeSelect.selectedIndex];
+        return selectedOption
+            ? (selectedOption.dataset.type || '').toLowerCase() === 'receipt'
+            : false;
+    }
+
+    // Unit cost: always visible, but only required for Receipt
+    const unitCostGroup = document.getElementById('unitCostGroup');
+    const unitCostInput = document.getElementById('unitCostInput');
+    function syncUnitCost() {
+        if (!unitCostInput) return;
+        if (isReceipt()) {
+            unitCostInput.required = true;
+            unitCostInput.min = '0.01';
+        } else {
+            unitCostInput.required = false;
+            unitCostInput.removeAttribute('min');
+        }
     }
 
     function syncReason() {
@@ -434,8 +539,20 @@ foreach ($items as $_item) {
         }
     }
 
-    typeSelect.addEventListener('change', syncReason);
-    syncReason(); // run on page load
+    typeSelect.addEventListener('change', () => {
+        syncReason();
+        syncUnitCost();
+        validate();
+    });
+    syncReason();
+    syncUnitCost();
+    validate(); // run on page load
+
+    // React to product selection changes (dispatched by first IIFE)
+    document.addEventListener('stockform:productchanged', (e) => {
+        currentProductStock = (e.detail && e.detail.stock !== null) ? (e.detail.stock ?? 0) : 0;
+        validate();
+    });
 
     // ── Expiry date confirmation ──────────────────────────────────────────
     const form        = document.querySelector('.stock-form');
@@ -447,6 +564,11 @@ foreach ($items as $_item) {
     let confirmed = false; // flag: user already confirmed, skip modal
 
     form?.addEventListener('submit', function (e) {
+        // Block if zero-stock violation
+        if (isOutType() && currentProductStock === 0) {
+            e.preventDefault();
+            return;
+        }
         if (confirmed) return; // already confirmed — let it submit
         if (expiryInput && expiryInput.value.trim() === '') {
             e.preventDefault();

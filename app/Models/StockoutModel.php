@@ -387,8 +387,15 @@ class StockoutModel extends Model
 
         $batchId = $batch ? (int) $batch['batch_id'] : null;
 
+        // Resolve the 'issue' type ID dynamically — never hardcode
+        $issueRow = $this->db->table('transaction_type_table')
+            ->select('transaction_type_id')
+            ->where('transaction_type', 'issue')
+            ->get(1)->getRowArray();
+        $issueTypeId = (int) ($issueRow['transaction_type_id'] ?? 2);
+
         $this->db->table('transaction_table')->insert([
-            'transaction_type_id'   => 2, // issue
+            'transaction_type_id'   => $issueTypeId,
             'transaction_qty'       => $quantity,
             'transaction_unit_cost' => 0,
             'transaction_date'      => date('Y-m-d H:i:s'),

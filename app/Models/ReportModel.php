@@ -93,11 +93,13 @@ class ReportModel extends Model
         $officeFilter = $userOfficeId > 0 ? ' AND t.user_office_id = ' . (int) $userOfficeId : '';
 
         return $this->db->query(
-            'SELECT b.product_id, t.transaction_id, t.transaction_qty, t.transaction_unit_cost, t.transaction_type_id
+            "SELECT b.product_id, t.transaction_id, t.transaction_qty, t.transaction_unit_cost,
+                    t.transaction_type_id, tt.transaction_type
              FROM transaction_table t
              INNER JOIN batch_table b ON t.batch_id = b.batch_id
-             WHERE t.transaction_date < ?' . $officeFilter . '
-             ORDER BY b.product_id ASC, t.transaction_date ASC, t.transaction_id ASC',
+             INNER JOIN transaction_type_table tt ON t.transaction_type_id = tt.transaction_type_id
+             WHERE t.transaction_date < ?{$officeFilter}
+             ORDER BY b.product_id ASC, t.transaction_date ASC, t.transaction_id ASC",
             [$monthStart]
         )->getResultArray();
     }
@@ -115,14 +117,16 @@ class ReportModel extends Model
             't.transaction_qty',
             't.transaction_unit_cost',
             't.transaction_type_id',
+            'tt.transaction_type',
         ]);
         $builder->join('batch_table b', 't.batch_id = b.batch_id');
         $builder->join('product_table p', 'b.product_id = p.product_id');
+        $builder->join('transaction_type_table tt', 't.transaction_type_id = tt.transaction_type_id');
         $builder->join('unit_table ut', 'p.unit_id = ut.unit_id', 'left');
         $builder->join('type_of_product pt', 'p.type_id = pt.type_id', 'left');
         $builder->where('t.transaction_date >=', $monthStart);
         $builder->where('t.transaction_date <', $nextMonth);
-        $builder->whereIn('t.transaction_type_id', [1, 2, 3]); // include spoiled adjustments
+        $builder->whereIn('tt.transaction_type', ['receipt', 'issue', 'adjust_out', 'borrow', 'return']);
 
         if ($userOfficeId > 0) {
             $builder->where('t.user_office_id', $userOfficeId);
@@ -150,9 +154,9 @@ class ReportModel extends Model
         $runningQty[$productId]   ??= 0;
         $runningValue[$productId] ??= 0.0;
 
-        $typeId = (int) ($row['transaction_type_id'] ?? 0);
+        $typeName = strtolower($row['transaction_type'] ?? '');
 
-        if ($typeId === 1) { // receipt
+        if ($typeName === 'receipt') {
             $unitCost              = (float) ($row['transaction_unit_cost'] ?? 0);
             $qty                   = (int) ($row['transaction_qty'] ?? 0);
             $batchMemory[$productId][] = ['qty' => $qty, 'cost' => $unitCost];
@@ -160,18 +164,28 @@ class ReportModel extends Model
             $runningValue[$productId] += $qty * $unitCost;
         }
 
-        if ($typeId === 2 || $typeId === 3) { // issue or adjust_out
-            $qty         = (int) ($row['transaction_qty'] ?? 0);
-            $issuedCost  = $this->fifoIssue($batchMemory[$productId], $qty);
+        if (in_array($typeName, ['issue', 'adjust_out', 'borrow'], true)) {
+            $qty        = (int) ($row['transaction_qty'] ?? 0);
+            $issuedCost = $this->fifoIssue($batchMemory[$productId], $qty);
             $runningQty[$productId]   -= $qty;
             $runningValue[$productId] -= $issuedCost;
+        }
+
+        // Return: adds stock back
+        if ($typeName === 'return') {
+            $unitCost = (float) ($row['transaction_unit_cost'] ?? 0);
+            $qty      = (int) ($row['transaction_qty'] ?? 0);
+            // Use 0 cost for returns — they don't add purchase value
+            $batchMemory[$productId][] = ['qty' => $qty, 'cost' => $unitCost];
+            $runningQty[$productId]   += $qty;
+            $runningValue[$productId] += $qty * $unitCost;
         }
     }
 
     private function purchaseValues(array $row, array &$batches, int &$runningQty, float &$runningValue): array
     {
-        $typeId = (int) ($row['transaction_type_id'] ?? 0);
-        if ($typeId !== 1) { // not receipt
+        $typeName = strtolower($row['transaction_type'] ?? '');
+        if ($typeName !== 'receipt') {
             return [0, 0.0, 0.0];
         }
 
@@ -186,6 +200,11 @@ class ReportModel extends Model
         return [$purchaseQty, $purchaseCost, $purchaseTotal];
     }
 
+    /**
+     * Calculate issue (used) or spoiled values for a row.
+     * $mode: 'used'    => counts issue + borrow + return as "used"
+     *        'spoiled' => counts only adjust_out
+     */
     private function issueValues(
         array $row,
         int $spoiledTypeId,
@@ -193,25 +212,38 @@ class ReportModel extends Model
         int &$runningQty,
         float &$runningValue
     ): array {
-        $typeId   = (int) ($row['transaction_type_id'] ?? 0);
+        $typeName = strtolower($row['transaction_type'] ?? '');
         $issueQty = (int) ($row['transaction_qty'] ?? 0);
 
         if ($issueQty <= 0) {
             return [0, 0.0, 0.0];
         }
 
-        // $spoiledTypeId 3 means adjust_out, 0 means regular issue
-        if ($spoiledTypeId === 3 && $typeId !== 3) {
-            return [0, 0.0, 0.0];
-        }
-        if ($spoiledTypeId === 0 && $typeId === 3) {
-            return [0, 0.0, 0.0];
-        }
-        if ($typeId !== 2 && $typeId !== 3) {
-            return [0, 0.0, 0.0];
+        // $spoiledTypeId 3 => adjust_out only; 0 => used (issue + borrow + return)
+        if ($spoiledTypeId === 3) {
+            if ($typeName !== 'adjust_out') {
+                return [0, 0.0, 0.0];
+            }
+        } else {
+            // Used column: issue, borrow, and return all count as consumed
+            if (!in_array($typeName, ['issue', 'borrow', 'return'], true)) {
+                return [0, 0.0, 0.0];
+            }
         }
 
         $storedUnitCost = (float) ($row['transaction_unit_cost'] ?? 0);
+
+        if ($typeName === 'return') {
+            // Return adds stock back — report the qty as "used" but reverse the running balance
+            $returnCost = $storedUnitCost > 0
+                ? $storedUnitCost * $issueQty
+                : $this->fifoIssue($batches, 0); // zero drain — return creates new stock
+            // Add returned stock back into batches at 0 cost (already counted at borrow time)
+            $batches[] = ['qty' => $issueQty, 'cost' => 0];
+            $runningQty   += $issueQty;
+            $runningValue += 0;
+            return [$issueQty, 0.0, 0.0];
+        }
 
         if ($storedUnitCost > 0) {
             // Manually overridden cost — use it directly and drain FIFO silently
@@ -336,11 +368,13 @@ class ReportModel extends Model
         $productFilter = $productId > 0    ? ' AND b.product_id = ' . (int) $productId         : '';
 
         return $this->db->query(
-            'SELECT b.product_id, t.transaction_qty, t.transaction_unit_cost, t.transaction_type_id
+            "SELECT b.product_id, t.transaction_qty, t.transaction_unit_cost,
+                    t.transaction_type_id, tt.transaction_type
              FROM transaction_table t
              INNER JOIN batch_table b ON t.batch_id = b.batch_id
-             WHERE t.transaction_date < ?' . $officeFilter . $productFilter . '
-             ORDER BY b.product_id ASC, t.transaction_date ASC, t.transaction_id ASC',
+             INNER JOIN transaction_type_table tt ON t.transaction_type_id = tt.transaction_type_id
+             WHERE t.transaction_date < ?{$officeFilter}{$productFilter}
+             ORDER BY b.product_id ASC, t.transaction_date ASC, t.transaction_id ASC",
             [$before]
         )->getResultArray();
     }
@@ -361,14 +395,16 @@ class ReportModel extends Model
             't.transaction_qty',
             't.transaction_unit_cost',
             't.transaction_type_id',
+            'tt.transaction_type',
         ]);
         $builder->join('batch_table b', 't.batch_id = b.batch_id');
         $builder->join('product_table p', 'b.product_id = p.product_id');
+        $builder->join('transaction_type_table tt', 't.transaction_type_id = tt.transaction_type_id');
         $builder->join('unit_table ut', 'p.unit_id = ut.unit_id', 'left');
         $builder->join('type_of_product pt', 'p.type_id = pt.type_id', 'left');
         $builder->where('t.transaction_date >=', $dateFrom);
         $builder->where('t.transaction_date <', $dateTo);
-        $builder->whereIn('t.transaction_type_id', [1, 2, 3]);
+        $builder->whereIn('tt.transaction_type', ['receipt', 'issue', 'adjust_out', 'borrow', 'return']);
 
         if ($userOfficeId > 0) {
             $builder->where('t.user_office_id', $userOfficeId);

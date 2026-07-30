@@ -169,6 +169,7 @@ class SettingsController extends BaseController
 
     private function saveUser(int $id, array $payload, int $userOfficeId): ResponseInterface
     {
+        $payload['name']             = trim((string) ($payload['name'] ?? ''));
         $payload['username']         = trim((string) ($payload['username'] ?? ''));
         $payload['email']            = trim((string) ($payload['email'] ?? ''));
         $payload['lvl_of_access_id'] = (int) ($payload['lvl_of_access_id'] ?? 0);

@@ -10,18 +10,21 @@ class DashboardModel extends Model
 
     public function overview(int $userOfficeId = 0): array
     {
-        $lowStock = $this->lowStock($userOfficeId);
-        $expiring = $this->expiringSoon($userOfficeId);
+        $lowStock     = $this->lowStock($userOfficeId);
+        $expiring     = $this->expiringSoon($userOfficeId);
+        $activeBorrows = $this->activeBorrows($userOfficeId);
 
         return [
             'lowStock'           => $lowStock,
             'expiring'           => $expiring,
             'outOfStock'         => $this->outOfStock($userOfficeId),
             'recentTransactions' => $this->recentTransactions($userOfficeId),
+            'activeBorrows'      => $activeBorrows,
             'summary'            => [
-                'totalItems'    => $this->totalItems($userOfficeId),
-                'lowStockCount' => count($lowStock),
-                'expiringCount' => count($expiring),
+                'totalItems'        => $this->totalItems($userOfficeId),
+                'lowStockCount'     => count($lowStock),
+                'expiringCount'     => count($expiring),
+                'activeBorrowCount' => count($activeBorrows),
             ],
         ];
     }
@@ -101,5 +104,36 @@ class DashboardModel extends Model
             $builder->where('user_office_id', $userOfficeId);
         }
         return (int) ($builder->get()->getRowArray()['total'] ?? 0);
+    }
+
+    /**
+     * Net active borrows per product:
+     * items where SUM(borrowed qty) > SUM(returned qty).
+     * Uses transaction_type names so it works regardless of DB IDs.
+     */
+    public function activeBorrows(int $userOfficeId = 0): array
+    {
+        $officeFilter = $userOfficeId > 0 ? ' AND t.user_office_id = ' . (int) $userOfficeId : '';
+
+        return $this->db->query(
+            "SELECT p.product AS item,
+                    SUM(CASE WHEN tt.transaction_type = 'borrow' THEN t.transaction_qty ELSE 0 END) AS total_borrowed,
+                    SUM(CASE WHEN tt.transaction_type = 'return' THEN t.transaction_qty ELSE 0 END) AS total_returned,
+                    SUM(CASE WHEN tt.transaction_type = 'borrow' THEN  t.transaction_qty
+                             WHEN tt.transaction_type = 'return' THEN -t.transaction_qty
+                             ELSE 0 END) AS net_borrowed,
+                    p.product_id,
+                    COALESCE(ot.office_name, '') AS office,
+                    MAX(t.transaction_date) AS last_borrowed
+             FROM transaction_table t
+             INNER JOIN transaction_type_table tt ON t.transaction_type_id = tt.transaction_type_id
+             INNER JOIN batch_table b ON t.batch_id = b.batch_id
+             INNER JOIN product_table p ON b.product_id = p.product_id
+             LEFT JOIN office_table ot ON t.office_id = ot.office_id
+             WHERE tt.transaction_type IN ('borrow', 'return')" . $officeFilter . "
+             GROUP BY b.product_id, p.product
+             HAVING net_borrowed > 0
+             ORDER BY net_borrowed DESC"
+        )->getResultArray();
     }
 }

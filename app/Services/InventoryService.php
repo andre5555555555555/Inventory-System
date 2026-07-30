@@ -81,10 +81,12 @@ class InventoryService
 
         if ($typeId <= 0) {
             $typeId = match ($legacyType) {
-                'IN' => 1,
-                'OUT' => 2,
+                'IN'      => 1,
+                'OUT'     => 2,
                 'SPOILED' => 3,
-                default => 1,
+                'BORROW'  => 4,
+                'RETURN'  => 5,
+                default   => 1,
             };
         }
 
@@ -101,11 +103,25 @@ class InventoryService
             throw new DomainException('Quantity must be greater than 0.');
         }
 
-        if ($typeId === 1 && $unitCost <= 0) {
-            throw new DomainException('Unit cost is required for stock-in.');
+        // ── Resolve the type name from the DB (so we don't depend on hardcoded IDs) ──
+        $typeRow = $this->db->table('transaction_type_table')
+            ->select('transaction_type, transaction_type_id')
+            ->where('transaction_type_id', $typeId)
+            ->get(1)->getRowArray();
+        $typeName = strtolower($typeRow['transaction_type'] ?? '');
+
+        if ($typeName === '') {
+            throw new DomainException('Unsupported transaction type.');
         }
 
-        if ($typeId === 1) {
+        // Use the actual DB ID for writing to transaction_table
+        $resolvedTypeId = (int) ($typeRow['transaction_type_id'] ?? $typeId);
+
+        if ($typeName === 'receipt') {
+            if ($unitCost <= 0) {
+                throw new DomainException('Unit cost is required for stock-in.');
+            }
+
             $batchNo = 'B-' . strtoupper($userOfficeName) . '-' . date('Ymd') . '-' . str_pad((string) $productId, 4, '0', STR_PAD_LEFT);
 
             $this->db->table('batch_table')->insert([
@@ -138,7 +154,7 @@ class InventoryService
             }
 
             $this->db->table('transaction_table')->insert([
-                'transaction_type_id'   => 1,
+                'transaction_type_id'   => $resolvedTypeId,
                 'transaction_qty'       => $qty,
                 'transaction_unit_cost' => $unitCost,
                 'transaction_date'      => $dateTime,
@@ -151,9 +167,58 @@ class InventoryService
                 'created_at'            => $dateTime,
                 'updated_at'            => $dateTime,
             ]);
-        } elseif ($typeId === 2) {
-            $this->depleteBatches($productId, $qty, $userOfficeId, $officeId, $referenceId, $userId, $dateTime, 0, 2);
-        } elseif ($typeId === 3) {
+        } elseif ($typeName === 'issue') {
+            $currentStock = $this->currentStock($productId, $userOfficeId);
+            if ($currentStock <= 0) {
+                throw new DomainException('Cannot issue stock — there is no stock available for this product.');
+            }
+            if ($qty > $currentStock) {
+                throw new DomainException("Cannot issue {$qty} — only {$currentStock} unit(s) available in stock.");
+            }
+            $this->depleteBatches($productId, $qty, $userOfficeId, $officeId, $referenceId, $userId, $dateTime, 0, $resolvedTypeId);
+        } elseif ($typeName === 'borrow') {
+            // ── Borrow: behaves like issue (FIFO stock depletion) ────────────
+            $currentStock = $this->currentStock($productId, $userOfficeId);
+            if ($currentStock <= 0) {
+                throw new DomainException('Cannot borrow — there is no stock available for this product.');
+            }
+            if ($qty > $currentStock) {
+                throw new DomainException("Cannot borrow {$qty} — only {$currentStock} unit(s) available in stock.");
+            }
+            $this->depleteBatches($productId, $qty, $userOfficeId, $officeId, $referenceId, $userId, $dateTime, 0, $resolvedTypeId);
+        } elseif ($typeName === 'return') {
+            // ── Return: creates a new batch and a receipt-style transaction ──
+            $batchNo = 'RET-' . strtoupper($userOfficeName) . '-' . date('Ymd') . '-' . str_pad((string) $productId, 4, '0', STR_PAD_LEFT);
+
+            $this->db->table('batch_table')->insert([
+                'batch_no'        => $batchNo,
+                'product_id'      => $productId,
+                'expiration_date' => $expDate,
+                'user_office_id'  => $userOfficeId,
+                'reference_id'    => $referenceId ?: null,
+                'office_id'       => $officeId,
+                'current_qty'     => $qty,
+                'date_received'   => $dateReceived,
+                'created_at'      => $dateTime,
+                'updated_at'      => $dateTime,
+            ]);
+            $returnBatchId = (int) $this->db->insertID();
+
+            $this->db->table('transaction_table')->insert([
+                'transaction_type_id'   => $resolvedTypeId,
+                'transaction_qty'       => $qty,
+                'transaction_unit_cost' => 0,
+                'transaction_date'      => $dateTime,
+                'batch_id'              => $returnBatchId,
+                'reference_id'          => $referenceId ?: null,
+                'office_id'             => $officeId,
+                'user_id'               => $userId ?: null,
+                'user_office_id'        => $userOfficeId,
+                'adjustment_reason_id'  => null,
+                'created_at'            => $dateTime,
+                'updated_at'            => $dateTime,
+            ]);
+        } elseif ($typeName === 'adjust_out') {
             $latestBatch = $this->db->table('batch_table')
                 ->where('product_id', $productId)
                 ->where('user_office_id', $userOfficeId)
@@ -172,14 +237,20 @@ class InventoryService
                 throw new DomainException('Adjustment out quantity cannot exceed the latest receipt batch quantity.');
             }
 
-            $receiptRow = $this->db->table('transaction_table')
+            $receiptRow = $this->db->table('transaction_type_table')
+                ->select('transaction_type_id')
+                ->where('transaction_type', 'receipt')
+                ->get(1)->getRowArray();
+            $receiptTypeId = (int) ($receiptRow['transaction_type_id'] ?? 1);
+
+            $costRow = $this->db->table('transaction_table')
                 ->select('transaction_unit_cost')
                 ->where('batch_id', $latestBatch['batch_id'])
-                ->whereIn('transaction_type_id', [1])
+                ->whereIn('transaction_type_id', [$receiptTypeId])
                 ->orderBy('transaction_id', 'DESC')
                 ->get(1)
                 ->getRowArray();
-            $spoiledUnitCost = (float) ($receiptRow['transaction_unit_cost'] ?? 0);
+            $spoiledUnitCost = (float) ($costRow['transaction_unit_cost'] ?? 0);
 
             $this->db->table('batch_table')
                 ->where('batch_id', $latestBatch['batch_id'])
@@ -189,7 +260,7 @@ class InventoryService
                 ]);
 
             $this->db->table('transaction_table')->insert([
-                'transaction_type_id'   => 3,
+                'transaction_type_id'   => $resolvedTypeId,
                 'transaction_qty'       => $qty,
                 'transaction_unit_cost' => $spoiledUnitCost,
                 'transaction_date'      => $dateTime,
@@ -203,7 +274,7 @@ class InventoryService
                 'updated_at'            => $dateTime,
             ]);
         } else {
-            throw new DomainException('Unsupported transaction type.');
+            throw new DomainException("Unsupported transaction type: '{$typeName}'.");
         }
 
         $this->db->transComplete();

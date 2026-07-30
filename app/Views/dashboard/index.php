@@ -28,6 +28,10 @@
             <span>Expiring Soon</span>
             <strong><?= (int) $summary['expiringCount'] ?></strong>
         </article>
+        <article class="summary-card summary-card-borrow">
+            <span>Items Out (Borrowed)</span>
+            <strong><?= array_sum(array_column($activeBorrows, 'net_borrowed')) ?></strong>
+        </article>
     </section>
 
     <section class="dashboard-grid">
@@ -98,6 +102,44 @@
                 <?php endforeach; ?>
             <?php else: ?>
                 <div class="dashboard-empty">No recent transactions yet.</div>
+            <?php endif; ?>
+        </div>
+
+        <div class="dashboard-card dashboard-card-borrow">
+            <div class="dashboard-card-head">
+                <h2>&#128260; Active Borrows</h2>
+                <span>Net items currently out</span>
+            </div>
+            <?php if (!empty($activeBorrows)): ?>
+                <?php foreach ($activeBorrows as $row): ?>
+                    <div class="dashboard-list-item is-borrow">
+                        <div style="flex:1;min-width:0;">
+                            <strong style="display:block;"><?= esc($row['item']) ?></strong>
+                            <span style="font-size:12px;color:var(--text-muted,#6b7280);">
+                                <?php if (!empty($row['office'])): ?>
+                                    <?= esc($row['office']) ?> &mdash;
+                                <?php endif; ?>
+                                Last: <?= esc(date('M d, Y', strtotime($row['last_borrowed']))) ?>
+                            </span>
+                        </div>
+                        <div style="text-align:right;flex-shrink:0;margin-left:10px;">
+                            <span style="display:block;font-size:13px;font-weight:700;color:#92400e;">
+                                <?= (int) $row['net_borrowed'] ?> out
+                            </span>
+                            <span style="font-size:11px;color:var(--text-muted,#6b7280);">
+                                <?= (int) $row['total_returned'] ?> returned
+                            </span>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+                <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border-color,#e5e7eb);">
+                    <a href="<?= site_url('stock/add') ?>"
+                       style="font-size:12.5px;font-weight:600;color:#0f766e;text-decoration:none;">
+                        + Record a Return
+                    </a>
+                </div>
+            <?php else: ?>
+                <div class="dashboard-empty">No items currently borrowed.</div>
             <?php endif; ?>
         </div>
     </section>

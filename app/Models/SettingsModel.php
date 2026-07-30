@@ -52,8 +52,9 @@ class SettingsModel extends Model
             'users' => [
                 'table'  => 'user_table',
                 'pk'     => 'user_id',
-                'fields' => ['username', 'email', 'password', 'lvl_of_access_id', 'user_office_id'],
+                'fields' => ['name', 'username', 'email', 'password', 'lvl_of_access_id', 'user_office_id'],
                 'labels' => [
+                    'name'     => 'Full Name',
                     'username' => 'Username',
                     'email'    => 'Email',
                 ],
@@ -208,7 +209,8 @@ class SettingsModel extends Model
     public function pendingUsers(int $userOfficeId = 0, int $levelId = 3): array
     {
         $builder = $this->db->table('user_table')
-            ->select('user_table.*, COALESCE(uot.user_office_name, "Global") AS user_office_name,
+            ->select('user_table.*, user_table.name,
+                      COALESCE(uot.user_office_name, "Global") AS user_office_name,
                       COALESCE(loa.role, "Unknown") AS role')
             ->join('user_office_table uot', 'user_table.user_office_id = uot.user_office_id', 'left')
             ->join('level_of_access loa', 'user_table.lvl_of_access_id = loa.lvl_of_access_id', 'left')
@@ -247,7 +249,7 @@ class SettingsModel extends Model
 
     private function userRecords(int $userOfficeId = 0, int $levelId = 2): array
     {
-        $sql = 'SELECT u.user_id, u.username, u.email, u.user_office_id, u.user_activity_id, u.lvl_of_access_id,
+        $sql = 'SELECT u.user_id, u.name, u.username, u.email, u.user_office_id, u.user_activity_id, u.lvl_of_access_id,
                        COALESCE(uot.user_office_name, "Global") AS user_office_name,
                        COALESCE(ua.user_activity, "Unknown") AS activity_status,
                        COALESCE(loa.role, "Unknown") AS role

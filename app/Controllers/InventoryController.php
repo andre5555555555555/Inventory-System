@@ -95,11 +95,19 @@ class InventoryController extends BaseController
             }
         }
 
+        $items    = $productModel->listForSelect($userOfficeId);
+        $stockMap = [];
+        foreach ($items as $item) {
+            $pid = (int) $item['product_id'];
+            $stockMap[$pid] = $transactionModel->currentStock($pid, $userOfficeId);
+        }
+
         return view('inventory/stock_form', [
             'title'             => 'Add Stock',
             'itemId'            => $productId,
-            'currentStock'      => $productId > 0 ? $transactionModel->currentStock($productId, $userOfficeId) : 0,
-            'items'             => $productModel->listForSelect($userOfficeId),
+            'currentStock'      => $productId > 0 ? ($stockMap[$productId] ?? 0) : 0,
+            'items'             => $items,
+            'stockMap'          => $stockMap,
             'offices'           => $officeModel->orderedList($userOfficeId),
             'references'        => $referenceModel->orderedList($userOfficeId),
             'transactionTypes'  => db_connect()->table('transaction_type_table')->orderBy('transaction_type_id', 'ASC')->get()->getResultArray(),
@@ -194,14 +202,18 @@ class InventoryController extends BaseController
         $oldTypeId = (int) $txn['transaction_type_id'];
         $finalType = $newTypeId ?? $oldTypeId;
 
+        // Resolve receipt type ID from DB — don't hardcode
+        $receiptRow    = $db->table('transaction_type_table')->select('transaction_type_id')->where('transaction_type', 'receipt')->get(1)->getRowArray();
+        $receiptTypeId = (int) ($receiptRow['transaction_type_id'] ?? 1);
+
         $batch = $db->table('batch_table')->where('batch_id', $batchId)->get(1)->getRowArray();
         if (! $batch) {
             return $this->response->setStatusCode(404)->setJSON(['ok' => false, 'error' => 'Linked batch not found.']);
         }
 
         $currentBatchQty = (int) $batch['current_qty'];
-        $oldIsReceipt    = $oldTypeId === 1;
-        $newIsReceipt    = $finalType === 1;
+        $oldIsReceipt    = $oldTypeId === $receiptTypeId;
+        $newIsReceipt    = $finalType === $receiptTypeId;
 
         // Undo old transaction effect, then apply new
         // Undo: receipt gave +qty; issue gave -qty
@@ -309,7 +321,11 @@ class InventoryController extends BaseController
         $qty       = (int) $txn['transaction_qty'];
         $batchId   = (int) $txn['batch_id'];
         $typeId    = (int) $txn['transaction_type_id'];
-        $isReceipt = $typeId === 1;
+
+        // Resolve receipt type ID from DB — don't hardcode
+        $receiptRow    = $db->table('transaction_type_table')->select('transaction_type_id')->where('transaction_type', 'receipt')->get(1)->getRowArray();
+        $receiptTypeId = (int) ($receiptRow['transaction_type_id'] ?? 1);
+        $isReceipt = $typeId === $receiptTypeId;
 
         $batch = $db->table('batch_table')->where('batch_id', $batchId)->get(1)->getRowArray();
         if (! $batch) {
