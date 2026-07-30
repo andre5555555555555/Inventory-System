@@ -784,6 +784,87 @@
     }
 
     // =========================
+    // PASSWORD EYE TOGGLE MODULE
+    // =========================
+
+    function initPasswordToggle() {
+        function setupPasswordInputs(container = document) {
+            container.querySelectorAll('input[type="password"]').forEach((input) => {
+                if (input.dataset.pwToggleInit === "true") return;
+                input.dataset.pwToggleInit = "true";
+
+                let wrapper = input.closest('.pw-toggle-wrapper');
+                if (!wrapper) {
+                    wrapper = document.createElement('div');
+                    wrapper.className = 'pw-toggle-wrapper';
+                    input.parentNode.insertBefore(wrapper, input);
+                    wrapper.appendChild(input);
+                }
+
+                if (!wrapper.querySelector('.pw-toggle-btn')) {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'pw-toggle-btn';
+                    btn.setAttribute('aria-label', 'Show password');
+                    btn.setAttribute('title', 'Show password');
+                    btn.setAttribute('tabindex', '-1');
+                    btn.innerHTML = `
+                        <svg class="eye-icon eye-open" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                        <svg class="eye-icon eye-closed" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                            <line x1="1" y1="1" x2="23" y2="23"></line>
+                        </svg>
+                    `;
+                    wrapper.appendChild(btn);
+                }
+            });
+        }
+
+        setupPasswordInputs();
+
+        document.addEventListener('click', (e) => {
+            const btn = e.target.closest('.pw-toggle-btn');
+            if (!btn) return;
+            e.preventDefault();
+
+            const wrapper = btn.closest('.pw-toggle-wrapper');
+            const input = wrapper ? wrapper.querySelector('input') : null;
+            if (!input) return;
+
+            const isShowing = input.type === 'text';
+            input.type = isShowing ? 'password' : 'text';
+
+            const eyeOpen = btn.querySelector('.eye-open');
+            const eyeClosed = btn.querySelector('.eye-closed');
+
+            if (isShowing) {
+                btn.setAttribute('aria-label', 'Show password');
+                btn.setAttribute('title', 'Show password');
+                btn.classList.remove('is-showing');
+                if (eyeOpen) eyeOpen.style.display = '';
+                if (eyeClosed) eyeClosed.style.display = 'none';
+            } else {
+                btn.setAttribute('aria-label', 'Hide password');
+                btn.setAttribute('title', 'Hide password');
+                btn.classList.add('is-showing');
+                if (eyeOpen) eyeOpen.style.display = 'none';
+                if (eyeClosed) eyeClosed.style.display = '';
+            }
+        });
+
+        // Observer for dynamically injected inputs (e.g. modals)
+        const observer = new MutationObserver(() => {
+            setupPasswordInputs();
+        });
+        if (document.body) {
+            observer.observe(document.body, { childList: true, subtree: true });
+        }
+    }
+
+    // =========================
     // INIT
     // =========================
 
@@ -791,6 +872,7 @@
         initThemeToggle();
         bindSubmitGuards();
         initHoverDropdowns();
+        initPasswordToggle();
 
         document.querySelector("[data-menu-toggle]")?.addEventListener("click", toggleMenu);
 

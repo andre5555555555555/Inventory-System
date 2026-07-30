@@ -5802,3 +5802,78 @@ html[data-theme="bsu"] .backup-dir-hint {
         width: 100%;
     }
 }
+
+/* ==========================================================
+   PASSWORD EYE TOGGLE COMPONENT
+   ========================================================== */
+
+.pw-toggle-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.pw-toggle-wrapper input {
+    width: 100%;
+    padding-right: 44px !important;
+}
+
+button.pw-toggle-btn {
+    position: absolute !important;
+    right: 8px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+    padding: 6px !important;
+    margin: 0 !important;
+    height: 34px !important;
+    width: 34px !important;
+    min-width: 34px !important;
+    cursor: pointer !important;
+    color: #64748b !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 8px !important;
+    transition: color 0.2s, background-color 0.2s !important;
+    box-shadow: none !important;
+    z-index: 5 !important;
+}
+
+button.pw-toggle-btn:hover {
+    color: #0f766e !important;
+    background-color: rgba(15, 118, 110, 0.1) !important;
+}
+
+button.pw-toggle-btn:focus-visible {
+    outline: 2px solid #0f766e !important;
+}
+
+button.pw-toggle-btn svg {
+    width: 20px !important;
+    height: 20px !important;
+    pointer-events: none !important;
+    stroke: currentColor !important;
+    flex-shrink: 0 !important;
+}
+
+html[data-theme="dark"] button.pw-toggle-btn {
+    color: #94a3b8 !important;
+}
+
+html[data-theme="dark"] button.pw-toggle-btn:hover {
+    color: #2dd4bf !important;
+    background-color: rgba(45, 212, 191, 0.15) !important;
+}
+
+html[data-theme="bsu"] button.pw-toggle-btn {
+    color: #526b3a !important;
+}
+
+html[data-theme="bsu"] button.pw-toggle-btn:hover {
+    color: #8b0000 !important;
+    background-color: rgba(139, 0, 0, 0.1) !important;
+}
