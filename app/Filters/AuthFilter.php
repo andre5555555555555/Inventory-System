@@ -57,6 +57,27 @@ class AuthFilter implements FilterInterface
             }
         }
 
+        // ── 4. Force password change if flagged ──────────────────────────
+        // Use CI4's current URI and strip any index.php prefix
+        $rawPath    = trim($request->getUri()->getPath(), '/');
+        $currentPath = preg_replace('#^index\.php/?#', '', $rawPath);
+        $currentPath = trim($currentPath, '/');
+
+        if (session('must_change_password')) {
+            $allowed = ['change-password', 'logout'];
+            if (! in_array($currentPath, $allowed, true)) {
+                return redirect()->to(site_url('change-password'));
+            }
+        }
+
+        // ── 5. Force SMTP setup if flagged ───────────────────────────────
+        if (session('must_setup_smtp')) {
+            $allowed = ['setup-smtp', 'logout'];
+            if (! in_array($currentPath, $allowed, true)) {
+                return redirect()->to(site_url('setup-smtp'));
+            }
+        }
+
         return null;
     }
 

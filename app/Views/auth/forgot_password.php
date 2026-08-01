@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - BSU Inventory</title>
+    <title>Forgot Password - BSU Inventory</title>
     <script>
         (function () {
             var savedTheme = localStorage.getItem('inventoryTheme');
@@ -18,20 +18,20 @@
 <body class="login-page">
     <div class="login-shell">
         <section class="login-brand-panel">
-            
-            <h1>BSU Integrated Inventory Monitoring System</h1>
+            <p class="login-eyebrow">Account Recovery</p>
+            <h1>Forgot Your Password?</h1>
+            <p class="login-copy">Enter the email address associated with your account and we'll send you a 6-digit verification code to reset your password.</p>
 
             <div class="login-feature-list">
-                <div class="login-feature-item">Track product movement and stock levels with less clutter.</div>
-                <div class="login-feature-item">Review dashboard alerts for low stock and expiring items.</div>
-                <div class="login-feature-item">Manage products, reports, and settings in one consistent system.</div>
+                <div class="login-feature-item">Check your inbox (and spam folder) for the 6-digit code.</div>
+                <div class="login-feature-item">The code expires in 15 minutes for security.</div>
             </div>
         </section>
 
         <section class="login-card">
             <div class="login-card-section">
-                <h2>Sign In</h2>
-                <p>Access the dashboard and continue managing inventory.</p>
+                <h2>Password Recovery</h2>
+                <p>We'll send a 6-digit verification code to your email address.</p>
 
                 <?php if (session()->has('success')): ?>
                     <div class="flash-message flash-success"><?= esc(session('success')) ?></div>
@@ -40,22 +40,17 @@
                     <div class="flash-message flash-error"><?= esc(session('error')) ?></div>
                 <?php endif; ?>
 
-                <form class="login-form" method="post" action="<?= site_url('login') ?>">
+                <form class="login-form" method="post" action="<?= site_url('forgot-password') ?>">
                     <?= csrf_field() ?>
-                    <label>Username or Email</label>
-                    <input type="text" name="username" value="" placeholder="Enter username or email" required>
 
-                    <label>Password</label>
-                    <input type="password" name="password" value="" placeholder="Enter password" required>
+                    <label>Email Address</label>
+                    <input type="email" name="email" value="<?= esc(old('email')) ?>" placeholder="Enter your registered email" required>
 
-                    <button type="submit">Login</button>
+                    <button type="submit">Send Verification Code</button>
                 </form>
                 <div class="login-inline-actions">
-                    <a href="<?= site_url('register') ?>" class="login-secondary-link">Create a new account</a>
-                    <span class="login-actions-sep">·</span>
-                    <a href="<?= site_url('forgot-password') ?>" class="login-secondary-link">Forgot Password?</a>
+                    <a href="<?= site_url('login') ?>" class="login-secondary-link">Back to login</a>
                 </div>
-                <p class="login-hint">Existing plaintext passwords are automatically upgraded to secure hashes on successful login.</p>
             </div>
         </section>
     </div>

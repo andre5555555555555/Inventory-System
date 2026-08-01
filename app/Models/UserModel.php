@@ -12,7 +12,8 @@ class UserModel extends Model
     protected $allowedFields         = [
         'name', 'username', 'password', 'email',
         'user_office_id', 'lvl_of_access_id',
-        'user_activity_id',
+        'user_activity_id', 'must_change_password',
+        'password_reset_token', 'password_reset_expires',
     ];
     protected bool $allowEmptyInserts = false;
 
@@ -30,4 +31,23 @@ class UserModel extends Model
             [$usernameOrEmail, $usernameOrEmail]
         )->getRowArray();
     }
+
+    /**
+     * Find a user by email address.
+     */
+    public function findByEmail(string $email): ?array
+    {
+        return $this->where('email', $email)->first();
+    }
+
+    /**
+     * Find a user by password reset token (hashed comparison).
+     */
+    public function findByResetToken(string $tokenHash): ?array
+    {
+        return $this->where('password_reset_token', $tokenHash)
+                    ->where('password_reset_expires >', date('Y-m-d H:i:s'))
+                    ->first();
+    }
 }
+

@@ -175,7 +175,7 @@ class InventoryService
             if ($qty > $currentStock) {
                 throw new DomainException("Cannot issue {$qty} — only {$currentStock} unit(s) available in stock.");
             }
-            $this->depleteBatches($productId, $qty, $userOfficeId, $officeId, $referenceId, $userId, $dateTime, 0, $resolvedTypeId);
+            $this->depleteBatches($productId, $qty, $userOfficeId, $officeId, $referenceId, $userId, $dateTime, 0, $resolvedTypeId, $unitCost);
         } elseif ($typeName === 'borrow') {
             // ── Borrow: behaves like issue (FIFO stock depletion) ────────────
             $currentStock = $this->currentStock($productId, $userOfficeId);
@@ -185,7 +185,7 @@ class InventoryService
             if ($qty > $currentStock) {
                 throw new DomainException("Cannot borrow {$qty} — only {$currentStock} unit(s) available in stock.");
             }
-            $this->depleteBatches($productId, $qty, $userOfficeId, $officeId, $referenceId, $userId, $dateTime, 0, $resolvedTypeId);
+            $this->depleteBatches($productId, $qty, $userOfficeId, $officeId, $referenceId, $userId, $dateTime, 0, $resolvedTypeId, $unitCost);
         } elseif ($typeName === 'return') {
             // ── Return: creates a new batch and a receipt-style transaction ──
             $batchNo = 'RET-' . strtoupper($userOfficeName) . '-' . date('Ymd') . '-' . str_pad((string) $productId, 4, '0', STR_PAD_LEFT);
@@ -204,10 +204,19 @@ class InventoryService
             ]);
             $returnBatchId = (int) $this->db->insertID();
 
+            // ── Auto-generate Code 128 barcode for return batch ─────────────
+            $barcodeService = new \App\Services\BarcodeService();
+            $barcodeValue   = $barcodeService->generateBatchValue($returnBatchId);
+            $barcodeService->saveBatchBarcode($barcodeValue);
+            $this->db->table('batch_table')
+                ->where('batch_id', $returnBatchId)
+                ->update(['barcode_value' => $barcodeValue]);
+            // ────────────────────────────────────────────────────────────────
+
             $this->db->table('transaction_table')->insert([
                 'transaction_type_id'   => $resolvedTypeId,
                 'transaction_qty'       => $qty,
-                'transaction_unit_cost' => 0,
+                'transaction_unit_cost' => $unitCost,
                 'transaction_date'      => $dateTime,
                 'batch_id'              => $returnBatchId,
                 'reference_id'          => $referenceId ?: null,
@@ -431,7 +440,8 @@ class InventoryService
         ?int $userId,
         string $dateTime,
         ?int $reasonId = 0,
-        int $transactionTypeId = 2
+        int $transactionTypeId = 2,
+        float $unitCost = 0.0
     ): void {
         $builder = $this->db->table('batch_table')
             ->where('product_id', $productId)
@@ -461,7 +471,7 @@ class InventoryService
             $this->db->table('transaction_table')->insert([
                 'transaction_type_id'   => $transactionTypeId,
                 'transaction_qty'       => $take,
-                'transaction_unit_cost' => 0,
+                'transaction_unit_cost' => $unitCost,
                 'transaction_date'      => $dateTime,
                 'batch_id'              => (int) $batch['batch_id'],
                 'reference_id'          => $referenceId ?: null,

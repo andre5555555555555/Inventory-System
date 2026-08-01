@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - BSU Inventory</title>
+    <title>Configure Email Settings - BSU Inventory</title>
     <script>
         (function () {
             var savedTheme = localStorage.getItem('inventoryTheme');
@@ -18,20 +18,21 @@
 <body class="login-page">
     <div class="login-shell">
         <section class="login-brand-panel">
-            
-            <h1>BSU Integrated Inventory Monitoring System</h1>
+            <p class="login-eyebrow">Configuration</p>
+            <h1>Email Setup</h1>
+            <p class="login-copy">Configure your Gmail and Google App Password so the system can send password‑reset emails to users who forget their credentials.</p>
 
             <div class="login-feature-list">
-                <div class="login-feature-item">Track product movement and stock levels with less clutter.</div>
-                <div class="login-feature-item">Review dashboard alerts for low stock and expiring items.</div>
-                <div class="login-feature-item">Manage products, reports, and settings in one consistent system.</div>
+                <div class="login-feature-item">Use a Gmail address dedicated to this system.</div>
+                <div class="login-feature-item">Generate an App Password from your Google Account security settings.</div>
+                <div class="login-feature-item">Credentials are encrypted and stored securely.</div>
             </div>
         </section>
 
         <section class="login-card">
             <div class="login-card-section">
-                <h2>Sign In</h2>
-                <p>Access the dashboard and continue managing inventory.</p>
+                <h2>SMTP Credentials</h2>
+                <p>Enter the Gmail address and its corresponding Google App Password.</p>
 
                 <?php if (session()->has('success')): ?>
                     <div class="flash-message flash-success"><?= esc(session('success')) ?></div>
@@ -40,22 +41,20 @@
                     <div class="flash-message flash-error"><?= esc(session('error')) ?></div>
                 <?php endif; ?>
 
-                <form class="login-form" method="post" action="<?= site_url('login') ?>">
+                <form class="login-form" method="post" action="<?= site_url('setup-smtp') ?>">
                     <?= csrf_field() ?>
-                    <label>Username or Email</label>
-                    <input type="text" name="username" value="" placeholder="Enter username or email" required>
 
-                    <label>Password</label>
-                    <input type="password" name="password" value="" placeholder="Enter password" required>
+                    <label>Gmail Address</label>
+                    <input type="email" name="smtp_email" value="<?= esc(old('smtp_email')) ?>" placeholder="e.g. inventory@gmail.com" required>
 
-                    <button type="submit">Login</button>
+                    <label>Google App Password</label>
+                    <input type="password" name="smtp_password" placeholder="16-character app password" required minlength="8">
+                    <p class="login-hint" style="margin-top:4px;">
+                        Go to <strong>Google Account → Security → 2-Step Verification → App passwords</strong> to generate one.
+                    </p>
+
+                    <button type="submit">Save Email Settings</button>
                 </form>
-                <div class="login-inline-actions">
-                    <a href="<?= site_url('register') ?>" class="login-secondary-link">Create a new account</a>
-                    <span class="login-actions-sep">·</span>
-                    <a href="<?= site_url('forgot-password') ?>" class="login-secondary-link">Forgot Password?</a>
-                </div>
-                <p class="login-hint">Existing plaintext passwords are automatically upgraded to secure hashes on successful login.</p>
             </div>
         </section>
     </div>

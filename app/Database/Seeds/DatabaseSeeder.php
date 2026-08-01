@@ -47,12 +47,13 @@ class DatabaseSeeder extends Seeder
 
         // ── admin_tech (Technical Staff – global admin, level 4) ──
         $this->db->table('user_table')->insert([
-            'username'          => 'admin_tech',
-            'password'          => password_hash('admin123', PASSWORD_DEFAULT),
-            'email'             => 'admin@tech.com',
-            'user_office_id'    => null,
-            'lvl_of_access_id'  => 4,   // Technical Staff
-            'user_activity_id'  => 1,   // Active
+            'username'             => 'admin_tech',
+            'password'             => password_hash('admin123', PASSWORD_DEFAULT),
+            'email'                => 'admin@tech.com',
+            'user_office_id'       => null,
+            'lvl_of_access_id'     => 4,   // Technical Staff
+            'user_activity_id'     => 1,   // Active
+            'must_change_password' => 1,   // Force password change on first login
         ]);
     }
 }

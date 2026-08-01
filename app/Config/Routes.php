@@ -15,7 +15,17 @@ $routes->get('logout', 'AuthController::logout', ['filter' => 'auth']);
 $routes->get('change-password', 'AuthController::changePasswordView', ['filter' => 'auth']);
 $routes->post('change-password', 'AuthController::changePassword', ['filter' => 'auth']);
 
+// ── Forgot / Reset password (public – no auth required) ──
+$routes->get('forgot-password', 'AuthController::forgotPasswordView');
+$routes->post('forgot-password', 'AuthController::forgotPassword');
+$routes->get('verify-code', 'AuthController::verifyCodeView');
+$routes->post('verify-code', 'AuthController::verifyCodeAndReset');
+
 $routes->group('', ['filter' => 'auth'], static function ($routes): void {
+
+    // ── SMTP setup (level 4 only, enforced in controller) ────────────────
+    $routes->get('setup-smtp', 'AuthController::setupSmtpView');
+    $routes->post('setup-smtp', 'AuthController::setupSmtp');
 
     // ── Dashboard ────────────────────────────────────────────────────────────
     // (already covered by the root '/' route above)

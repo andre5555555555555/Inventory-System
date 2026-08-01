@@ -175,7 +175,7 @@ class ReportModel extends Model
         if ($typeName === 'return') {
             $unitCost = (float) ($row['transaction_unit_cost'] ?? 0);
             $qty      = (int) ($row['transaction_qty'] ?? 0);
-            // Use 0 cost for returns — they don't add purchase value
+            // Return adds stock + value back (shown under purchase in reports)
             $batchMemory[$productId][] = ['qty' => $qty, 'cost' => $unitCost];
             $runningQty[$productId]   += $qty;
             $runningValue[$productId] += $qty * $unitCost;
@@ -185,7 +185,7 @@ class ReportModel extends Model
     private function purchaseValues(array $row, array &$batches, int &$runningQty, float &$runningValue): array
     {
         $typeName = strtolower($row['transaction_type'] ?? '');
-        if ($typeName !== 'receipt') {
+        if (! in_array($typeName, ['receipt', 'return'], true)) {
             return [0, 0.0, 0.0];
         }
 
@@ -202,8 +202,9 @@ class ReportModel extends Model
 
     /**
      * Calculate issue (used) or spoiled values for a row.
-     * $mode: 'used'    => counts issue + borrow + return as "used"
-     *        'spoiled' => counts only adjust_out
+     * $spoiledTypeId 3 => counts only adjust_out as "spoiled"
+     * $spoiledTypeId 0 => counts issue + borrow as "used"
+     * Return is NOT counted here — it's under purchase.
      */
     private function issueValues(
         array $row,
@@ -219,34 +220,22 @@ class ReportModel extends Model
             return [0, 0.0, 0.0];
         }
 
-        // $spoiledTypeId 3 => adjust_out only; 0 => used (issue + borrow + return)
+        // $spoiledTypeId 3 => adjust_out only; 0 => used (issue + borrow)
         if ($spoiledTypeId === 3) {
             if ($typeName !== 'adjust_out') {
                 return [0, 0.0, 0.0];
             }
         } else {
-            // Used column: issue, borrow, and return all count as consumed
-            if (!in_array($typeName, ['issue', 'borrow', 'return'], true)) {
+            // Used column: only issue and borrow (return is under purchase)
+            if (!in_array($typeName, ['issue', 'borrow'], true)) {
                 return [0, 0.0, 0.0];
             }
         }
 
         $storedUnitCost = (float) ($row['transaction_unit_cost'] ?? 0);
 
-        if ($typeName === 'return') {
-            // Return adds stock back — report the qty as "used" but reverse the running balance
-            $returnCost = $storedUnitCost > 0
-                ? $storedUnitCost * $issueQty
-                : $this->fifoIssue($batches, 0); // zero drain — return creates new stock
-            // Add returned stock back into batches at 0 cost (already counted at borrow time)
-            $batches[] = ['qty' => $issueQty, 'cost' => 0];
-            $runningQty   += $issueQty;
-            $runningValue += 0;
-            return [$issueQty, 0.0, 0.0];
-        }
-
         if ($storedUnitCost > 0) {
-            // Manually overridden cost — use it directly and drain FIFO silently
+            // Manually entered cost — use it directly and drain FIFO silently
             $issueTotal = $storedUnitCost * $issueQty;
             $this->fifoIssue($batches, $issueQty); // drain FIFO so running balance stays consistent
         } else {
