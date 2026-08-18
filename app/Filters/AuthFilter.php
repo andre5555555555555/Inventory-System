@@ -78,6 +78,14 @@ class AuthFilter implements FilterInterface
             }
         }
 
+        // ── 6. Force recovery-email setup if flagged ─────────────────────────
+        if (session('must_setup_recovery_email')) {
+            $allowed = ['setup-recovery-email', 'logout'];
+            if (! in_array($currentPath, $allowed, true)) {
+                return redirect()->to(site_url('setup-recovery-email'));
+            }
+        }
+
         return null;
     }
 

@@ -27,6 +27,10 @@ $routes->group('', ['filter' => 'auth'], static function ($routes): void {
     $routes->get('setup-smtp', 'AuthController::setupSmtpView');
     $routes->post('setup-smtp', 'AuthController::setupSmtp');
 
+    // ── Recovery email setup (level 4 only, first-login step 3) ─────────
+    $routes->get('setup-recovery-email', 'AuthController::setupRecoveryEmailView');
+    $routes->post('setup-recovery-email', 'AuthController::setupRecoveryEmail');
+
     // ── Dashboard ────────────────────────────────────────────────────────────
     // (already covered by the root '/' route above)
 

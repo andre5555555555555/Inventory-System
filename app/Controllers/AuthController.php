@@ -107,7 +107,7 @@ class AuthController extends BaseController
         $rules = [
             'name'             => 'required|min_length[2]|max_length[150]',
             'username'         => 'required|min_length[3]|max_length[50]|is_unique[user_table.username]',
-            'email'            => 'required|valid_email|max_length[255]',
+            'email'            => 'required|valid_email|max_length[255]|is_unique[user_table.email]',
             'password'         => 'required|min_length[6]|max_length[255]',
             'confirm_password' => 'required|matches[password]',
             'lvl_of_access_id' => 'required|integer|greater_than[0]',
@@ -262,7 +262,68 @@ class AuthController extends BaseController
 
         session()->remove('must_setup_smtp');
 
+        // ── Step 3: ensure the admin has a personal recovery email set ──
+        $userId    = (int) session('user')['id'];
+        $userModel = new UserModel();
+        $adminUser = $userModel->find($userId);
+
+        if (empty(trim((string) ($adminUser['email'] ?? '')))) {
+            session()->set('must_setup_recovery_email', true);
+            return redirect()->to(site_url('setup-recovery-email'))->with('success', 'Email settings configured. Now set your personal recovery email.');
+        }
+
         return redirect()->to(site_url('/'))->with('success', 'Email settings configured successfully. Password recovery is now available.');
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    //  RECOVERY EMAIL SETUP (admin_tech first-login step 3)
+    // ════════════════════════════════════════════════════════════════
+
+    public function setupRecoveryEmailView()
+    {
+        $levelId = (int) (session('user')['level_id'] ?? 0);
+        if ($levelId < 4) {
+            return redirect()->to(site_url('/'))->with('error', 'You do not have permission to access that page.');
+        }
+
+        return view('auth/setup_recovery_email');
+    }
+
+    public function setupRecoveryEmail()
+    {
+        $levelId = (int) (session('user')['level_id'] ?? 0);
+        if ($levelId < 4) {
+            return redirect()->to(site_url('/'))->with('error', 'You do not have permission to access that page.');
+        }
+
+        $rules = [
+            'recovery_email' => 'required|valid_email|max_length[255]',
+        ];
+
+        if (! $this->validate($rules)) {
+            return redirect()->back()->withInput()->with('error', implode(' ', $this->validator->getErrors()));
+        }
+
+        $recoveryEmail = trim((string) $this->request->getPost('recovery_email'));
+        $userId        = (int) session('user')['id'];
+        $userModel     = new UserModel();
+
+        // Ensure this email is not already taken by another user
+        $existing = $userModel->where('email', $recoveryEmail)->where('user_id !=', $userId)->first();
+        if ($existing) {
+            return redirect()->back()->withInput()->with('error', 'That email address is already used by another account. Please use a different email.');
+        }
+
+        $userModel->update($userId, ['email' => $recoveryEmail]);
+
+        // Update email in active session
+        $sessionUser = session('user');
+        $sessionUser['email'] = $recoveryEmail;
+        session()->set('user', $sessionUser);
+
+        session()->remove('must_setup_recovery_email');
+
+        return redirect()->to(site_url('/'))->with('success', 'Recovery email saved. Your account setup is complete!');
     }
 
     // ════════════════════════════════════════════════════════════════

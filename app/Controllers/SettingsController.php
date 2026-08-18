@@ -179,13 +179,31 @@ class SettingsController extends BaseController
             return $this->response->setStatusCode(422)->setJSON(['message' => 'Please fill in the required user fields.']);
         }
 
+        $userModel = new UserModel();
+
+        // ── Email uniqueness check (skip when email is blank — allowed for null-email accounts) ──
+        if ($payload['email'] !== '') {
+            $query = $userModel->where('email', $payload['email']);
+            if ($id > 0) {
+                $query = $query->where('user_id !=', $id);
+            }
+            if ($query->first()) {
+                return $this->response->setStatusCode(422)->setJSON([
+                    'message' => 'That email address is already used by another account.',
+                ]);
+            }
+        }
+
+        // Store NULL instead of empty string so the unique index allows multiple blank emails
+        if ($payload['email'] === '') {
+            $payload['email'] = null;
+        }
+
         if (($payload['password'] ?? '') !== '') {
             $payload['password'] = password_hash((string) $payload['password'], PASSWORD_DEFAULT);
         } else {
             unset($payload['password']);
         }
-
-        $userModel = new UserModel();
 
         if ($id > 0) {
             $userModel->update($id, $payload);
