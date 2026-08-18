@@ -12,10 +12,11 @@ class AddBorrowReturnTransactionTypes extends Migration
         $db = db_connect();
 
         $existing = $db->table('transaction_type_table')
-            ->whereIn('transaction_type_id', [4, 5])
+            ->whereIn('transaction_type', ['borrow', 'return'])
             ->countAllResults();
 
         if ($existing === 0) {
+            
             $db->table('transaction_type_table')->insertBatch([
                 ['transaction_type' => 'borrow'],
                 ['transaction_type' => 'return'],

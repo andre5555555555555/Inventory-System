@@ -75,6 +75,17 @@ class RestructureAllTables extends Migration
         $this->forge->addPrimaryKey('transaction_type_id');
         $this->forge->createTable('transaction_type_table', true);
 
+        // Seed base transaction types so they always get IDs 1/2/3
+        // (receipt=1, issue=2, adjust_out=3) before the borrow/return migration runs.
+        $db = db_connect();
+        if ($db->table('transaction_type_table')->countAllResults() === 0) {
+            $db->table('transaction_type_table')->insertBatch([
+                ['transaction_type' => 'receipt'],
+                ['transaction_type' => 'issue'],
+                ['transaction_type' => 'adjust_out'],
+            ]);
+        }
+
         // ── 6. entity_table ──
         $this->forge->addField([
             'entity_id'      => ['type' => 'INT', 'constraint' => 11, 'auto_increment' => true],

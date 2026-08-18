@@ -5923,3 +5923,292 @@ html[data-theme="bsu"] button.pw-toggle-btn:hover {
     color: #8b0000 !important;
     background-color: rgba(139, 0, 0, 0.1) !important;
 }
+
+/* =================================================================
+   AUTH PAGES – MOBILE RESPONSIVE OVERHAUL
+   Applies to: login, register, forgot_password, verify_code,
+               change_password – across light / dark / bsu themes.
+   ================================================================= */
+
+/* ── Base: fix the page height so it always fills the viewport ── */
+body.login-page {
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Centre the shell vertically when there is space */
+body.login-page .login-shell,
+body.login-page .login-shell-register {
+    flex: 1;
+    align-self: center;
+    padding-top: 32px;
+    padding-bottom: 32px;
+}
+
+/* ── Tablet: comfortable two-column layout ── */
+@media (max-width: 900px) and (min-width: 641px) {
+    body.login-page .login-shell,
+    body.login-page .login-shell-register {
+        width: calc(100% - 40px);
+        gap: 18px;
+    }
+
+    .login-brand-panel {
+        padding: 32px 28px;
+    }
+
+    .login-brand-panel h1 {
+        font-size: clamp(1.7rem, 3.5vw, 2.6rem);
+    }
+
+    .login-card {
+        padding: 28px 24px;
+    }
+}
+
+/* ── Mobile: full single-column stack ── */
+@media (max-width: 640px) {
+    /* Page fills full viewport height */
+    body.login-page {
+        min-height: 100dvh;
+        padding: 0;
+    }
+
+    /* Remove the huge fixed min-height from the base rule */
+    .login-page {
+        min-height: 100dvh !important;
+    }
+
+    /* Shell becomes a vertical flex column, full width */
+    body.login-page .login-shell,
+    body.login-page .login-shell-register {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        min-height: unset;
+        padding: 0;
+        gap: 0;
+        border-radius: 0;
+    }
+
+    /* Brand panel → compact hero header on mobile */
+    .login-brand-panel {
+        border-radius: 0 0 28px 28px;
+        padding: 28px 22px 24px;
+        justify-content: flex-start;
+        gap: 10px;
+    }
+
+    .login-brand-panel h1 {
+        font-size: clamp(1.4rem, 5.5vw, 1.9rem);
+        line-height: 1.15;
+    }
+
+    .login-eyebrow {
+        font-size: 11px;
+        letter-spacing: 0.16em;
+        margin-bottom: 6px;
+    }
+
+    .login-copy {
+        font-size: 13.5px;
+        line-height: 1.55;
+        margin-top: 8px;
+    }
+
+    /* Feature list: tighter on mobile */
+    .login-feature-list {
+        margin-top: 14px;
+        gap: 8px;
+    }
+
+    .login-feature-item {
+        padding: 10px 14px;
+        font-size: 13px;
+        border-radius: 12px;
+    }
+
+    /* Highlights grid → single column */
+    .login-highlights {
+        grid-template-columns: 1fr;
+        gap: 10px;
+        margin-top: 14px;
+    }
+
+    /* Card section */
+    .login-card {
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+        border-bottom: none;
+        padding: 28px 20px 32px;
+        box-shadow: none;
+        flex: 1;
+    }
+
+    .login-card-section h2 {
+        font-size: 1.25rem;
+    }
+
+    .login-card-section p {
+        font-size: 14px;
+        margin-bottom: 14px;
+    }
+
+    /* Form: comfortable touch targets */
+    .login-form {
+        gap: 8px;
+    }
+
+    .login-form label {
+        font-size: 13px;
+        margin-top: 4px;
+    }
+
+    .login-form input,
+    .login-form select {
+        height: 52px;
+        font-size: 16px; /* prevents iOS zoom on focus */
+        border-radius: 14px;
+        padding: 0 16px;
+    }
+
+    .login-form button {
+        height: 54px;
+        font-size: 16px;
+        border-radius: 14px;
+        margin-top: 14px;
+        letter-spacing: 0.02em;
+    }
+
+    /* Links row */
+    .login-inline-actions {
+        margin-top: 18px;
+        gap: 10px;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .login-actions-sep {
+        display: none;
+    }
+
+    .login-secondary-link {
+        min-height: 48px;
+        font-size: 14px;
+        border-radius: 12px;
+        justify-content: center;
+        padding: 0 20px;
+    }
+
+    .login-hint {
+        font-size: 12.5px;
+        margin-top: 16px;
+    }
+
+    /* OTP boxes on verify page: scale to fit small screens */
+    .otp-input-group {
+        gap: 6px;
+    }
+
+    .otp-input-group input.otp-box {
+        width: clamp(38px, 12vw, 52px);
+        height: clamp(44px, 14vw, 60px);
+        font-size: clamp(18px, 5vw, 24px);
+        border-radius: 10px;
+    }
+
+    /* Password checklist: slightly smaller */
+    .pw-checklist {
+        font-size: 0.78rem;
+    }
+
+    /* Theme toggle: smaller and repositioned so it doesn't overlap form */
+    .theme-toggle {
+        width: 46px;
+        height: 46px;
+        right: 14px;
+        bottom: 14px;
+    }
+
+    /* Flash messages: full-width on mobile */
+    .flash-message {
+        position: relative;
+        top: auto;
+        right: auto;
+        max-width: 100%;
+        margin-bottom: 16px;
+        border-radius: 10px;
+    }
+}
+
+/* ── Extra-small phones (≤ 380px) ── */
+@media (max-width: 380px) {
+    .login-brand-panel {
+        padding: 22px 16px 20px;
+    }
+
+    .login-brand-panel h1 {
+        font-size: 1.3rem;
+    }
+
+    .login-card {
+        padding: 22px 16px 28px;
+    }
+
+    .login-form input,
+    .login-form select {
+        font-size: 16px;
+        height: 50px;
+    }
+
+    .otp-input-group input.otp-box {
+        width: 36px;
+        height: 42px;
+        font-size: 18px;
+        border-radius: 8px;
+    }
+}
+
+/* ── Dark theme mobile overrides ── */
+@media (max-width: 640px) {
+    html[data-theme="dark"] .login-card {
+        border-top: 1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    html[data-theme="dark"] .login-brand-panel {
+        border-radius: 0 0 28px 28px;
+    }
+
+    html[data-theme="dark"] .otp-input-group input.otp-box {
+        background: rgba(255, 255, 255, 0.06);
+        border-color: rgba(255, 255, 255, 0.16);
+        color: #e2e8f0;
+    }
+
+    html[data-theme="dark"] .otp-input-group input.otp-box:focus {
+        border-color: #2dd4bf;
+        box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.18);
+    }
+}
+
+/* ── BSU theme mobile overrides ── */
+@media (max-width: 640px) {
+    html[data-theme="bsu"] .login-card {
+        border-top: 1px solid rgba(0, 0, 0, 0.06);
+    }
+
+    html[data-theme="bsu"] .login-brand-panel {
+        border-radius: 0 0 28px 28px;
+    }
+
+    html[data-theme="bsu"] .otp-input-group input.otp-box {
+        border-color: rgba(139, 0, 0, 0.22);
+    }
+
+    html[data-theme="bsu"] .otp-input-group input.otp-box:focus {
+        border-color: #8b0000;
+        box-shadow: 0 0 0 3px rgba(139, 0, 0, 0.14);
+    }
+}

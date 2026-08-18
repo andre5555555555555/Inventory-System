@@ -18,11 +18,17 @@ class DatabaseSeeder extends Seeder
         ]);
 
         // ── transaction_type_table ──
-        $this->db->table('transaction_type_table')->insertBatch([
-            ['transaction_type' => 'receipt'],
-            ['transaction_type' => 'issue'],
-            ['transaction_type' => 'adjust_out'],
-        ]);
+        // Guard: the main migration already seeds these if they are missing.
+        if ($this->db->table('transaction_type_table')
+                ->whereIn('transaction_type', ['receipt', 'issue', 'adjust_out'])
+                ->countAllResults() === 0
+        ) {
+            $this->db->table('transaction_type_table')->insertBatch([
+                ['transaction_type' => 'receipt'],
+                ['transaction_type' => 'issue'],
+                ['transaction_type' => 'adjust_out'],
+            ]);
+        }
 
         // ── level_of_access (lvl_of_access_id, role, lvl_of_access) ──
         $this->db->table('level_of_access')->insertBatch([
