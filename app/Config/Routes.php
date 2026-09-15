@@ -33,6 +33,7 @@ $routes->group('', ['filter' => 'auth'], static function ($routes): void {
 
     // ── Dashboard ────────────────────────────────────────────────────────────
     // (already covered by the root '/' route above)
+    $routes->get('transactions', 'DashboardController::transactionLog', ['filter' => 'level:1']);
 
     // ── Products — level 1 can view list; level 2+ can mutate ─────────────
     $routes->get('products', 'ProductsController::index', ['filter' => 'level:1']);

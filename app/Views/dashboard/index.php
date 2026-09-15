@@ -103,6 +103,12 @@
             <?php else: ?>
                 <div class="dashboard-empty">No recent transactions yet.</div>
             <?php endif; ?>
+            <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border-color,#e5e7eb);text-align:right;">
+                <a href="<?= site_url('transactions') ?>"
+                   style="font-size:12.5px;font-weight:600;color:#0f766e;text-decoration:none;">
+                    See More →
+                </a>
+            </div>
         </div>
 
         <div class="dashboard-card dashboard-card-borrow">
