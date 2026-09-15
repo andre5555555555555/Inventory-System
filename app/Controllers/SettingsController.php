@@ -43,7 +43,11 @@ class SettingsController extends BaseController
         $allowed = [
             'units', 'types', 'entities', 'references',
             'offices', 'users', 'user_office_table',
+            // actual keys used by SettingsModel
+            'entity_table', 'unit_table', 'reference_table',
+            'type_of_product', 'office_table',
         ];
+
         if (! in_array($type, $allowed, true)) {
             return $this->response->setStatusCode(404)->setJSON(['message' => 'Unknown resource type.']);
         }
@@ -61,7 +65,11 @@ class SettingsController extends BaseController
         $allowed = [
             'units', 'types', 'entities', 'references',
             'offices', 'users', 'user_office_table',
+            // actual keys used by SettingsModel
+            'entity_table', 'unit_table', 'reference_table',
+            'type_of_product', 'office_table',
         ];
+
         if (! in_array($type, $allowed, true)) {
             return $this->response->setStatusCode(404)->setJSON(['message' => 'Unknown resource type.']);
         }
@@ -103,7 +111,11 @@ class SettingsController extends BaseController
         $allowed = [
             'units', 'types', 'entities', 'references',
             'offices', 'users', 'user_office_table',
+            // actual keys used by SettingsModel
+            'entity_table', 'unit_table', 'reference_table',
+            'type_of_product', 'office_table',
         ];
+
         if (! in_array($type, $allowed, true)) {
             return $this->response->setStatusCode(404)->setJSON(['message' => 'Unknown resource type.']);
         }

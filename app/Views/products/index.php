@@ -44,11 +44,13 @@
                     <?php if ((int) (session('user')['level_id'] ?? 0) >= 2): ?>
                         <td style="width:1%;white-space:nowrap;">
                             <a class="action-btn edit-btn" href="<?= site_url('products/edit/' . (int) $product['product_id']) ?>">Edit</a>
-                            <button
-                                class="action-btn delete-btn"
-                                data-delete-url="<?= site_url('products/delete/' . (int) $product['product_id']) ?>"
-                                data-product-name="<?= esc($product['product']) ?>"
-                            >Delete</button>
+                            <?php if (($product['type_name'] ?? '') !== 'Finished Product'): ?>
+                                <button
+                                    class="action-btn delete-btn"
+                                    data-delete-url="<?= site_url('products/delete/' . (int) $product['product_id']) ?>"
+                                    data-product-name="<?= esc($product['product']) ?>"
+                                >Delete</button>
+                            <?php endif; ?>
                         </td>
                     <?php endif; ?>
                 </tr>

@@ -115,4 +115,88 @@ class BarcodeController extends BaseController
             'date_received'   => $batch['date_received'] ?? null,
         ]);
     }
+
+    /**
+     * GET /products/barcodes
+     * List all Finished Products for the current office with their saved barcodes.
+     */
+    public function finishedProducts()
+    {
+        $db           = db_connect();
+        $userOfficeId = (int) (session('user')['user_office_id'] ?? 0);
+        $search       = trim((string) ($this->request->getGet('search') ?? ''));
+
+        $builder = $db->table('product_table p')
+            ->select('
+                p.product_id,
+                p.product_no,
+                p.stock_no,
+                p.product,
+                COALESCE(ut.unit, "pcs") AS unit_name,
+                tp.type
+            ')
+            ->join('type_of_product tp', 'p.type_id = tp.type_id')
+            ->join('unit_table ut', 'p.unit_id = ut.unit_id', 'left')
+            ->where('tp.type', 'Finished Product');
+
+        if ($userOfficeId > 0) {
+            $builder->where('p.user_office_id', $userOfficeId);
+        }
+
+        if ($search !== '') {
+            $builder->groupStart()
+                ->like('p.product', $search)
+                ->orLike('p.stock_no', $search)
+                ->orLike('p.product_no', $search)
+                ->groupEnd();
+        }
+
+        $products = $builder->orderBy('p.product_no', 'ASC')->get()->getResultArray();
+
+        // Attach barcode web paths where the SVG file already exists
+        foreach ($products as &$product) {
+            $value   = $product['stock_no'] ?: 'P-' . str_pad((string) $product['product_id'], 6, '0', STR_PAD_LEFT);
+            $safe    = preg_replace('/[^A-Za-z0-9\-_]/', '_', $value);
+            $svgFile = FCPATH . 'barcodes' . DIRECTORY_SEPARATOR . $safe . '.svg';
+
+            $product['barcode_value'] = $value;
+            $product['barcode_url']   = file_exists($svgFile) ? base_url('barcodes/' . $safe . '.svg') : null;
+        }
+        unset($product);
+
+        return view('products/barcodes', [
+            'products' => $products,
+            'search'   => $search,
+        ]);
+    }
+
+    /**
+     * POST /products/barcodes/generate
+     * Generate & save a barcode SVG for a Finished Product.
+     */
+    public function generateFinishedProductBarcode()
+    {
+        $db           = db_connect();
+        $userOfficeId = (int) (session('user')['user_office_id'] ?? 0);
+        $productId    = (int) ($this->request->getPost('product_id') ?? 0);
+
+        // Verify the product exists, belongs to this office, and is a Finished Product
+        $product = $db->table('product_table p')
+            ->select('p.product_id, p.stock_no, tp.type')
+            ->join('type_of_product tp', 'p.type_id = tp.type_id')
+            ->where('p.product_id', $productId)
+            ->where('tp.type', 'Finished Product')
+            ->get(1)
+            ->getRowArray();
+
+        if (! $product || ($userOfficeId > 0 && (int) $db->table('product_table')->where('product_id', $productId)->get(1)->getRowArray()['user_office_id'] !== $userOfficeId)) {
+            return redirect()->to(site_url('products/barcodes'))->with('error', 'Product not found or access denied.');
+        }
+
+        $value = $product['stock_no'] ?: 'P-' . str_pad((string) $productId, 6, '0', STR_PAD_LEFT);
+
+        (new \App\Services\BarcodeService())->saveBatchBarcode($value);
+
+        return redirect()->to(site_url('products/barcodes'))->with('success', 'Barcode generated for product.');
+    }
 }

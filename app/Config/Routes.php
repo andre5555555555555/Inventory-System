@@ -46,6 +46,11 @@ $routes->group('', ['filter' => 'auth'], static function ($routes): void {
     $routes->get('barcode/batch/(:num)', 'BarcodeController::batch/$1', ['filter' => 'level:2']);
     $routes->get('barcode/lookup', 'BarcodeController::lookupByValue', ['filter' => 'level:2']);
 
+    // ── Finished Product Barcodes page ────────────────────────────────────────
+    $routes->get('products/barcodes', 'BarcodeController::finishedProducts', ['filter' => 'level:2']);
+    $routes->post('products/barcodes/generate', 'BarcodeController::generateFinishedProductBarcode', ['filter' => 'level:2']);
+
+
     // ── Stockcard — level 2+ only ────────────────────────────────────────────
     $routes->get('stockcard', 'InventoryController::stockcard', ['filter' => 'level:2']);
 

@@ -205,6 +205,131 @@
         }
         ?>
   
+        <?php if ($type === 'users'): ?>
+        <?php
+            // Split users into Active and Deactivated
+            $activeUsers      = [];
+            $deactivatedUsers = [];
+            $currentUserId    = (int) (session('user')['id'] ?? 0);
+            foreach ($records['users'] as $uRow) {
+                if ($currentUserId > 0 && (int) ($uRow[$definition['pk']] ?? 0) === $currentUserId) {
+                    continue; // skip own account
+                }
+                $actId = (int) ($uRow['user_activity_id'] ?? 1);
+                if ($actId === 1) {
+                    $activeUsers[] = $uRow;
+                } else {
+                    $deactivatedUsers[] = $uRow;
+                }
+            }
+        ?>
+        <div class="section-card settings-section-card">
+            <button type="button" class="section-header settings-section-header <?= $isOpen ? 'active' : '' ?>" onclick="toggleSection('section-users', this)">
+                <h2>Users &#9662;</h2>
+            </button>
+            <div class="section-body settings-section-body <?= $isOpen ? 'is-open' : '' ?>" id="section-users">
+
+                <!-- Shared search bar — filters both sub-tables -->
+                <input
+                    type="text"
+                    class="search-input settings-search-input"
+                    id="users-search-input"
+                    placeholder="Search users…"
+                    onkeyup="searchUsersSection(this.value)"
+                >
+
+                <!-- ── Active Users ── -->
+                <h3 style="margin:16px 0 8px;font-size:14px;font-weight:700;color:#16a34a;letter-spacing:.04em;">
+                    Active (<?= count($activeUsers) ?>)
+                </h3>
+                <table class="data-table" id="table-users-active">
+                    <tr>
+                        <?php foreach ($columns as $col): ?>
+                            <th><?= esc($col === 'activity_status' ? 'Status' : ($col === 'user_office_name' ? 'Office' : ($definition['labels'][$col] ?? ucwords(str_replace('_', ' ', $col))))) ?></th>
+                        <?php endforeach; ?>
+                        <th>Action</th>
+                    </tr>
+                    <?php if (empty($activeUsers)): ?>
+                        <tr><td colspan="<?= count($columns) + 1 ?>" class="empty-state">No active users.</td></tr>
+                    <?php endif; ?>
+                    <?php foreach ($activeUsers as $row): ?>
+                        <tr>
+                            <?php foreach ($columns as $col): ?>
+                                <td>
+                                    <?php if ($col === 'activity_status'): ?>
+                                        <span class="status-badge status-<?= strtolower(esc($row[$col] ?? 'unknown')) ?>"><?= esc((string) ($row[$col] ?? '')) ?></span>
+                                    <?php else: ?>
+                                        <?= esc((string) ($row[$col] ?? '')) ?>
+                                    <?php endif; ?>
+                                </td>
+                            <?php endforeach; ?>
+                            <td>
+                                <?php if ($levelId >= 3): ?>
+                                    <a class="action-btn edit-btn" href="#" onclick="openModal('users', <?= (int) $row[$definition['pk']] ?>); return false;">Edit</a>
+                                    <a class="action-btn deactivate-btn" href="#" onclick="deactivateUser(<?= (int) $row[$definition['pk']] ?>); return false;">Deactivate</a>
+                                <?php endif; ?>
+                                <?php if ($levelId >= 4): ?>
+                                    <a class="action-btn delete-btn" href="#" onclick="deleteRecord('users', <?= (int) $row[$definition['pk']] ?>); return false;">Delete</a>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </table>
+
+                <!-- ── Deactivated Users ── -->
+                <h3 style="margin:20px 0 8px;font-size:14px;font-weight:700;color:#dc2626;letter-spacing:.04em;">
+                    Deactivated (<?= count($deactivatedUsers) ?>)
+                </h3>
+                <table class="data-table" id="table-users-deactivated">
+                    <tr>
+                        <?php foreach ($columns as $col): ?>
+                            <th><?= esc($col === 'activity_status' ? 'Status' : ($col === 'user_office_name' ? 'Office' : ($definition['labels'][$col] ?? ucwords(str_replace('_', ' ', $col))))) ?></th>
+                        <?php endforeach; ?>
+                        <th>Action</th>
+                    </tr>
+                    <?php if (empty($deactivatedUsers)): ?>
+                        <tr><td colspan="<?= count($columns) + 1 ?>" class="empty-state">No deactivated users.</td></tr>
+                    <?php endif; ?>
+                    <?php foreach ($deactivatedUsers as $row): ?>
+                        <tr>
+                            <?php foreach ($columns as $col): ?>
+                                <td>
+                                    <?php if ($col === 'activity_status'): ?>
+                                        <span class="status-badge status-<?= strtolower(esc($row[$col] ?? 'unknown')) ?>"><?= esc((string) ($row[$col] ?? '')) ?></span>
+                                    <?php else: ?>
+                                        <?= esc((string) ($row[$col] ?? '')) ?>
+                                    <?php endif; ?>
+                                </td>
+                            <?php endforeach; ?>
+                            <td>
+                                <?php if ($levelId >= 3): ?>
+                                    <a class="action-btn edit-btn" href="#" onclick="openModal('users', <?= (int) $row[$definition['pk']] ?>); return false;">Edit</a>
+                                    <a class="action-btn activate-btn" href="#" onclick="activateUser(<?= (int) $row[$definition['pk']] ?>); return false;">Activate</a>
+                                <?php endif; ?>
+                                <?php if ($levelId >= 4): ?>
+                                    <a class="action-btn delete-btn" href="#" onclick="deleteRecord('users', <?= (int) $row[$definition['pk']] ?>); return false;">Delete</a>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </table>
+
+            </div>
+        </div>
+
+        <script>
+        function searchUsersSection(query) {
+            var q = query.toLowerCase();
+            ['table-users-active', 'table-users-deactivated'].forEach(function(tableId) {
+                var rows = document.querySelectorAll('#' + tableId + ' tr:not(:first-child)');
+                rows.forEach(function(row) {
+                    row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+                });
+            });
+        }
+        </script>
+
+        <?php else: ?>
         <div class="section-card settings-section-card">
             <button type="button" class="section-header settings-section-header <?= $isOpen ? 'active' : '' ?>" onclick="toggleSection('section-<?= esc($type) ?>', this)">
                 <h2><?= esc($sectionTitle) ?> &#9662;</h2>
@@ -226,13 +351,6 @@
 
                     <?php foreach ($records[$type] as $row): ?>
                         <?php
-                        // Skip manager's own account row
-                        if ($type === 'users' && $levelId < 4) {
-                            $currentUserId = (int) (session('user')['id'] ?? 0);
-                            if ($currentUserId > 0 && (int) ($row[$definition['pk']] ?? 0) === $currentUserId) {
-                                continue;
-                            }
-                        }
                         // Hide Technical Staff role (level_id=4) from roles list
                         if ($type === 'roles' && (int) ($row['level_id'] ?? 0) === 4) {
                             continue;
@@ -258,18 +376,6 @@
                                         <a class="action-btn edit-btn" href="#" onclick="openModal('<?= esc($type) ?>', <?= (int) $row[$definition['pk']] ?>); return false;">Edit</a>
                                         <a class="action-btn delete-btn" href="#" onclick="deleteRecord('<?= esc($type) ?>', <?= (int) $row[$definition['pk']] ?>); return false;">Delete</a>
                                     <?php endif; ?>
-                                <?php elseif ($type === 'users'): ?>
-                                    <?php if ($levelId >= 3): ?>
-                                        <?php $actId = (int) ($row['user_activity_id'] ?? 1); ?>
-                                        <?php if ($actId === 1): ?>
-                                            <a class="action-btn deactivate-btn" href="#" onclick="deactivateUser(<?= (int) $row[$definition['pk']] ?>); return false;">Deactivate</a>
-                                        <?php elseif ($actId === 2 || $actId === 3): ?>
-                                            <a class="action-btn activate-btn" href="#" onclick="activateUser(<?= (int) $row[$definition['pk']] ?>); return false;">Activate</a>
-                                        <?php endif; ?>
-                                    <?php endif; ?>
-                                    <?php if ($levelId >= 4): ?>
-                                        <a class="action-btn delete-btn" href="#" onclick="deleteRecord('<?= esc($type) ?>', <?= (int) $row[$definition['pk']] ?>); return false;">Delete</a>
-                                    <?php endif; ?>
                                 <?php else: ?>
                                     <a class="action-btn edit-btn" href="#" onclick="openModal('<?= esc($type) ?>', <?= (int) $row[$definition['pk']] ?>); return false;">Edit</a>
                                     <a class="action-btn delete-btn" href="#" onclick="deleteRecord('<?= esc($type) ?>', <?= (int) $row[$definition['pk']] ?>); return false;">Delete</a>
@@ -280,6 +386,7 @@
                 </table>
             </div>
         </div>
+        <?php endif; ?>
         <?php $sectionIndex++; ?>
     <?php endforeach; ?>
 

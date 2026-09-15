@@ -73,10 +73,12 @@ class ProductModel extends Model
              product_table.product,
              product_table.stock_no,
              COALESCE(unit_table.unit, "Deleted Unit") AS unit_name,
-             COALESCE(SUM(batch_table.current_qty), 0) AS total_stock'
+             COALESCE(SUM(batch_table.current_qty), 0) AS total_stock,
+             COALESCE(type_of_product.type, "") AS type_name'
         );
         $builder->join('batch_table', 'product_table.product_id = batch_table.product_id', 'left');
         $builder->join('unit_table', 'product_table.unit_id = unit_table.unit_id', 'left');
+        $builder->join('type_of_product', 'product_table.type_id = type_of_product.type_id', 'left');
 
         if ($userOfficeId > 0) {
             $builder->where('product_table.user_office_id', $userOfficeId);
@@ -91,7 +93,7 @@ class ProductModel extends Model
         }
 
         return $builder
-            ->groupBy('product_table.product_id, product_table.product_no, product_table.product, product_table.stock_no, unit_table.unit')
+            ->groupBy('product_table.product_id, product_table.product_no, product_table.product, product_table.stock_no, unit_table.unit, type_of_product.type')
             ->orderBy('product_table.product_no', 'ASC')
             ->get()
             ->getResultArray();

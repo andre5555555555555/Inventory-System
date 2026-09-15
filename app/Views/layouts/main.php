@@ -104,6 +104,7 @@
                 <a href="<?= site_url('products') ?>">PRODUCTS</a>
                 <ul class="submenu">
                     <li><a href="<?= site_url('products') ?>">Product List</a></li>
+                    <li><a href="<?= site_url('products/barcodes') ?>">Finished Barcodes</a></li>
                     <li><a href="<?= site_url('batches') ?>">Batch Barcode</a></li>
                     <li><a href="<?= site_url('batchlist') ?>">Summary Report</a></li>
                     <li><a href="<?= site_url('export/summary') ?>">Export Summary</a></li>

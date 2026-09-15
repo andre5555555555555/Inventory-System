@@ -51,6 +51,12 @@ class DatabaseSeeder extends Seeder
             ['user_office_name' => 'FPC'],
         ]);
 
+        // ── type_of_product ──
+        $this->db->table('type_of_product')->insertBatch([
+            ['type' => 'Finished Product', 'user_office_id' => 1], // BAKERY
+            ['type' => 'Finished Product', 'user_office_id' => 2], // FPC
+        ]);
+
         // ── admin_tech (Technical Staff – global admin, level 4) ──
         $this->db->table('user_table')->insert([
             'username'             => 'admin_tech',
