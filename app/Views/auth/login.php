@@ -55,7 +55,7 @@
                     <span class="login-actions-sep">·</span>
                     <a href="<?= site_url('forgot-password') ?>" class="login-secondary-link">Forgot Password?</a>
                 </div>
-                <p class="login-hint">Existing plaintext passwords are automatically upgraded to secure hashes on successful login.</p>
+              
             </div>
         </section>
     </div>
