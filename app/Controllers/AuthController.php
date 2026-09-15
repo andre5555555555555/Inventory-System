@@ -105,7 +105,10 @@ class AuthController extends BaseController
     public function register()
     {
         $rules = [
-            'name'             => 'required|min_length[2]|max_length[150]',
+            'first_name'       => 'required|min_length[2]|max_length[100]',
+            'last_name'        => 'required|min_length[2]|max_length[100]',
+            'middle_name'      => 'permit_empty|max_length[100]',
+            'suffix'           => 'permit_empty|max_length[20]',
             'username'         => 'required|min_length[3]|max_length[50]|is_unique[user_table.username]',
             'email'            => 'required|valid_email|max_length[255]|is_unique[user_table.email]',
             'password'         => 'required|min_length[6]|max_length[255]',
@@ -135,9 +138,25 @@ class AuthController extends BaseController
             return redirect()->to(site_url('register'))->withInput()->with('error', 'Password must not contain sequential numbers (e.g. 123, 456).');
         }
 
+        $firstName  = trim((string) $this->request->getPost('first_name'));
+        $lastName   = trim((string) $this->request->getPost('last_name'));
+        $middleName = trim((string) $this->request->getPost('middle_name'));
+        $suffix     = trim((string) $this->request->getPost('suffix'));
+
+        // Compose the legacy 'name' column: "First [Middle] Last[, Suffix]"
+        $nameParts = array_filter([$firstName, $middleName, $lastName]);
+        $fullName  = implode(' ', $nameParts);
+        if ($suffix !== '') {
+            $fullName .= ', ' . $suffix;
+        }
+
         $model = new UserModel();
         $model->insert([
-            'name'              => trim((string) $this->request->getPost('name')),
+            'name'              => $fullName,
+            'first_name'        => $firstName,
+            'last_name'         => $lastName,
+            'middle_name'       => $middleName !== '' ? $middleName : null,
+            'suffix'            => $suffix !== '' ? $suffix : null,
             'username'          => trim((string) $this->request->getPost('username')),
             'email'             => trim((string) $this->request->getPost('email')),
             'password'          => password_hash($password, PASSWORD_DEFAULT),

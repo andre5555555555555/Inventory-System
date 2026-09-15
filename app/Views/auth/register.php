@@ -75,8 +75,17 @@
                 <form class="login-form login-form-register" method="post" action="<?= site_url('register') ?>">
                     <?= csrf_field() ?>
 
-                    <label>Full Name</label>
-                    <input type="text" name="name" value="<?= esc(old('name')) ?>" placeholder="Enter your full name" required>
+                    <label>First Name <span style="color:#e74c3c">*</span></label>
+                    <input type="text" name="first_name" value="<?= esc(old('first_name')) ?>" placeholder="Enter first name" required>
+
+                    <label>Family Name (Last Name) <span style="color:#e74c3c">*</span></label>
+                    <input type="text" name="last_name" value="<?= esc(old('last_name')) ?>" placeholder="Enter family / last name" required>
+
+                    <label>Middle Name <span style="color:#94a3b8;font-weight:400;font-size:.85em;">(optional)</span></label>
+                    <input type="text" name="middle_name" value="<?= esc(old('middle_name')) ?>" placeholder="Enter middle name">
+
+                    <label>Suffix <span style="color:#94a3b8;font-weight:400;font-size:.85em;">(optional — e.g. Jr., Sr., III)</span></label>
+                    <input type="text" name="suffix" value="<?= esc(old('suffix')) ?>" placeholder="e.g. Jr., Sr., III" style="max-width:180px;">
 
                     <label>Username</label>
                     <input type="text" name="username" value="<?= esc(old('username')) ?>" placeholder="Choose a unique username" required>

@@ -10,7 +10,8 @@ class UserModel extends Model
     protected $primaryKey            = 'user_id';
     protected $returnType            = 'array';
     protected $allowedFields         = [
-        'name', 'username', 'password', 'email',
+        'name', 'first_name', 'last_name', 'middle_name', 'suffix',
+        'username', 'password', 'email',
         'user_office_id', 'lvl_of_access_id',
         'user_activity_id', 'must_change_password',
         'password_reset_token', 'password_reset_expires',
