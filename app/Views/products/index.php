@@ -28,7 +28,7 @@
                 <th>Product No</th>
                 <th>Stock No</th>
                 <th>Product</th>
-                <th>Unit</th>
+                <th>Measurement / Unit</th>
                 <th>Stock</th>
                 <?php if ((int) (session('user')['level_id'] ?? 0) >= 2): ?>
                     <th style="width:1%;white-space:nowrap;">Action</th>
@@ -39,7 +39,11 @@
                     <td><?= esc((string) $product['product_no']) ?></td>
                     <td><?= esc((string) $product['stock_no']) ?></td>
                     <td><?= esc($product['product']) ?></td>
-                    <td><?= esc((string) $product['unit_name']) ?></td>
+                    <td><?php
+                        $m = trim((string) ($product['measurement'] ?? ''));
+                        $u = esc((string) $product['unit_name']);
+                        echo $m !== '' ? esc($m) . ' &middot; ' . $u : $u;
+                    ?></td>
                     <td><?= esc((string) $product['total_stock']) ?></td>
                     <?php if ((int) (session('user')['level_id'] ?? 0) >= 2): ?>
                         <td style="width:1%;white-space:nowrap;">

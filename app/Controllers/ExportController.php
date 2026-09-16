@@ -519,11 +519,10 @@ HTML;
             return redirect()->to(site_url('export/summary'))->with('error', 'From Month must be before To Month.');
         }
 
-        [$year, $month] = explode('-', $monthFrom);
-        $reportModel    = new ReportModel();
-        $report         = $reportModel->batchLedger($search, (int) $year, $month, $typeId, $this->userOfficeId());
-        $rows           = $report['rows']         ?? [];
-        $groupedRows    = $report['groupedRows']  ?? [];
+        $reportModel = new ReportModel();
+
+        // Fetch multi-month summarized data (one row per product per month)
+        $multiMonth = $reportModel->batchLedgerMultiMonth($monthFrom, $monthTo, $search, $typeId, $this->userOfficeId());
 
         // Resolve a human-readable report title
         if ($typeId > 0) {
@@ -542,10 +541,21 @@ HTML;
 
         $filename = 'SummaryReport_' . $monthFrom . '_to_' . $monthTo;
 
+        // Build flat rows for CSV and grouped structure for PDF/Word
+        $allRows = [];
+        $multiGrouped = []; // monthLabel => [ typeName => rows ]
+        foreach ($multiMonth as $monthLabel => $report) {
+            foreach (($report['rows'] ?? []) as $row) {
+                $row['month_label'] = $monthLabel;
+                $allRows[] = $row;
+            }
+            $multiGrouped[$monthLabel] = $report['groupedRows'] ?? [];
+        }
+
         return match ($format) {
-            'csv'  => $this->downloadSummaryCsv($rows, $filename, $reportTitle),
-            'word' => $this->downloadSummaryWord($groupedRows, $filename, $reportTitle, $paper),
-            'pdf'  => $this->downloadSummaryPdf($groupedRows, $filename, $reportTitle, $paper),
+            'csv'  => $this->downloadSummaryCsv($allRows, $filename, $reportTitle),
+            'word' => $this->downloadSummaryWord($multiGrouped, $filename, $reportTitle, $paper),
+            'pdf'  => $this->downloadSummaryPdf($multiGrouped, $filename, $reportTitle, $paper),
         };
     }
 
@@ -561,56 +571,70 @@ HTML;
 
         fputcsv($fp, [strtoupper($title)]);
         fputcsv($fp, []);
-        fputcsv($fp, [
+
+        $csvHeader = [
             'No.', 'Items/Products',
             'Beg. Qty', 'Unit', 'Beg. Unit Cost', 'Beg. Amount',
             'Purch. Qty', 'Purch. Unit Cost', 'Purch. Amount',
             'Used Qty',  'Used Unit Cost',  'Used Amount',
             'Breakage Qty', 'Breakage Unit Cost', 'Breakage Amount',
             'End. Qty', 'End. Unit Cost', 'End. Amount',
-        ]);
+        ];
 
+        // Group rows by month_label
+        $byMonth = [];
         foreach ($rows as $row) {
-            fputcsv($fp, [
-                $row['counter'],
-                $row['item'],
-                $row['begin_qty'],
-                $row['unit_name'],
-                number_format($row['begin_cost'],    2, '.', ''),
-                number_format($row['begin_qty']  * $row['begin_cost'],    2, '.', ''),
-                $row['purchase_qty'],
-                number_format($row['purchase_cost'], 2, '.', ''),
-                number_format($row['purchase_total'],2, '.', ''),
-                $row['used_qty'],
-                number_format($row['used_cost'],     2, '.', ''),
-                number_format($row['used_total'],    2, '.', ''),
-                $row['spoiled_qty'],
-                number_format($row['spoiled_cost'],  2, '.', ''),
-                number_format($row['spoiled_total'], 2, '.', ''),
-                $row['ending_qty'],
-                number_format($row['ending_cost'],   2, '.', ''),
-                number_format($row['ending_qty'] * $row['ending_cost'], 2, '.', ''),
-            ]);
+            $byMonth[$row['month_label'] ?? 'Unknown'][] = $row;
         }
 
-        // Totals row
-        $totals = array_reduce($rows, function ($carry, $r) {
-            $carry['begin_amt']   += $r['begin_qty']   * $r['begin_cost'];
-            $carry['purch_total'] += $r['purchase_total'];
-            $carry['used_total']  += $r['used_total'];
-            $carry['spoil_total'] += $r['spoiled_total'];
-            $carry['end_amt']     += $r['ending_qty']  * $r['ending_cost'];
-            return $carry;
-        }, ['begin_amt' => 0, 'purch_total' => 0, 'used_total' => 0, 'spoil_total' => 0, 'end_amt' => 0]);
+        foreach ($byMonth as $monthLabel => $monthRows) {
+            // Month header
+            fputcsv($fp, [strtoupper($monthLabel)]);
+            fputcsv($fp, $csvHeader);
 
-        fputcsv($fp, []);
-        fputcsv($fp, [
-            '', 'TOTAL', '', '', '', number_format($totals['begin_amt'],   2, '.', ''),
-            '', '', number_format($totals['purch_total'], 2, '.', ''),
-            '', '', number_format($totals['used_total'],  2, '.', ''),
-            '', '', number_format($totals['spoil_total'], 2, '.', ''),
-            '', '', number_format($totals['end_amt'],     2, '.', ''),
-        ]);
+            foreach ($monthRows as $row) {
+                fputcsv($fp, [
+                    $row['counter'],
+                    $row['item'],
+                    $row['begin_qty'],
+                    $row['unit_name'],
+                    number_format($row['begin_cost'],    2, '.', ''),
+                    number_format($row['begin_qty']  * $row['begin_cost'],    2, '.', ''),
+                    $row['purchase_qty'],
+                    number_format($row['purchase_cost'], 2, '.', ''),
+                    number_format($row['purchase_total'],2, '.', ''),
+                    $row['used_qty'],
+                    number_format($row['used_cost'],     2, '.', ''),
+                    number_format($row['used_total'],    2, '.', ''),
+                    $row['spoiled_qty'],
+                    number_format($row['spoiled_cost'],  2, '.', ''),
+                    number_format($row['spoiled_total'], 2, '.', ''),
+                    $row['ending_qty'],
+                    number_format($row['ending_cost'],   2, '.', ''),
+                    number_format($row['ending_qty'] * $row['ending_cost'], 2, '.', ''),
+                ]);
+            }
+
+            // Month totals row
+            $totals = array_reduce($monthRows, function ($carry, $r) {
+                $carry['begin_amt']   += $r['begin_qty']   * $r['begin_cost'];
+                $carry['purch_total'] += $r['purchase_total'];
+                $carry['used_total']  += $r['used_total'];
+                $carry['spoil_total'] += $r['spoiled_total'];
+                $carry['end_amt']     += $r['ending_qty']  * $r['ending_cost'];
+                return $carry;
+            }, ['begin_amt' => 0, 'purch_total' => 0, 'used_total' => 0, 'spoil_total' => 0, 'end_amt' => 0]);
+
+            fputcsv($fp, [
+                '', 'TOTAL', '', '', '', number_format($totals['begin_amt'],   2, '.', ''),
+                '', '', number_format($totals['purch_total'], 2, '.', ''),
+                '', '', number_format($totals['used_total'],  2, '.', ''),
+                '', '', number_format($totals['spoil_total'], 2, '.', ''),
+                '', '', number_format($totals['end_amt'],     2, '.', ''),
+            ]);
+
+            fputcsv($fp, []); // blank line between months
+        }
 
         fclose($fp);
         $csv = ob_get_clean();
@@ -662,7 +686,7 @@ HTML;
     // HTML template for summary report
     // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-    private function buildSummaryHtml(array $groupedRows, string $title, string $cssPageSize = '8.5in 13in', bool $wordMode = false): string
+    private function buildSummaryHtml(array $multiGrouped, string $title, string $cssPageSize = '8.5in 13in', bool $wordMode = false): string
     {
         // â”€â”€ Word-specific landscape CSS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         $wordCss = $wordMode ? '
@@ -720,8 +744,10 @@ THEAD;
         $pages     = '';
         $pageIndex = 0;
 
+        foreach ($multiGrouped as $monthLabel => $groupedRows) {
         foreach ($groupedRows as $typeName => $typeRows) {
             $pageTitle  = htmlspecialchars($typeName . ' Inventory');
+            $monthTitle = htmlspecialchars(strtoupper($monthLabel));
             $breakStyle = $pageIndex > 0 ? ' style="page-break-before:always;"' : '';
 
             $tbody       = '';
@@ -739,23 +765,23 @@ THEAD;
                 $unit    = htmlspecialchars($row['unit_name'] ?? '');
                 $counter = $typeCounter++;
 
-                $beginQty  = (int)   $row['begin_qty'];
+                $beginQty  = (float) $row['begin_qty'];
                 $beginCost = (float) $row['begin_cost'];
                 $beginAmt  = $beginQty * $beginCost;
 
-                $purchQty   = (int)   $row['purchase_qty'];
+                $purchQty   = (float) $row['purchase_qty'];
                 $purchCost  = (float) $row['purchase_cost'];
                 $purchTotal = (float) $row['purchase_total'];
 
-                $usedQty   = (int)   $row['used_qty'];
+                $usedQty   = (float) $row['used_qty'];
                 $usedCost  = (float) $row['used_cost'];
                 $usedTotal = (float) $row['used_total'];
 
-                $spoilQty   = (int)   $row['spoiled_qty'];
+                $spoilQty   = (float) $row['spoiled_qty'];
                 $spoilCost  = (float) $row['spoiled_cost'];
                 $spoilTotal = (float) $row['spoiled_total'];
 
-                $endQty  = (int)   $row['ending_qty'];
+                $endQty  = (float) $row['ending_qty'];
                 $endCost = (float) $row['ending_cost'];
                 $endAmt  = $endQty * $endCost;
 
@@ -766,7 +792,7 @@ THEAD;
                 $secTotals['end_amt']     += $endAmt;
 
                 $f = fn($v) => $v != 0 ? number_format($v, 2) : '-';
-                $q = fn($v) => $v != 0 ? $v : '-';
+                $q = fn($v) => $v != 0 ? ($v == (int) $v ? (string)(int) $v : rtrim(number_format($v, 2, '.', ''), '0')) : '-';
 
                 $tbody .= '<tr>'
                     . "<td class='c-no'>{$counter}</td>"
@@ -804,6 +830,7 @@ THEAD;
             // One self-contained page per type
             $pages .= <<<PAGE
 <div class="rpt-page"{$breakStyle}>
+  <div class="rpt-subtitle">{$monthTitle}</div>
   <div class="rpt-title">{$pageTitle}</div>
   <table class="rpt-tbl">
 {$tableHead}
@@ -814,6 +841,7 @@ THEAD;
 </div>
 PAGE;
             $pageIndex++;
+        }
         }
 
         if ($pages === '') {
@@ -838,6 +866,15 @@ body {
 }
 .rpt-page {
     padding: 8mm 6mm 6mm 6mm;
+}
+.rpt-subtitle {
+    text-align: center;
+    font-size: 9pt;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 2px;
+    color: #333;
 }
 .rpt-title {
     text-align: center;

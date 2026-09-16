@@ -37,6 +37,35 @@
         <label>Re-order Point:</label>
         <input type="number" name="product_reorder_point" min="0" value="<?= esc((string) old('product_reorder_point', $product['product_reorder_point'] ?? 10)) ?>" required>
 
+        <div class="flat-section-divider">
+            <span>Expiration Alert Settings</span>
+        </div>
+
+        <div class="expiry-threshold-row">
+            <div class="expiry-threshold-col">
+                <label>⚠️ Warning — days before expiry</label>
+                <input
+                    type="number"
+                    name="expiry_warning_days"
+                    min="1" max="365"
+                    value="<?= (int) old('expiry_warning_days', $product['expiry_warning_days'] ?? 30) ?>"
+                    required
+                >
+                <small class="field-hint">Shows this product in the "Expiring Soon" dashboard card</small>
+            </div>
+            <div class="expiry-threshold-col">
+                <label style="color:#dc2626;">🔴 Danger — highlighted red below</label>
+                <input
+                    type="number"
+                    name="expiry_danger_days"
+                    min="1" max="365"
+                    value="<?= (int) old('expiry_danger_days', $product['expiry_danger_days'] ?? 7) ?>"
+                    required
+                >
+                <small class="field-hint">Items at or below this many days are highlighted red</small>
+            </div>
+        </div>
+
         <label>Entity:</label>
         <div class="hover-dropdown">
             <input type="text" name="entity_name" class="hover-input" autocomplete="off" placeholder="Select or type entity" value="<?= esc(old('entity_name', $product['entity_name'] ?? '')) ?>" required>
@@ -47,13 +76,21 @@
             </div>
         </div>
 
-        <label>Unit:</label>
-        <div class="hover-dropdown">
-            <input type="text" name="unit_name" class="hover-input" autocomplete="off" placeholder="Select or type unit" value="<?= esc(old('unit_name', $product['unit_name'] ?? '')) ?>" required>
-            <div class="hover-dropdown-content">
-                <?php foreach ($units as $unit): ?>
-                    <div class="hover-option"><?= esc($unit['unit']) ?></div>
-                <?php endforeach; ?>
+        <div class="measurement-unit-row">
+            <div class="measurement-unit-col">
+                <label>Measurement:</label>
+                <input type="text" name="measurement" placeholder="e.g. 500ml, 1kg, 250g" value="<?= esc(old('measurement', $product['measurement'] ?? '')) ?>">
+            </div>
+            <div class="measurement-unit-col">
+                <label>Unit:</label>
+                <div class="hover-dropdown">
+                    <input type="text" name="unit_name" class="hover-input" autocomplete="off" placeholder="Select or type unit" value="<?= esc(old('unit_name', $product['unit_name'] ?? '')) ?>" required>
+                    <div class="hover-dropdown-content">
+                        <?php foreach ($units as $unit): ?>
+                            <div class="hover-option"><?= esc($unit['unit']) ?></div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -66,6 +103,74 @@
                 <?php endforeach; ?>
             </div>
         </div>
+
+        <style>
+        .flat-section-divider {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 10px 0 4px;
+        }
+        .flat-section-divider::before,
+        .flat-section-divider::after {
+            content: '';
+            flex: 1;
+            border-top: 1px solid var(--border-color, #e5e7eb);
+        }
+        .flat-section-divider span {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: .08em;
+            color: var(--text-muted, #94a3b8);
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+        .expiry-threshold-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        .expiry-threshold-col {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .expiry-threshold-col label {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 0;
+        }
+        .expiry-threshold-col input {
+            width: 100%;
+        }
+        .field-hint {
+            font-size: 11px;
+            color: var(--text-muted, #94a3b8);
+            line-height: 1.4;
+        }
+        @media (max-width: 500px) {
+            .expiry-threshold-row { grid-template-columns: 1fr; }
+            .measurement-unit-row { grid-template-columns: 1fr; }
+        }
+        .measurement-unit-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        .measurement-unit-col {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .measurement-unit-col label {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 0;
+        }
+        .measurement-unit-col input {
+            width: 100%;
+        }
+        </style>
 
         <button type="submit"><?= $product['product_id'] ? 'Update' : 'Save Product' ?></button>
     </form>

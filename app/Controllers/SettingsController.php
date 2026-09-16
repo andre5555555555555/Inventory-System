@@ -268,4 +268,26 @@ class SettingsController extends BaseController
         );
         return in_array('', $requiredTextValues, true);
     }
+
+    public function saveSystemSettings(): ResponseInterface
+    {
+        if ($this->levelId() < 3) {
+            return redirect()->to(site_url('settings'))->with('error', 'Access denied.');
+        }
+
+        $warningDays = (int) ($this->request->getPost('expiry_warning_days') ?? 30);
+        $dangerDays  = (int) ($this->request->getPost('expiry_danger_days')  ?? 7);
+
+        if ($warningDays < 1 || $warningDays > 365) {
+            return redirect()->to(site_url('settings'))->with('error', 'Warning days must be between 1 and 365.');
+        }
+        if ($dangerDays < 1 || $dangerDays >= $warningDays) {
+            return redirect()->to(site_url('settings'))->with('error', 'Danger days must be between 1 and less than warning days.');
+        }
+
+        save_setting('expiry_warning_days', $warningDays);
+        save_setting('expiry_danger_days',  $dangerDays);
+
+        return redirect()->to(site_url('settings'))->with('success', 'Inventory settings saved.');
+    }
 }

@@ -159,6 +159,12 @@ foreach ($items as $_item) {
                             <label>Unit Cost</label>
                             <input type="number" id="unitCostInput" name="unit_cost" step="0.01" min="0.01" placeholder="0.00" required value="<?= esc((string) old('unit_cost')) ?>">
                         </div>
+
+                        <div id="usagePctGroup" style="display:none">
+                            <label>Usage %</label>
+                            <input type="number" id="usagePctInput" name="usage_pct" min="1" max="100" step="1" value="<?= esc((string) old('usage_pct', '100')) ?>" placeholder="100">
+                            <small class="field-hint" id="effectiveCostHint" style="margin-top:2px;"></small>
+                        </div>
                     </div>
                 </section>
 
@@ -517,6 +523,13 @@ foreach ($items as $_item) {
             : false;
     }
 
+    function isIssue() {
+        const selectedOption = typeSelect.options[typeSelect.selectedIndex];
+        return selectedOption
+            ? (selectedOption.dataset.type || '').toLowerCase() === 'issue'
+            : false;
+    }
+
     // Unit cost: always visible, but only required for Receipt
     const unitCostGroup = document.getElementById('unitCostGroup');
     const unitCostInput = document.getElementById('unitCostInput');
@@ -531,6 +544,39 @@ foreach ($items as $_item) {
         }
     }
 
+    // Usage %: shown only for Issue transactions
+    const usagePctGroup = document.getElementById('usagePctGroup');
+    const usagePctInput = document.getElementById('usagePctInput');
+    const effectiveCostHint = document.getElementById('effectiveCostHint');
+
+    function syncUsagePct() {
+        const show = isIssue();
+        if (usagePctGroup) usagePctGroup.style.display = show ? '' : 'none';
+        if (!show && usagePctInput) {
+            usagePctInput.value = '100';
+            if (effectiveCostHint) effectiveCostHint.textContent = '';
+        } else {
+            updateEffectiveCostHint();
+        }
+    }
+
+    function updateEffectiveCostHint() {
+        if (!effectiveCostHint || !usagePctInput) return;
+        const pct  = parseFloat(usagePctInput.value) || 100;
+        const qtyEl = document.querySelector('input[name="quantity"]');
+        const qty  = parseFloat(qtyEl?.value) || 0;
+        if (pct < 100 && qty > 0) {
+            const effectiveQty = (qty * pct / 100);
+            effectiveCostHint.textContent = `${effectiveQty % 1 === 0 ? effectiveQty : effectiveQty.toFixed(2)} unit(s) will be consumed from stock`;
+        } else {
+            effectiveCostHint.textContent = '';
+        }
+    }
+
+    if (usagePctInput) usagePctInput.addEventListener('input', updateEffectiveCostHint);
+    const qtyInputForHint = document.querySelector('input[name="quantity"]');
+    if (qtyInputForHint) qtyInputForHint.addEventListener('input', updateEffectiveCostHint);
+
     function syncReason() {
         const show = isAdjustOut();
         reasonGroup.style.display = show ? '' : 'none';
@@ -542,10 +588,12 @@ foreach ($items as $_item) {
     typeSelect.addEventListener('change', () => {
         syncReason();
         syncUnitCost();
+        syncUsagePct();
         validate();
     });
     syncReason();
     syncUnitCost();
+    syncUsagePct();
     validate(); // run on page load
 
     // React to product selection changes (dispatched by first IIFE)

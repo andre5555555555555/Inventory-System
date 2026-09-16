@@ -170,6 +170,7 @@
     <?php endif; ?>
 
     <?php $sectionIndex = 0; ?>
+
     <?php foreach ($definitions as $type => $definition): ?>
         <?php
         $sectionTitle = match ($type) {

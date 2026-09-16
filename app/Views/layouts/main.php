@@ -73,7 +73,7 @@
                  WHERE b.current_qty > 0
                    AND b.expiration_date IS NOT NULL
                    AND b.expiration_date >= CURDATE()
-                   AND DATEDIFF(b.expiration_date, CURDATE()) <= 30' . $officeFilter
+                   AND DATEDIFF(b.expiration_date, CURDATE()) <= p.expiry_warning_days' . $officeFilter
             )->getRowArray()['cnt'] ?? 0);
             $navBadgeAlerts = $lowStockCount + $expiringCount;
         }
@@ -104,7 +104,7 @@
                 <a href="<?= site_url('products') ?>">PRODUCTS</a>
                 <ul class="submenu">
                     <li><a href="<?= site_url('products') ?>">Product List</a></li>
-                    <li><a href="<?= site_url('products/barcodes') ?>">Finished Barcodes</a></li>
+                    <li><a href="<?= site_url('products/barcodes') ?>">Finished Products</a></li>
                     <li><a href="<?= site_url('batches') ?>">Batch Barcode</a></li>
                     <li><a href="<?= site_url('batchlist') ?>">Summary Report</a></li>
                     <li><a href="<?= site_url('export/summary') ?>">Export Summary</a></li>

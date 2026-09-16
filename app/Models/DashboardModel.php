@@ -10,8 +10,8 @@ class DashboardModel extends Model
 
     public function overview(int $userOfficeId = 0): array
     {
-        $lowStock     = $this->lowStock($userOfficeId);
-        $expiring     = $this->expiringSoon($userOfficeId);
+        $lowStock      = $this->lowStock($userOfficeId);
+        $expiring      = $this->expiringSoon($userOfficeId);
         $activeBorrows = $this->activeBorrows($userOfficeId);
 
         return [
@@ -20,6 +20,9 @@ class DashboardModel extends Model
             'outOfStock'         => $this->outOfStock($userOfficeId),
             'recentTransactions' => $this->recentTransactions($userOfficeId),
             'activeBorrows'      => $activeBorrows,
+            // Kept for legacy template compatibility — no longer used for threshold logic
+            'warningDays'        => 30,
+            'dangerDays'         => 7,
             'summary'            => [
                 'totalItems'        => $this->totalItems($userOfficeId),
                 'lowStockCount'     => count($lowStock),
@@ -53,13 +56,15 @@ class DashboardModel extends Model
 
         return $this->db->query(
             'SELECT b.batch_id, p.product AS item, b.expiration_date, b.current_qty AS remaining_qty,
-                    DATEDIFF(b.expiration_date, CURDATE()) AS days_left
+                    DATEDIFF(b.expiration_date, CURDATE()) AS days_left,
+                    p.expiry_warning_days,
+                    p.expiry_danger_days
              FROM batch_table b
              INNER JOIN product_table p ON b.product_id = p.product_id
              WHERE b.current_qty > 0
                AND b.expiration_date IS NOT NULL
                AND b.expiration_date >= CURDATE()
-               AND DATEDIFF(b.expiration_date, CURDATE()) <= 30' . $officeFilter . '
+               AND DATEDIFF(b.expiration_date, CURDATE()) <= p.expiry_warning_days' . $officeFilter . '
              ORDER BY b.expiration_date ASC'
         )->getResultArray();
     }

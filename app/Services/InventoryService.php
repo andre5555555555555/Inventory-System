@@ -41,7 +41,7 @@ class InventoryService
     /**
      * Current stock for a product = SUM of batch_table.current_qty.
      */
-    public function currentStock(int $productId, int $userOfficeId = 0): int
+    public function currentStock(int $productId, int $userOfficeId = 0): float
     {
         $builder = $this->db->table('batch_table')
             ->selectSum('current_qty', 'stock')
@@ -52,7 +52,7 @@ class InventoryService
         }
 
         $row = $builder->get()->getRowArray();
-        return (int) ($row['stock'] ?? 0);
+        return (float) ($row['stock'] ?? 0);
     }
 
     /**
@@ -65,10 +65,11 @@ class InventoryService
         $this->db->transException(true)->transStart();
 
         $productId   = (int) $payload['product_id'];
-        $qty         = (int) $payload['quantity'];
+        $qty         = (float) $payload['quantity'];
         $typeId      = (int) ($payload['transaction_type_id'] ?? 0);
         $legacyType  = (string) ($payload['adjust_type'] ?? '');
         $unitCost    = (float) ($payload['unit_cost'] ?? 0);
+        $usagePct    = max(1, min(100, (int) ($payload['usage_pct'] ?? 100)));
         $officeId    = $this->resolveOfficeId($payload);
         $referenceId = $this->resolveReferenceId($payload);
         $reasonId    = (int) ($payload['adjustment_reason_id'] ?? 0);
@@ -175,7 +176,8 @@ class InventoryService
             if ($qty > $currentStock) {
                 throw new DomainException("Cannot issue {$qty} — only {$currentStock} unit(s) available in stock.");
             }
-            $this->depleteBatches($productId, $qty, $userOfficeId, $officeId, $referenceId, $userId, $dateTime, 0, $resolvedTypeId, $unitCost);
+            $effectiveQty = $qty * $usagePct / 100;
+            $this->depleteBatches($productId, $effectiveQty, $userOfficeId, $officeId, $referenceId, $userId, $dateTime, 0, $resolvedTypeId, $unitCost);
         } elseif ($typeName === 'borrow') {
             // ── Borrow: behaves like issue (FIFO stock depletion) ────────────
             $currentStock = $this->currentStock($productId, $userOfficeId);
@@ -303,7 +305,7 @@ class InventoryService
         $this->db->transException(true)->transStart();
 
         $productId    = (int) $payload['product_id'];
-        $qty          = (int) $payload['quantity'];
+        $qty          = (float) $payload['quantity'];
         $type         = $payload['adjust_type'];
         $userOfficeId = (int) ($payload['user_office_id'] ?? 0);
         $userId       = (int) ($payload['user_id'] ?? 0);
@@ -337,11 +339,11 @@ class InventoryService
                 if ($remaining <= 0) {
                     break;
                 }
-                $take = min((int) $batch['current_qty'], $remaining);
+                $take = min((float) $batch['current_qty'], $remaining);
                 $this->db->table('batch_table')
                     ->where('batch_id', $batch['batch_id'])
                     ->update([
-                        'current_qty' => (int) $batch['current_qty'] - $take,
+                        'current_qty' => (float) $batch['current_qty'] - $take,
                         'updated_at'  => $now,
                     ]);
                 $remaining -= $take;
@@ -360,7 +362,7 @@ class InventoryService
                 throw new DomainException('No receipt batch found to spoil from.');
             }
 
-            $latestQty = (int) $latestBatch['current_qty'];
+            $latestQty = (float) $latestBatch['current_qty'];
             if ($qty > $latestQty) {
                 throw new DomainException('Spoiled quantity cannot exceed the latest receipt batch quantity.');
             }
@@ -409,7 +411,7 @@ class InventoryService
                 $this->db->table('batch_table')
                     ->where('batch_id', $latestBatch['batch_id'])
                     ->update([
-                        'current_qty' => (int) $latestBatch['current_qty'] + $qty,
+                        'current_qty' => (float) $latestBatch['current_qty'] + $qty,
                         'updated_at'  => $now,
                     ]);
             } else {
@@ -433,7 +435,7 @@ class InventoryService
      */
     private function depleteBatches(
         int $productId,
-        int $qty,
+        float $qty,
         int $userOfficeId,
         ?int $officeId,
         ?int $referenceId,
@@ -459,12 +461,12 @@ class InventoryService
                 break;
             }
 
-            $take = min((int) $batch['current_qty'], $remaining);
+            $take = min((float) $batch['current_qty'], $remaining);
 
             $this->db->table('batch_table')
                 ->where('batch_id', $batch['batch_id'])
                 ->update([
-                    'current_qty' => (int) $batch['current_qty'] - $take,
+                    'current_qty' => (float) $batch['current_qty'] - $take,
                     'updated_at'  => $dateTime,
                 ]);
 

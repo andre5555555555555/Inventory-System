@@ -49,7 +49,10 @@ class ProductsController extends BaseController
             'product_no'            => '',
             'product'               => '',
             'product_description'   => '',
+            'measurement'           => '',
             'product_reorder_point' => 10,
+            'expiry_warning_days'   => 30,
+            'expiry_danger_days'    => 7,
             'entity_name'           => '',
             'unit_name'             => '',
             'type_name'             => '',
@@ -67,7 +70,10 @@ class ProductsController extends BaseController
                 'product_no'            => 'required|integer|greater_than[0]',
                 'product'               => 'required|min_length[2]|max_length[255]',
                 'product_description'   => 'permit_empty|max_length[1000]',
+                'measurement'           => 'permit_empty|max_length[100]',
                 'product_reorder_point' => 'required|integer|greater_than_equal_to[0]',
+                'expiry_warning_days'   => 'required|integer|greater_than[0]|less_than_equal_to[365]',
+                'expiry_danger_days'    => 'required|integer|greater_than[0]|less_than_equal_to[365]',
                 'entity_name'           => 'required|max_length[255]',
                 'unit_name'             => 'required|max_length[255]',
                 'type_name'             => 'required|max_length[255]',
@@ -75,6 +81,14 @@ class ProductsController extends BaseController
 
             if (! $this->validate($rules)) {
                 return redirect()->back()->withInput()->with('error', 'Please correct the product form.');
+            }
+
+            $warningDays = (int) $this->request->getPost('expiry_warning_days');
+            $dangerDays  = (int) $this->request->getPost('expiry_danger_days');
+
+            if ($dangerDays >= $warningDays) {
+                return redirect()->back()->withInput()
+                    ->with('error', 'Danger days must be less than warning days (' . $warningDays . ').');
             }
 
             // Ensure product_no is unique per office (excluding current product on edit)
@@ -107,7 +121,10 @@ class ProductsController extends BaseController
                 'product_no'            => $inputProductNo,
                 'product'               => trim((string) $this->request->getPost('product')),
                 'product_description'   => trim((string) $this->request->getPost('product_description')),
+                'measurement'           => trim((string) $this->request->getPost('measurement')),
                 'product_reorder_point' => (int) $this->request->getPost('product_reorder_point'),
+                'expiry_warning_days'   => $warningDays,
+                'expiry_danger_days'    => $dangerDays,
                 'entity_id'             => $entityId,
                 'unit_id'               => $unitId,
                 'type_id'               => $typeId,
@@ -124,16 +141,8 @@ class ProductsController extends BaseController
             $productAction = trim((string) $this->request->getPost('product_action'));
 
             if ($productAction === 'new') {
-                // UPDATE the existing row (inserting a new row would violate the unique
-                // constraint on product_no + user_office_id). Updating in-place keeps the
-                // same product_no slot but changes name / description / etc.
                 $productModel->update($id, $payload);
 
-                // Wipe all batches for this product.
-                // ‣ batch_table rows deleted  → stock resets to 0
-                // ‣ transaction_table.batch_id → SET NULL (FK cascade), so old
-                //   transactions are preserved in the DB but are invisible in the
-                //   stockcard (they're no longer linked to any product/batch).
                 db_connect()->table('batch_table')
                     ->where('product_id', $id)
                     ->delete();
@@ -141,7 +150,6 @@ class ProductsController extends BaseController
                 return redirect()->to(site_url('products'))
                     ->with('success', 'New product created under the same product no. All previous stock and transactions have been cleared.');
             }
-
 
             // Default: update the existing product in place (transactions kept)
             $productModel->update($id, $payload);

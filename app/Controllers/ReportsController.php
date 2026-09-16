@@ -18,7 +18,7 @@ class ReportsController extends BaseController
         $year         = (int) ($this->request->getGet('year') ?? date('Y'));
         $month        = str_pad((string) ($this->request->getGet('month') ?? date('m')), 2, '0', STR_PAD_LEFT);
         $typeId       = (int) ($this->request->getGet('type_id') ?? 0);
-        $report       = $this->reportModel->batchLedger($search, $year, $month, $typeId, $userOfficeId);
+        $report       = $this->reportModel->batchLedgerSummarized($search, $year, $month, $typeId, $userOfficeId);
 
         return view('reports/batchlist', [
             ...$report,

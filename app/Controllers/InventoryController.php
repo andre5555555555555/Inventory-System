@@ -179,7 +179,7 @@ class InventoryController extends BaseController
         $userOfficeId = $this->userOfficeId();
 
         $transactionId = (int) $this->request->getPost('transaction_id');
-        $newQty        = (int) $this->request->getPost('new_qty');
+        $newQty        = (float) $this->request->getPost('new_qty');
         $newTypeInput  = $this->request->getPost('new_type');
         $newTypeId     = $newTypeInput !== null ? (int) $newTypeInput : null;
         $newOffice     = trim((string) ($this->request->getPost('new_office') ?? ''));
@@ -197,7 +197,7 @@ class InventoryController extends BaseController
             return $this->response->setStatusCode(404)->setJSON(['ok' => false, 'error' => 'Transaction not found.']);
         }
 
-        $oldQty    = (int) $txn['transaction_qty'];
+        $oldQty    = (float) $txn['transaction_qty'];
         $batchId   = (int) $txn['batch_id'];
         $oldTypeId = (int) $txn['transaction_type_id'];
         $finalType = $newTypeId ?? $oldTypeId;
@@ -214,7 +214,7 @@ class InventoryController extends BaseController
             return $this->response->setStatusCode(404)->setJSON(['ok' => false, 'error' => 'Linked batch not found.']);
         }
 
-        $currentBatchQty = (int) $batch['current_qty'];
+        $currentBatchQty = (float) $batch['current_qty'];
         $oldIsReceipt    = in_array($oldTypeId, $stockInTypeIds);
         $newIsReceipt    = in_array($finalType, $stockInTypeIds);
 
@@ -321,7 +321,7 @@ class InventoryController extends BaseController
             return $this->response->setStatusCode(404)->setJSON(['ok' => false, 'error' => 'Transaction not found.']);
         }
 
-        $qty       = (int) $txn['transaction_qty'];
+        $qty       = (float) $txn['transaction_qty'];
         $batchId   = (int) $txn['batch_id'];
         $typeId    = (int) $txn['transaction_type_id'];
 
@@ -338,7 +338,7 @@ class InventoryController extends BaseController
             return $this->response->setStatusCode(404)->setJSON(['ok' => false, 'error' => 'Linked batch not found.']);
         }
 
-        $currentBatchQty = (int) $batch['current_qty'];
+        $currentBatchQty = (float) $batch['current_qty'];
 
         // Reverse the transaction: receipt gave +qty → undo = -qty; issue gave -qty → undo = +qty
         $newBatchQty = $isReceipt ? $currentBatchQty - $qty : $currentBatchQty + $qty;

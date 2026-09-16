@@ -92,7 +92,11 @@
                     <div class="info-left">
                         <p><strong>PRODUCT:</strong> <?= esc($itemInfo['item_name'] ?? '') ?></p>
                         <p><strong>DESCRIPTION:</strong> <?= esc($itemInfo['description'] ?? '') ?></p>
-                        <p><strong>UNIT:</strong> <?= esc($itemInfo['unit_name'] ?? '') ?></p>
+                        <p><strong>UNIT:</strong> <?php
+                            $m = trim((string) ($itemInfo['measurement'] ?? ''));
+                            $u = esc($itemInfo['unit_name'] ?? '');
+                            echo $m !== '' ? esc($m) . ' &middot; ' . $u : $u;
+                        ?></p>
                     </div>
                     <div class="info-right">
                         <p><strong>Stock No:</strong> <?= esc($itemInfo['stock_no'] ?? '') ?></p>
@@ -115,6 +119,7 @@
                                     <th class="sc-col-group" style="text-align:center">Receipt</th>
                                     <th class="sc-col-group" colspan="2" style="text-align:center">Issue</th>
                                     <th rowspan="2" class="sc-col-bal">Balance</th>
+                                    <th rowspan="2" class="sc-col-price">Price</th>
                                     <?php if ($levelId >= 2): ?>
                                     <th rowspan="2" class="sc-edit-col sc-col-act" style="display:none">Action</th>
                                     <?php endif; ?>
@@ -128,7 +133,7 @@
                             <tbody>
                                 <?php if (empty($stockcard)): ?>
                                     <tr class="sc-empty-row">
-                                        <td colspan="7" class="sc-empty-cell">
+                                        <td colspan="8" class="sc-empty-cell">
                                             <div class="sc-empty-state">
                                                 <span class="sc-empty-icon">📋</span>
                                                 <p>No records found for the selected filter.</p>
@@ -139,15 +144,18 @@
                                 <?php else: ?>
                                     <?php foreach ($stockcard as $i => $row): ?>
                                         <?php
-                                            $isReceipt = (int) $row['receipt_qty'] > 0;
-                                            $origQty   = $isReceipt ? (int) $row['receipt_qty'] : (int) $row['issue_qty'];
+                                            $isReceipt = (float) $row['receipt_qty'] > 0;
+                                            $origQty   = $isReceipt ? (float) $row['receipt_qty'] : (float) $row['issue_qty'];
+                                            $fmtQty    = function($v) { $v = (float) $v; return $v == (int) $v ? (string)(int)$v : rtrim(number_format($v, 2, '.', ''), '0'); };
                                                 $reasonValue = trim((string) ($row['adjustment_reason'] ?? ''));
+                                                $priceValue  = number_format((float) ($row['transaction_unit_cost'] ?? 0), 2, '.', '');
                                         ?>
                                         <tr class="sc-data-row"
                                             data-transaction-id="<?= (int) $row['transaction_id'] ?>"
                                             data-is-receipt="<?= $isReceipt ? '1' : '0' ?>"
                                             data-orig-type="<?= $isReceipt ? '1' : '2' ?>"
-                                            data-orig-qty="<?= $origQty ?>">
+                                            data-orig-qty="<?= $origQty ?>"
+                                            data-orig-price="<?= $priceValue ?>">
                                             <td class="sc-col-date"><?= esc(date('m/d/Y', strtotime($row['date']))) ?></td>
                                             <td class="sc-ref-cell sc-col-ref">
                                                 <?php $refValue = trim((string) ($row['reference'] ?? '')); ?>
@@ -156,9 +164,9 @@
                                             </td>
                                             <!-- Receipt qty: editable only for receipt rows -->
                                             <td class="sc-receipt-cell sc-qty-cell">
-                                                <span class="sc-qty-text"><?= $isReceipt ? $origQty : '' ?></span>
+                                                <span class="sc-qty-text"><?= $isReceipt ? $fmtQty($origQty) : '' ?></span>
                                                 <span class="sc-reason-text"><?php if ($reasonValue !== ""): ?><?= esc($reasonValue) ?><?php endif; ?></span>
-                                                <input type="number" min="1"
+                                                <input type="number" min="0.01" step="0.01"
                                                     class="sc-qty-input sc-receipt-input"
                                                     value="<?= $isReceipt ? $origQty : '' ?>"
                                                     style="display:none"
@@ -166,9 +174,9 @@
                                             </td>
                                             <!-- Issue qty: editable only for issue rows -->
                                             <td class="sc-issue-cell sc-qty-cell">
-                                                <span class="sc-qty-text"><?= !$isReceipt ? $origQty : '' ?></span>
+                                                <span class="sc-qty-text"><?= !$isReceipt ? $fmtQty($origQty) : '' ?></span>
                                                 <span class="sc-reason-text"><?php if ($reasonValue !== ""): ?><?= esc($reasonValue) ?><?php endif; ?></span>
-                                                <input type="number" min="1"
+                                                <input type="number" min="0.01" step="0.01"
                                                     class="sc-qty-input sc-issue-input"
                                                     value="<?= !$isReceipt ? $origQty : '' ?>"
                                                     style="display:none"
@@ -179,7 +187,15 @@
                                                 <span class="sc-office-text"><?= esc($officeValue) ?></span>
                                                 <input type="text" class="sc-office-input" value="<?= esc($officeValue, 'attr') ?>" style="display:none" placeholder="Office">
                                             </td>
-                                            <td class="sc-balance-cell sc-col-bal"><?= esc((string) $row['balance']) ?></td>
+                                            <td class="sc-balance-cell sc-col-bal"><?php $bal = (float) $row['balance']; echo $bal == (int) $bal ? (int) $bal : rtrim(number_format($bal, 2, '.', ''), '0'); ?></td>
+                                            <td class="sc-price-cell">
+                                                <span class="sc-price-text"><?= $priceValue > 0 ? '₱' . number_format((float) $priceValue, 2) : '' ?></span>
+                                                <input type="number" step="0.01" min="0"
+                                                    class="sc-price-input"
+                                                    value="<?= esc($priceValue, 'attr') ?>"
+                                                    style="display:none"
+                                                    placeholder="0.00">
+                                            </td>
                                             <!-- Action cell: visible only in edit mode, level 2+ only -->
                                             <?php if ($levelId >= 2): ?>
                                             <td class="sc-edit-col sc-col-act" style="display:none">
@@ -251,11 +267,23 @@
 .sc-col-group { text-align: center; }
 .sc-sub       { font-size: 0.8rem; letter-spacing: .04em; }
 .sc-col-bal   { font-weight: 700; text-align: right; }
+.sc-col-price { width: 110px; text-align: right; }
 .sc-col-act   { width: 90px; text-align: center; }
 .sc-qty-cell  { text-align: center; }
 .sc-office-cell { font-size: 0.85rem; color: #476a6c; max-width: 180px; white-space: normal; }
 .sc-ref-cell { font-size: 0.85rem; color: #476a6c; max-width: 180px; white-space: normal; }
 .sc-balance-cell { font-weight: 700; text-align: right; }
+.sc-price-cell { text-align: right; font-size: 0.85rem; color: #476a6c; }
+.sc-price-input {
+    width: 90px;
+    padding: 4px 6px;
+    border-radius: 5px;
+    border: 1.5px solid #f59e0b;
+    background: rgba(255,255,255,0.8);
+    color: #0f3d3e;
+    font-size: 0.85rem;
+    text-align: right;
+}
 
 /* Edit mode: amber row tint */
 #stockcard-table.edit-mode-on .sc-data-row {
@@ -482,6 +510,7 @@
     }
 
     const deleteUrl = '<?= site_url('stock/delete-transaction') ?>';
+    const editCostUrl = '<?= site_url('stock/edit-report-cost') ?>';
     const pendingDeletes = new Set(); // transaction IDs marked for deletion
 
     // ── Edit Mode toggle ──────────────────────────────────
@@ -506,15 +535,18 @@
                 row.querySelectorAll('.sc-qty-text').forEach(s => s.style.display = editMode ? 'none' : '');
                 row.querySelectorAll('.sc-office-text').forEach(s => s.style.display = editMode ? 'none' : '');
                 row.querySelectorAll('.sc-ref-text').forEach(s => s.style.display = editMode ? 'none' : '');
+                row.querySelectorAll('.sc-price-text').forEach(s => s.style.display = editMode ? 'none' : '');
                 // Only reveal the input that belongs to this row's type (not disabled)
                 row.querySelectorAll('.sc-qty-input:not([disabled])').forEach(i => i.style.display = editMode ? '' : 'none');
                 row.querySelectorAll('.sc-office-input').forEach(i => i.style.display = editMode ? '' : 'none');
                 row.querySelectorAll('.sc-ref-input').forEach(i => i.style.display = editMode ? '' : 'none');
+                row.querySelectorAll('.sc-price-input').forEach(i => i.style.display = editMode ? '' : 'none');
                 // reset on toggle off
                 if (!editMode) {
                     row.querySelectorAll('.sc-qty-input:not([disabled])').forEach(i => i.value = row.dataset.origQty);
                     row.querySelectorAll('.sc-office-input').forEach(i => i.value = row.querySelector('.sc-office-text')?.textContent ?? '');
                     row.querySelectorAll('.sc-ref-input').forEach(i => i.value = row.querySelector('.sc-ref-text')?.textContent ?? '');
+                    row.querySelectorAll('.sc-price-input').forEach(i => i.value = row.dataset.origPrice ?? '0.00');
                     row.classList.remove('sc-pending-delete');
                     pendingDeletes.delete(row.dataset.transactionId);
                 }
@@ -600,6 +632,27 @@
                     if (!json.ok) errors.push(json.error ?? 'Edit error');
                 } catch {
                     errors.push('Network error editing #' + transactionId);
+                }
+            }
+
+            // ③ Process price changes
+            for (const row of document.querySelectorAll('.sc-data-row:not(.sc-pending-delete)')) {
+                const origPrice = parseFloat(row.dataset.origPrice) || 0;
+                const priceInput = row.querySelector('.sc-price-input');
+                const newPrice = parseFloat(priceInput?.value) || 0;
+                if (Math.abs(newPrice - origPrice) < 0.005) continue;
+
+                ops++;
+                const data = new FormData();
+                data.append('transaction_id', row.dataset.transactionId);
+                data.append('new_cost', newPrice);
+                if (csrf.name) data.append(csrf.name, csrf.hash);
+                try {
+                    const res  = await fetch(editCostUrl, { method: 'POST', body: data });
+                    const json = await res.json();
+                    if (!json.ok) errors.push(json.error ?? 'Price edit error');
+                } catch {
+                    errors.push('Network error editing price #' + row.dataset.transactionId);
                 }
             }
 

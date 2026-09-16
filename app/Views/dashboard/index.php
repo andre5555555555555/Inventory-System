@@ -55,17 +55,17 @@
         <div class="dashboard-card">
             <div class="dashboard-card-head">
                 <h2>Expiring Soon</h2>
-                <span>Within 30 days</span>
+                <span>Per-product threshold</span>
             </div>
             <?php if ($expiring): ?>
                 <?php foreach ($expiring as $row): ?>
-                    <div class="dashboard-list-item <?= (int) $row['days_left'] <= 7 ? 'is-danger' : 'is-caution' ?>">
+                    <div class="dashboard-list-item <?= (int) $row['days_left'] <= (int) ($row['expiry_danger_days'] ?? 7) ? 'is-danger' : 'is-caution' ?>">
                         <strong><?= esc($row['item']) ?></strong>
                         <span><?= (int) $row['days_left'] ?> days left</span>
                     </div>
                 <?php endforeach; ?>
             <?php else: ?>
-                <div class="dashboard-empty">No expiring items in the next 30 days.</div>
+                <div class="dashboard-empty">No items expiring soon.</div>
             <?php endif; ?>
         </div>
 

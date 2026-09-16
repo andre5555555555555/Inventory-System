@@ -13,7 +13,10 @@ class ProductModel extends Model
         'product_no',
         'product',
         'product_description',
+        'measurement',
         'product_reorder_point',
+        'expiry_warning_days',
+        'expiry_danger_days',
         'entity_id',
         'unit_id',
         'type_id',
@@ -24,7 +27,7 @@ class ProductModel extends Model
 
     public function listForSelect(int $userOfficeId = 0): array
     {
-        $builder = $this->select('product_table.product_id, product_table.product, product_table.product_no, product_table.product_description, unit_table.unit')
+        $builder = $this->select('product_table.product_id, product_table.product, product_table.product_no, product_table.product_description, product_table.measurement, unit_table.unit')
             ->join('unit_table', 'product_table.unit_id = unit_table.unit_id', 'left')
             ->orderBy('product_table.product', 'ASC');
         if ($userOfficeId > 0) {
@@ -72,6 +75,7 @@ class ProductModel extends Model
              product_table.product_no,
              product_table.product,
              product_table.stock_no,
+             product_table.measurement,
              COALESCE(unit_table.unit, "Deleted Unit") AS unit_name,
              COALESCE(SUM(batch_table.current_qty), 0) AS total_stock,
              COALESCE(type_of_product.type, "") AS type_name'
@@ -93,7 +97,7 @@ class ProductModel extends Model
         }
 
         return $builder
-            ->groupBy('product_table.product_id, product_table.product_no, product_table.product, product_table.stock_no, unit_table.unit, type_of_product.type')
+            ->groupBy('product_table.product_id, product_table.product_no, product_table.product, product_table.stock_no, product_table.measurement, unit_table.unit, type_of_product.type')
             ->orderBy('product_table.product_no', 'ASC')
             ->get()
             ->getResultArray();
@@ -107,6 +111,7 @@ class ProductModel extends Model
                 product_table.product_description AS description,
                 product_table.stock_no,
                 product_table.product_no,
+                COALESCE(product_table.measurement, "") AS measurement,
                 COALESCE(unit_table.unit, "Deleted Unit") AS unit_name,
                 COALESCE(entity_table.entity, "N/A") AS entity_name,
                 COALESCE(entity_table.fund_cluster, "-") AS fund_cluster,

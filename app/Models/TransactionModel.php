@@ -24,7 +24,7 @@ class TransactionModel extends Model
     /**
      * Get current stock for a product (sum of current_qty in batch_table).
      */
-    public function currentStock(int $productId, int $userOfficeId = 0): int
+    public function currentStock(int $productId, int $userOfficeId = 0): float
     {
         $builder = $this->db->table('batch_table')
             ->selectSum('current_qty', 'stock')
@@ -33,7 +33,7 @@ class TransactionModel extends Model
             $builder->where('user_office_id', $userOfficeId);
         }
         $row = $builder->get()->getRowArray();
-        return (int) ($row['stock'] ?? 0);
+        return (float) ($row['stock'] ?? 0);
     }
 
     /**

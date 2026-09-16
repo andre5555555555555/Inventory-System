@@ -30,7 +30,7 @@ class ReportModel extends Model
         foreach ($periodRows as $row) {
             $productId = (int) $row['product_id'];
             $batchMemory[$productId]  ??= [];
-            $runningQty[$productId]   ??= 0;
+            $runningQty[$productId]   ??= 0.0;
             $runningValue[$productId] ??= 0.0;
 
             $beginQty  = $runningQty[$productId];
@@ -77,6 +77,142 @@ class ReportModel extends Model
             'rows'        => $ledgerRows,
             'groupedRows' => $groupedRows,
         ];
+    }
+
+    /**
+     * Summarized version of batchLedger — one row per product per price.
+     * When the unit cost changes for a product (e.g. purchased at different prices),
+     * each price gets its own line. This applies to both the web view and exported reports.
+     */
+    public function batchLedgerSummarized(string $search, int $year, string $month, int $typeId, int $userOfficeId = 0): array
+    {
+        $report = $this->batchLedger($search, $year, $month, $typeId, $userOfficeId);
+        $rows   = $report['rows'] ?? [];
+
+        // Aggregate per product_id + cost bracket.
+        // A new bracket is created whenever a receipt/purchase has a different unit cost,
+        // or an issue/used has a different unit cost.
+        $products   = [];  // key => aggregated row
+        $lastCost   = [];  // product_id => last seen cost
+        $costSeq    = [];  // product_id => sequence counter
+
+        foreach ($rows as $row) {
+            $pid = (int) $row['product_id'];
+
+            // Determine the active cost for this transaction row
+            $activeCost = 0.0;
+            if ($row['purchase_qty'] > 0) {
+                $activeCost = (float) $row['purchase_cost'];
+            } elseif ($row['used_qty'] > 0) {
+                $activeCost = (float) $row['used_cost'];
+            } elseif ($row['spoiled_qty'] > 0) {
+                $activeCost = (float) $row['spoiled_cost'];
+            }
+
+            // Initialise sequence for this product
+            if (! isset($costSeq[$pid])) {
+                $costSeq[$pid] = 0;
+                $lastCost[$pid] = null;
+            }
+
+            // If this row has a meaningful cost and it differs from the previous one, bump the sequence
+            if ($activeCost > 0 && $lastCost[$pid] !== null && abs($activeCost - $lastCost[$pid]) >= 0.005) {
+                $costSeq[$pid]++;
+            }
+
+            if ($activeCost > 0) {
+                $lastCost[$pid] = $activeCost;
+            }
+
+            $key = $pid . '-' . $costSeq[$pid];
+
+            if (! isset($products[$key])) {
+                // First occurrence — seed with beginning values
+                $products[$key] = [
+                    'product_id'     => $pid,
+                    'product_type'   => $row['product_type'],
+                    'stock_no'       => $row['stock_no'],
+                    'item'           => $row['item'],
+                    'unit_name'      => $row['unit_name'],
+                    'begin_qty'      => $row['begin_qty'],
+                    'begin_cost'     => $row['begin_cost'],
+                    'purchase_qty'   => 0,
+                    'purchase_total' => 0.0,
+                    'used_qty'       => 0,
+                    'used_total'     => 0.0,
+                    'spoiled_qty'    => 0,
+                    'spoiled_total'  => 0.0,
+                    'ending_qty'     => $row['ending_qty'],
+                    'ending_cost'    => $row['ending_cost'],
+                ];
+            }
+
+            // Accumulate transaction totals
+            $products[$key]['purchase_qty']   += (float) $row['purchase_qty'];
+            $products[$key]['purchase_total'] += (float) $row['purchase_total'];
+            $products[$key]['used_qty']       += (float) $row['used_qty'];
+            $products[$key]['used_total']     += (float) $row['used_total'];
+            $products[$key]['spoiled_qty']    += (float) $row['spoiled_qty'];
+            $products[$key]['spoiled_total']  += (float) $row['spoiled_total'];
+
+            // Always update ending to the last row's ending values
+            $products[$key]['ending_qty']  = $row['ending_qty'];
+            $products[$key]['ending_cost'] = $row['ending_cost'];
+        }
+
+        // Compute derived cost-per-unit and renumber
+        $summarized  = [];
+        $counter     = 1;
+        foreach ($products as $p) {
+            $p['counter']       = $counter++;
+            $p['purchase_cost'] = $p['purchase_qty'] > 0 ? $p['purchase_total'] / $p['purchase_qty'] : 0.0;
+            $p['used_cost']     = $p['used_qty']     > 0 ? $p['used_total']     / $p['used_qty']     : 0.0;
+            $p['spoiled_cost']  = $p['spoiled_qty']  > 0 ? $p['spoiled_total']  / $p['spoiled_qty']  : 0.0;
+            $summarized[] = $p;
+        }
+
+        // Group by product type
+        $groupedRows = [];
+        foreach ($summarized as $row) {
+            $groupedRows[$row['product_type']][] = $row;
+        }
+
+        return [
+            'rows'        => $summarized,
+            'groupedRows' => $groupedRows,
+        ];
+    }
+
+    /**
+     * Build summarized ledger data for a range of months.
+     * Returns: [ 'September 2026' => [ 'groupedRows' => [...], 'rows' => [...] ], ... ]
+     */
+    public function batchLedgerMultiMonth(
+        string $monthFrom,
+        string $monthTo,
+        string $search,
+        int $typeId,
+        int $userOfficeId = 0
+    ): array {
+        $results = [];
+        $current = $monthFrom . '-01';
+        $end     = $monthTo   . '-01';
+
+        while ($current <= $end) {
+            $year  = (int) date('Y', strtotime($current));
+            $month = date('m', strtotime($current));
+            $label = date('F Y', strtotime($current)); // e.g. "September 2026"
+
+            $report = $this->batchLedgerSummarized($search, $year, $month, $typeId, $userOfficeId);
+
+            if (! empty($report['rows'])) {
+                $results[$label] = $report;
+            }
+
+            $current = date('Y-m-d', strtotime($current . ' +1 month'));
+        }
+
+        return $results;
     }
 
     public function orderedProductTypes(int $userOfficeId = 0): array
@@ -151,21 +287,21 @@ class ReportModel extends Model
     {
         $productId = (int) $row['product_id'];
         $batchMemory[$productId]  ??= [];
-        $runningQty[$productId]   ??= 0;
+        $runningQty[$productId]   ??= 0.0;
         $runningValue[$productId] ??= 0.0;
 
         $typeName = strtolower($row['transaction_type'] ?? '');
 
         if ($typeName === 'receipt') {
             $unitCost              = (float) ($row['transaction_unit_cost'] ?? 0);
-            $qty                   = (int) ($row['transaction_qty'] ?? 0);
+            $qty                   = (float) ($row['transaction_qty'] ?? 0);
             $batchMemory[$productId][] = ['qty' => $qty, 'cost' => $unitCost];
             $runningQty[$productId]   += $qty;
             $runningValue[$productId] += $qty * $unitCost;
         }
 
         if (in_array($typeName, ['issue', 'adjust_out', 'borrow'], true)) {
-            $qty        = (int) ($row['transaction_qty'] ?? 0);
+            $qty        = (float) ($row['transaction_qty'] ?? 0);
             $issuedCost = $this->fifoIssue($batchMemory[$productId], $qty);
             $runningQty[$productId]   -= $qty;
             $runningValue[$productId] -= $issuedCost;
@@ -174,7 +310,7 @@ class ReportModel extends Model
         // Return: adds stock back
         if ($typeName === 'return') {
             $unitCost = (float) ($row['transaction_unit_cost'] ?? 0);
-            $qty      = (int) ($row['transaction_qty'] ?? 0);
+            $qty      = (float) ($row['transaction_qty'] ?? 0);
             // Return adds stock + value back (shown under purchase in reports)
             $batchMemory[$productId][] = ['qty' => $qty, 'cost' => $unitCost];
             $runningQty[$productId]   += $qty;
@@ -182,14 +318,14 @@ class ReportModel extends Model
         }
     }
 
-    private function purchaseValues(array $row, array &$batches, int &$runningQty, float &$runningValue): array
+    private function purchaseValues(array $row, array &$batches, float &$runningQty, float &$runningValue): array
     {
         $typeName = strtolower($row['transaction_type'] ?? '');
         if (! in_array($typeName, ['receipt', 'return'], true)) {
             return [0, 0.0, 0.0];
         }
 
-        $purchaseQty   = (int) ($row['transaction_qty'] ?? 0);
+        $purchaseQty   = (float) ($row['transaction_qty'] ?? 0);
         $purchaseCost  = (float) ($row['transaction_unit_cost'] ?? 0);
         $purchaseTotal = $purchaseQty * $purchaseCost;
 
@@ -210,11 +346,11 @@ class ReportModel extends Model
         array $row,
         int $spoiledTypeId,
         array &$batches,
-        int &$runningQty,
+        float &$runningQty,
         float &$runningValue
     ): array {
         $typeName = strtolower($row['transaction_type'] ?? '');
-        $issueQty = (int) ($row['transaction_qty'] ?? 0);
+        $issueQty = (float) ($row['transaction_qty'] ?? 0);
 
         if ($issueQty <= 0) {
             return [0, 0.0, 0.0];
@@ -251,7 +387,7 @@ class ReportModel extends Model
         return [$issueQty, $issueCost, $issueTotal];
     }
 
-    private function fifoIssue(array &$batches, int $qty): float
+    private function fifoIssue(array &$batches, float $qty): float
     {
         $totalCost = 0.0;
 
@@ -302,7 +438,7 @@ class ReportModel extends Model
         foreach ($periodRows as $row) {
             $pid = (int) $row['product_id'];
             $batchMemory[$pid]  ??= [];
-            $runningQty[$pid]   ??= 0;
+            $runningQty[$pid]   ??= 0.0;
             $runningValue[$pid] ??= 0.0;
 
             $beginQty  = $runningQty[$pid];
