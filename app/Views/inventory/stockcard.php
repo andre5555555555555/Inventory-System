@@ -159,7 +159,12 @@
                                             <td class="sc-col-date"><?= esc(date('m/d/Y', strtotime($row['date']))) ?></td>
                                             <td class="sc-ref-cell sc-col-ref">
                                                 <?php $refValue = trim((string) ($row['reference'] ?? '')); ?>
-                                                <span class="sc-ref-text"><?= esc($refValue) ?></span>
+                                                <span class="sc-ref-text">
+                                                    <?= esc($refValue) ?>
+                                                    <?php if (!empty($row['copy_label'])): ?>
+                                                        <br><small style="color: #64748b;"><?= esc($row['copy_label']) ?></small>
+                                                    <?php endif; ?>
+                                                </span>
                                                 <input type="text" class="sc-ref-input" value="<?= esc($refValue, 'attr') ?>" style="display:none" placeholder="Reference">
                                             </td>
                                             <!-- Receipt qty: editable only for receipt rows -->

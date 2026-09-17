@@ -40,7 +40,15 @@
                     $currentStock = (int) ($item['current_stock'] ?? 0);
                 ?>
                     <tr id="temp-item-<?= $itemId ?>">
-                        <td><?= esc($item['item_name'] ?? '') ?></td>
+                        <td>
+                            <?= esc($item['item_name'] ?? '') ?>
+                            <?php if (!empty($item['copy_label'])): ?>
+                                <br><small style="color: #64748b;"><?= esc($item['copy_label']) ?></small>
+                            <?php endif; ?>
+                            <?php if (($item['copy_unit_cost'] ?? 0) > 0): ?>
+                                <br><small style="color: #0f766e;">₱<?= number_format((float)$item['copy_unit_cost'], 2) ?></small>
+                            <?php endif; ?>
+                        </td>
                         <td><?= esc($item['unit'] ?? '') ?></td>
                         <td><?= esc($item['description'] ?? '') ?></td>
 

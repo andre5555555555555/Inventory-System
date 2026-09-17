@@ -149,6 +149,15 @@ foreach ($items as $_item) {
                         </select>
                     </div>
 
+                    <!-- Sub-product (Copy) Selector — shown for issue/borrow/return -->
+                    <div id="copySelectGroup" style="display:none">
+                        <label>Sub-Product (Price Variant)</label>
+                        <select name="copy_id" id="copySelect">
+                            <option value="">— Select sub-product —</option>
+                        </select>
+                        <small class="stock-form-help">Select which price variant to deduct from.</small>
+                    </div>
+
                     <div class="stock-form-inline">
                         <div>
                             <label>Qty</label>
@@ -183,7 +192,9 @@ foreach ($items as $_item) {
     <div class="expiry-modal-box">
         <div class="expiry-modal-icon">⚠️</div>
         <h3 id="expiryModalTitle">No Expiration Date</h3>
-        <p>You haven't set an expiration date for this transaction. Products without an expiry date may be harder to track.<br><br>Are you sure you want to save without one?</p>
+        <p>You haven't set an expiration date for this transaction. Products without an expiry date may be harder to track.</p>
+        <div id="expiryModalDetails" class="expiry-modal-details"></div>
+        <p class="expiry-modal-question">Are you sure you want to save without one?</p>
         <div class="expiry-modal-actions">
             <button type="button" id="expiryModalCancel" class="expiry-btn-cancel">Cancel</button>
             <button type="button" id="expiryModalProceed" class="expiry-btn-proceed">Yes, Proceed</button>
@@ -238,7 +249,42 @@ foreach ($items as $_item) {
     font-size: 0.92rem;
     line-height: 1.6;
     color: var(--text-secondary, #555);
-    margin: 0 0 24px;
+    margin: 0 0 14px;
+}
+.expiry-modal-question {
+    margin-top: 14px !important;
+    margin-bottom: 24px !important;
+}
+.expiry-modal-details {
+    margin: 14px 0 4px;
+    padding: 12px 14px;
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 10px;
+    background: var(--sidebar-bg, #f9fafb);
+    text-align: left;
+}
+.expiry-modal-details:empty {
+    display: none;
+}
+.expiry-modal-detail-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 5px 0;
+    font-size: 0.86rem;
+}
+.expiry-modal-detail-row + .expiry-modal-detail-row {
+    border-top: 1px solid rgba(148, 163, 184, 0.22);
+}
+.expiry-modal-detail-label {
+    color: var(--text-muted, #64748b);
+    font-weight: 600;
+}
+.expiry-modal-detail-value {
+    color: var(--text-primary, #111827);
+    font-weight: 700;
+    text-align: right;
+    overflow-wrap: anywhere;
 }
 .expiry-modal-actions {
     display: flex;
@@ -357,7 +403,7 @@ foreach ($items as $_item) {
         unitInput.value = item.unit;
         const stock = parseInt(item.stock ?? '0') || 0;
         updateChipStock(stock);
-        document.dispatchEvent(new CustomEvent('stockform:productchanged', { detail: { stock } }));
+        document.dispatchEvent(new CustomEvent('stockform:productchanged', { detail: { id: item.id, stock } }));
     }
 
     function clearSelection() {
@@ -597,19 +643,175 @@ foreach ($items as $_item) {
     validate(); // run on page load
 
     // React to product selection changes (dispatched by first IIFE)
+    const copySelectGroup = document.getElementById('copySelectGroup');
+    const copySelect      = document.getElementById('copySelect');
+    let currentCopies = [];
+
+    async function fetchCopies(productId) {
+        if (!productId) {
+            currentCopies = [];
+            renderCopies();
+            return;
+        }
+        try {
+            const res = await fetch(`<?= site_url('stock/copies') ?>/${productId}`, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            });
+            const data = await res.json();
+            if (data.ok) {
+                currentCopies = data.copies || [];
+                renderCopies();
+            }
+        } catch (e) {
+            console.error('Failed to fetch copies:', e);
+        }
+    }
+
+    function renderCopies() {
+        copySelect.innerHTML = '<option value="">— Select sub-product —</option>';
+        currentCopies.forEach(c => {
+            const label = c.label ? ` (${c.label})` : '';
+            const price = parseFloat(c.unit_cost).toLocaleString('en-US', {minimumFractionDigits: 2});
+            const stock = parseFloat(c.current_stock);
+            
+            const opt = document.createElement('option');
+            opt.value = c.copy_id;
+            opt.textContent = `₱${price}${label} — Stock: ${stock}`;
+            opt.dataset.stock = stock;
+            if (stock <= 0) {
+                opt.disabled = true;
+                opt.textContent += ' (Out of stock)';
+            }
+            copySelect.appendChild(opt);
+        });
+        validate();
+    }
+
+    function syncCopySelect() {
+        const typeStr = (typeSelect.options[typeSelect.selectedIndex]?.dataset.type || '').toLowerCase();
+        // Show copy select for issue, borrow, and return
+        const show = ['issue', 'borrow', 'return'].includes(typeStr);
+        if (copySelectGroup) {
+            copySelectGroup.style.display = show ? '' : 'none';
+        }
+        if (show) {
+            copySelect.required = true;
+        } else {
+            copySelect.required = false;
+            copySelect.value = '';
+        }
+    }
+
     document.addEventListener('stockform:productchanged', (e) => {
         currentProductStock = (e.detail && e.detail.stock !== null) ? (e.detail.stock ?? 0) : 0;
+        const productId = e.detail?.id;
+        fetchCopies(productId);
         validate();
     });
+
+    copySelect?.addEventListener('change', () => {
+        validate();
+    });
+
+    // Update validate to check copy stock if applicable
+    const originalValidate = validate;
+    validate = function() {
+        originalValidate(); // checks overall product stock
+
+        // If out type and a specific copy is required
+        if (isOutType() && copySelectGroup.style.display !== 'none') {
+            const selectedOpt = copySelect.options[copySelect.selectedIndex];
+            if (selectedOpt && selectedOpt.value) {
+                const copyStock = parseFloat(selectedOpt.dataset.stock) || 0;
+                if (copyStock === 0) {
+                    const typeName = getTypeName();
+                    if (bannerMsg) bannerMsg.textContent = `Cannot perform "${typeName}" — Selected sub-product has 0 stock.`;
+                    zeroStockBanner.style.display = 'flex';
+                    if (submitBtn) {
+                        submitBtn.disabled = true;
+                        submitBtn.style.opacity = '0.5';
+                        submitBtn.style.cursor  = 'not-allowed';
+                    }
+                }
+            }
+        }
+    };
+
+    // Override the type select listener to also sync the copy select
+    const oldTypeChange = typeSelect.onchange; // it's added via addEventListener though
+    typeSelect.addEventListener('change', () => {
+        syncCopySelect();
+    });
+    syncCopySelect();
+    if (document.getElementById('product_id_hidden')?.value) {
+        fetchCopies(document.getElementById('product_id_hidden').value);
+    }
 
     // ── Expiry date confirmation ──────────────────────────────────────────
     const form        = document.querySelector('.stock-form');
     const expiryInput = form?.querySelector('[name="expiration_date"]');
     const modal       = document.getElementById('expiryModal');
+    const modalDetails = document.getElementById('expiryModalDetails');
     const cancelBtn   = document.getElementById('expiryModalCancel');
     const proceedBtn  = document.getElementById('expiryModalProceed');
 
     let confirmed = false; // flag: user already confirmed, skip modal
+
+    function selectedTypeName() {
+        const opt = typeSelect.options[typeSelect.selectedIndex];
+        return opt ? opt.text.trim() : '';
+    }
+
+    function selectedCopyText() {
+        if (!copySelect || copySelectGroup?.style.display === 'none' || !copySelect.value) {
+            return '';
+        }
+
+        return copySelect.options[copySelect.selectedIndex]?.text.replace(/\s*\(Out of stock\)\s*$/, '') || '';
+    }
+
+    function addModalDetail(rows, label, value) {
+        const cleanValue = String(value ?? '').trim();
+        if (cleanValue !== '') {
+            rows.push({ label, value: cleanValue });
+        }
+    }
+
+    function renderExpiryDetails() {
+        if (!modalDetails || !form) {
+            return;
+        }
+
+        const rows = [];
+        addModalDetail(rows, 'Product', document.getElementById('productSearch')?.value);
+        addModalDetail(rows, 'Type', selectedTypeName());
+        addModalDetail(rows, 'Date', form.querySelector('[name="date"]')?.value);
+        addModalDetail(rows, 'Office', form.querySelector('[name="office"]')?.value);
+        addModalDetail(rows, 'Reference', form.querySelector('[name="reference"]')?.value);
+        addModalDetail(rows, 'Quantity', form.querySelector('[name="quantity"]')?.value);
+        addModalDetail(rows, 'Unit Cost', form.querySelector('[name="unit_cost"]')?.value);
+        if (usagePctGroup?.style.display !== 'none') {
+            addModalDetail(rows, 'Usage %', form.querySelector('[name="usage_pct"]')?.value);
+        }
+        addModalDetail(rows, 'Sub-product', selectedCopyText());
+
+        modalDetails.innerHTML = '';
+        rows.forEach((row) => {
+            const detailRow = document.createElement('div');
+            detailRow.className = 'expiry-modal-detail-row';
+
+            const label = document.createElement('span');
+            label.className = 'expiry-modal-detail-label';
+            label.textContent = row.label;
+
+            const value = document.createElement('span');
+            value.className = 'expiry-modal-detail-value';
+            value.textContent = row.value;
+
+            detailRow.append(label, value);
+            modalDetails.appendChild(detailRow);
+        });
+    }
 
     form?.addEventListener('submit', function (e) {
         // Block if zero-stock violation
@@ -618,8 +820,9 @@ foreach ($items as $_item) {
             return;
         }
         if (confirmed) return; // already confirmed — let it submit
-        if (expiryInput && expiryInput.value.trim() === '') {
+        if (!isOutType() && expiryInput && expiryInput.value.trim() === '') {
             e.preventDefault();
+            renderExpiryDetails();
             modal.style.display = 'flex';
         }
     });

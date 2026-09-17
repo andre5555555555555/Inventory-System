@@ -57,6 +57,14 @@
                     <div id="barcodeError" class="so-error" style="display:none;"></div>
                 </div>
 
+                <!-- Sub-product (Copy) Selector -->
+                <div class="form-group" id="copySelectGroup" style="display:none">
+                    <label>Sub-Product (Price Variant)</label>
+                    <select name="copy_id" id="copySelect" style="width: 100%; padding: 10px; border-radius: 8px; border: 1.5px solid #d1d5db; background: #fff;">
+                        <option value="">— Select sub-product —</option>
+                    </select>
+                </div>
+
                 <!-- Autofilled read-only fields -->
                 <div class="form-row">
                     <div class="form-group">
@@ -402,6 +410,8 @@ html[data-theme="dark"] .readonly-field.filled {
     const qtyInput    = document.getElementById('quantity');
     const errorDiv    = document.getElementById('barcodeError');
     const form        = document.getElementById('stockoutManualForm');
+    const copySelectGroup = document.getElementById('copySelectGroup');
+    const copySelect      = document.getElementById('copySelect');
 
     // ── Data ──────────────────────────────────────────────────────────────
     const ITEMS = JSON.parse(document.getElementById('stockoutItemsJson').textContent);
@@ -496,6 +506,51 @@ html[data-theme="dark"] .readonly-field.filled {
     }
 
     // ── Select an item ────────────────────────────────────────────────────
+    async function fetchCopies(productId) {
+        if (!productId) {
+            renderCopies([]);
+            return;
+        }
+        try {
+            const res = await fetch(`<?= site_url('stock/copies') ?>/${productId}`, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            });
+            const data = await res.json();
+            if (data.ok) {
+                renderCopies(data.copies || []);
+            }
+        } catch (e) {
+            console.error('Failed to fetch copies:', e);
+        }
+    }
+
+    function renderCopies(copies) {
+        copySelect.innerHTML = '<option value="">— Select sub-product —</option>';
+        if (copies.length === 0) {
+            copySelectGroup.style.display = 'none';
+            copySelect.required = false;
+            return;
+        }
+        copySelectGroup.style.display = '';
+        copySelect.required = true;
+        
+        copies.forEach(c => {
+            const label = c.label ? ` (${c.label})` : '';
+            const price = parseFloat(c.unit_cost).toLocaleString('en-US', {minimumFractionDigits: 2});
+            const stock = parseFloat(c.current_stock);
+            
+            const opt = document.createElement('option');
+            opt.value = c.copy_id;
+            opt.textContent = `₱${price}${label} — Stock: ${stock}`;
+            opt.dataset.stock = stock;
+            if (stock <= 0) {
+                opt.disabled = true;
+                opt.textContent += ' (Out of stock)';
+            }
+            copySelect.appendChild(opt);
+        });
+    }
+
     function selectItem(item) {
         selectedId = item.id;
         hiddenInput.value = item.id;
@@ -513,6 +568,8 @@ html[data-theme="dark"] .readonly-field.filled {
         submitBtn.disabled = false;
         errorDiv.style.display = 'none';
         searchInput.value = '';
+        
+        fetchCopies(item.id);
     }
 
     function clearSelection() {
@@ -530,6 +587,8 @@ html[data-theme="dark"] .readonly-field.filled {
         descInput.classList.remove('filled');
 
         submitBtn.disabled = true;
+        
+        renderCopies([]);
     }
 
     // ── Keyboard navigation inside list ──────────────────────────────────
@@ -622,6 +681,18 @@ html[data-theme="dark"] .readonly-field.filled {
                 pickerBtn.style.borderColor = '';
                 pickerBtn.style.boxShadow   = '';
             }, 1400);
+            return;
+        }
+        
+        // Also validate copy selection stock
+        if (copySelectGroup.style.display !== 'none' && copySelect.value) {
+            const selectedOpt = copySelect.options[copySelect.selectedIndex];
+            const stock = parseFloat(selectedOpt.dataset.stock) || 0;
+            const requested = parseFloat(qtyInput.value) || 0;
+            if (requested > stock) {
+                e.preventDefault();
+                showError(`Cannot request ${requested}, selected sub-product only has ${stock} left.`);
+            }
         }
     });
 })();

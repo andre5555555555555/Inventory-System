@@ -17,20 +17,24 @@ class TransactionModel extends Model
         'transaction_type_id', 'transaction_qty', 'transaction_unit_cost',
         'transaction_date', 'batch_id', 'reference_id', 'office_id',
         'user_id', 'user_office_id', 'adjustment_reason_id',
-        'created_at', 'updated_at',
+        'copy_id', 'created_at', 'updated_at',
     ];
     protected bool $allowEmptyInserts = false;
 
     /**
      * Get current stock for a product (sum of current_qty in batch_table).
+     * Optionally filter by copy_id for sub-product stock.
      */
-    public function currentStock(int $productId, int $userOfficeId = 0): float
+    public function currentStock(int $productId, int $userOfficeId = 0, int $copyId = 0): float
     {
         $builder = $this->db->table('batch_table')
             ->selectSum('current_qty', 'stock')
             ->where('product_id', $productId);
         if ($userOfficeId > 0) {
             $builder->where('user_office_id', $userOfficeId);
+        }
+        if ($copyId > 0) {
+            $builder->where('copy_id', $copyId);
         }
         $row = $builder->get()->getRowArray();
         return (float) ($row['stock'] ?? 0);
@@ -86,6 +90,9 @@ class TransactionModel extends Model
                 SUM(issue_qty)             AS issue_qty,
                 MIN(transaction_unit_cost) AS transaction_unit_cost,
                 transaction_type_id,
+                copy_id,
+                MAX(copy_unit_cost) AS copy_unit_cost,
+                MAX(copy_label) AS copy_label,
                 item_name,
                 description,
                 product_no,
@@ -109,6 +116,9 @@ class TransactionModel extends Model
                          THEN t.transaction_qty ELSE 0 END                     AS issue_qty,
                     t.transaction_unit_cost,
                     t.transaction_type_id,
+                    t.copy_id,
+                    COALESCE(pc.unit_cost, 0) AS copy_unit_cost,
+                    COALESCE(pc.label, '') AS copy_label,
                     p.product AS item_name,
                     p.product_description AS description,
                     p.product_no,
@@ -127,6 +137,7 @@ class TransactionModel extends Model
                 INNER JOIN transaction_type_table tt ON t.transaction_type_id = tt.transaction_type_id
                 INNER JOIN batch_table b ON t.batch_id = b.batch_id
                 INNER JOIN product_table p ON b.product_id = p.product_id
+                LEFT JOIN product_copy_table pc ON t.copy_id = pc.copy_id
                 LEFT JOIN unit_table ut ON p.unit_id = ut.unit_id
                 LEFT JOIN office_table ot ON t.office_id = ot.office_id
                 LEFT JOIN reference_table r ON t.reference_id = r.reference_id
@@ -137,7 +148,7 @@ class TransactionModel extends Model
             WHERE 1=1 {$searchFilter} {$dateFilter}
             GROUP BY date, transaction_type_id, transaction_type, office, reference,
                      item_name, description, product_no, stock_no, unit_name,
-                     entity_name, fund_cluster, product_id
+                     entity_name, fund_cluster, product_id, copy_id, copy_unit_cost, copy_label
             ORDER BY date {$order}, MIN(transaction_id) {$order}
             LIMIT {$limit} OFFSET {$offset}",
             $params
@@ -172,7 +183,9 @@ class TransactionModel extends Model
               AND tt.transaction_type IN ('receipt','issue','adjust_out','borrow','return')
               {$countDateFilter}
               {$countSearchFilter}
-            GROUP BY DATE(t.transaction_date), t.transaction_type_id, t.office_id, t.reference_id
+            GROUP BY t.transaction_date, t.transaction_type_id, t.office_id, t.reference_id,
+                     p.product, p.product_description, p.product_no, p.stock_no,
+                     t.copy_id
         ) AS grouped";
 
         $total = (int) ($this->db->query($totalSql, $totalParams)->getRowArray()['total'] ?? 0);

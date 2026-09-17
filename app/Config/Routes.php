@@ -60,6 +60,7 @@ $routes->group('', ['filter' => 'auth'], static function ($routes): void {
     $routes->post('stock/edit-transaction', 'InventoryController::editTransaction', ['filter' => 'level:2']);
     $routes->post('stock/delete-transaction', 'InventoryController::deleteTransaction', ['filter' => 'level:2']);
     $routes->post('stock/edit-report-cost', 'InventoryController::editReportCost', ['filter' => 'level:2']);
+    $routes->get('stock/copies/(:num)', 'InventoryController::getCopies/$1', ['filter' => 'level:1']);
     $routes->get('batchlist', 'ReportsController::batchlist', ['filter' => 'level:2']);
 
     // ── Exports — level 2+ ───────────────────────────────────────────────────

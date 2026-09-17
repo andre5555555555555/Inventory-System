@@ -45,12 +45,18 @@ class StockoutModel extends Model
         return $this->db->table('temp_stockout_item AS tsi')
             ->select('tsi.*,
                       p.product AS item_name,
+                      COALESCE(pc.unit_cost, 0) AS copy_unit_cost,
+                      COALESCE(pc.label, "") AS copy_label,
                       COALESCE((
                           SELECT SUM(b.current_qty)
                           FROM batch_table b
                           WHERE b.product_id = tsi.product_id
+                            AND (ts.user_office_id IS NULL OR b.user_office_id = ts.user_office_id)
+                            AND (tsi.copy_id IS NULL OR b.copy_id = tsi.copy_id)
                       ), 0) AS current_stock')
+            ->join('temp_stockout ts', 'tsi.temp_stockout_id = ts.temp_stockout_id')
             ->join('product_table p', 'tsi.product_id = p.product_id', 'left')
+            ->join('product_copy_table pc', 'tsi.copy_id = pc.copy_id', 'left')
             ->where('tsi.temp_stockout_id', $tempStockoutId)
             ->orderBy('tsi.temp_stockout_item_id', 'ASC')
             ->get()
@@ -64,17 +70,23 @@ class StockoutModel extends Model
     public function getItemsSummed(int $tempStockoutId): array
     {
         return $this->db->table('temp_stockout_item AS tsi')
-            ->select('tsi.product_id, p.product AS item_name, tsi.unit, tsi.description,
+            ->select('tsi.product_id, tsi.copy_id, p.product AS item_name, tsi.unit, tsi.description,
                       SUM(tsi.quantity) AS quantity, MIN(tsi.status) AS status,
                       GROUP_CONCAT(tsi.temp_stockout_item_id) AS item_ids,
+                      COALESCE(pc.unit_cost, 0) AS copy_unit_cost,
+                      COALESCE(pc.label, "") AS copy_label,
                       COALESCE((
                           SELECT SUM(b.current_qty)
                           FROM batch_table b
                           WHERE b.product_id = tsi.product_id
+                            AND (ts.user_office_id IS NULL OR b.user_office_id = ts.user_office_id)
+                            AND (tsi.copy_id IS NULL OR b.copy_id = tsi.copy_id)
                       ), 0) AS current_stock')
+            ->join('temp_stockout ts', 'tsi.temp_stockout_id = ts.temp_stockout_id')
             ->join('product_table p', 'tsi.product_id = p.product_id', 'left')
+            ->join('product_copy_table pc', 'tsi.copy_id = pc.copy_id', 'left')
             ->where('tsi.temp_stockout_id', $tempStockoutId)
-            ->groupBy('tsi.product_id, p.product, tsi.unit, tsi.description')
+            ->groupBy('tsi.product_id, tsi.copy_id, p.product, tsi.unit, tsi.description, pc.unit_cost, pc.label, ts.user_office_id')
             ->orderBy('p.product', 'ASC')
             ->get()
             ->getResultArray();
@@ -88,6 +100,7 @@ class StockoutModel extends Model
         $this->db->table('temp_stockout_item')->insert([
             'temp_stockout_id' => $tempStockoutId,
             'product_id'       => (int) $data['product_id'],
+            'copy_id'          => ((int) ($data['copy_id'] ?? 0)) ?: null,
             'quantity'         => (int) $data['quantity'],
             'unit'             => trim((string) ($data['unit'] ?? '')),
             'description'      => trim((string) ($data['description'] ?? '')),
@@ -141,7 +154,7 @@ class StockoutModel extends Model
 
         $grouped = [];
         foreach ($items as $item) {
-            $key = (int) $item['product_id'];
+            $key = (int) $item['product_id'] . ':' . (int) ($item['copy_id'] ?? 0);
             if (! isset($grouped[$key])) {
                 $grouped[$key] = $item;
             } else {
@@ -216,26 +229,26 @@ class StockoutModel extends Model
         $userOfficeId = (int) ($header['user_office_id'] ?? 0);
 
         // ── Stock availability check ─────────────────────────────────────────
-        $availableStock = (int) ($this->db->table('batch_table')
-            ->selectSum('current_qty', 'total')
-            ->where('product_id', $item['product_id'])
-            ->where('user_office_id', $userOfficeId)
-            ->get()->getRowArray()['total'] ?? 0);
+        $copyId         = (int) ($item['copy_id'] ?? 0);
+        $availableStock = $this->availableStock((int) $item['product_id'], $userOfficeId, $copyId);
 
         if ($availableStock < (int) $item['quantity']) {
             return 'insufficient_stock';
         }
 
-        // Deduct stock from batches (FIFO)
-        $this->deductStock((int) $item['product_id'], (int) $item['quantity'], $userOfficeId);
-
-        // Create transaction record
-        $this->createStockoutTransaction(
-            (int) $item['product_id'],
-            (int) $item['quantity'],
-            $userOfficeId,
-            $approvedByUserId
-        );
+        $deductions = $this->deductStock((int) $item['product_id'], (int) $item['quantity'], $userOfficeId, $copyId);
+        if (empty($deductions)) {
+            return 'insufficient_stock';
+        }
+        foreach ($deductions as $deduction) {
+            $this->createStockoutTransaction(
+                (int) $deduction['batch_id'],
+                (int) $deduction['quantity'],
+                $userOfficeId,
+                $approvedByUserId,
+                (int) ($deduction['copy_id'] ?? 0)
+            );
+        }
 
         // Mark item approved
         $this->db->table('temp_stockout_item')
@@ -277,24 +290,28 @@ class StockoutModel extends Model
 
         foreach ($items as $item) {
             // Check stock before approving
-            $availableStock = (int) ($this->db->table('batch_table')
-                ->selectSum('current_qty', 'total')
-                ->where('product_id', $item['product_id'])
-                ->where('user_office_id', $userOfficeId)
-                ->get()->getRowArray()['total'] ?? 0);
+            $copyId         = (int) ($item['copy_id'] ?? 0);
+            $availableStock = $this->availableStock((int) $item['product_id'], $userOfficeId, $copyId);
 
             if ($availableStock < (int) $item['quantity']) {
                 $skipped++;
                 continue; // Leave as pending — not enough stock
             }
 
-            $this->deductStock((int) $item['product_id'], (int) $item['quantity'], $userOfficeId);
-            $this->createStockoutTransaction(
-                (int) $item['product_id'],
-                (int) $item['quantity'],
-                $userOfficeId,
-                $approvedByUserId
-            );
+            $deductions = $this->deductStock((int) $item['product_id'], (int) $item['quantity'], $userOfficeId, $copyId);
+            if (empty($deductions)) {
+                $skipped++;
+                continue;
+            }
+            foreach ($deductions as $deduction) {
+                $this->createStockoutTransaction(
+                    (int) $deduction['batch_id'],
+                    (int) $deduction['quantity'],
+                    $userOfficeId,
+                    $approvedByUserId,
+                    (int) ($deduction['copy_id'] ?? 0)
+                );
+            }
             $this->db->table('temp_stockout_item')
                 ->where('temp_stockout_item_id', $item['temp_stockout_item_id'])
                 ->update(['status' => 'approved']);
@@ -336,10 +353,27 @@ class StockoutModel extends Model
         return true;
     }
 
+    private function availableStock(int $productId, int $userOfficeId = 0, int $copyId = 0): int
+    {
+        $builder = $this->db->table('batch_table')
+            ->selectSum('current_qty', 'total')
+            ->where('product_id', $productId);
+
+        if ($userOfficeId > 0) {
+            $builder->where('user_office_id', $userOfficeId);
+        }
+
+        if ($copyId > 0) {
+            $builder->where('copy_id', $copyId);
+        }
+
+        return (int) ($builder->get()->getRowArray()['total'] ?? 0);
+    }
+
     /**
      * Deduct stock from batches using FIFO (oldest first by date_received).
      */
-    private function deductStock(int $productId, int $quantity, int $userOfficeId = 0): void
+    private function deductStock(int $productId, int $quantity, int $userOfficeId = 0, int $copyId = 0): array
     {
         $builder = $this->db->table('batch_table')
             ->where('product_id', $productId)
@@ -349,44 +383,51 @@ class StockoutModel extends Model
             $builder->where('user_office_id', $userOfficeId);
         }
 
+        if ($copyId > 0) {
+            $builder->where('copy_id', $copyId);
+        }
+
         $batches = $builder->orderBy('date_received', 'ASC')
             ->orderBy('batch_id', 'ASC')
             ->get()
             ->getResultArray();
 
-        $remaining = $quantity;
+        $remaining  = $quantity;
+        $deductions = [];
 
         foreach ($batches as $batch) {
             if ($remaining <= 0) {
                 break;
             }
             $deduct = min($remaining, (int) $batch['current_qty']);
-            $this->db->table('batch_table')
-                ->where('batch_id', $batch['batch_id'])
-                ->update([
-                    'current_qty' => (int) $batch['current_qty'] - $deduct,
-                    'updated_at'  => date('Y-m-d H:i:s'),
-                ]);
+            $deductions[] = [
+                'batch_id' => (int) $batch['batch_id'],
+                'quantity' => $deduct,
+                'copy_id'  => (int) ($batch['copy_id'] ?? 0),
+            ];
             $remaining -= $deduct;
         }
+
+        if ($remaining > 0) {
+            return [];
+        }
+
+        foreach ($deductions as $deduction) {
+            $this->db->table('batch_table')
+                ->where('batch_id', $deduction['batch_id'])
+                ->set('current_qty', 'current_qty - ' . (int) $deduction['quantity'], false)
+                ->set('updated_at', date('Y-m-d H:i:s'))
+                ->update();
+        }
+
+        return $deductions;
     }
 
     /**
      * Create a transaction record for a stock-out approval.
      */
-    private function createStockoutTransaction(int $productId, int $quantity, int $userOfficeId, int $userId): void
+    private function createStockoutTransaction(int $batchId, int $quantity, int $userOfficeId, int $userId, int $copyId = 0): void
     {
-        // Get the oldest batch with stock for this product
-        $batch = $this->db->table('batch_table')
-            ->where('product_id', $productId)
-            ->where('user_office_id', $userOfficeId)
-            ->orderBy('date_received', 'ASC')
-            ->orderBy('batch_id', 'ASC')
-            ->get(1)
-            ->getRowArray();
-
-        $batchId = $batch ? (int) $batch['batch_id'] : null;
-
         // Resolve the 'issue' type ID dynamically — never hardcode
         $issueRow = $this->db->table('transaction_type_table')
             ->select('transaction_type_id')
@@ -400,6 +441,7 @@ class StockoutModel extends Model
             'transaction_unit_cost' => 0,
             'transaction_date'      => date('Y-m-d H:i:s'),
             'batch_id'              => $batchId,
+            'copy_id'              => $copyId > 0 ? $copyId : null,
             'reference_id'          => null,
             'office_id'             => null,
             'user_id'               => $userId,

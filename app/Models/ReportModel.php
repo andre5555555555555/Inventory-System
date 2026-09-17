@@ -29,23 +29,29 @@ class ReportModel extends Model
 
         foreach ($periodRows as $row) {
             $productId = (int) $row['product_id'];
-            $batchMemory[$productId]  ??= [];
-            $runningQty[$productId]   ??= 0.0;
-            $runningValue[$productId] ??= 0.0;
+            $copyId    = (int) ($row['copy_id'] ?? 0);
+            $key       = $copyId > 0 ? $productId . '_' . $copyId : (string) $productId;
 
-            $beginQty  = $runningQty[$productId];
-            $beginCost = $beginQty > 0 ? $runningValue[$productId] / $beginQty : 0.0;
+            $batchMemory[$key]  ??= [];
+            $runningQty[$key]   ??= 0.0;
+            $runningValue[$key] ??= 0.0;
 
-            [$purchaseQty, $purchaseCost, $purchaseTotal] = $this->purchaseValues($row, $batchMemory[$productId], $runningQty[$productId], $runningValue[$productId]);
-            [$usedQty, $usedCost, $usedTotal]             = $this->issueValues($row, 0, $batchMemory[$productId], $runningQty[$productId], $runningValue[$productId]);
-            [$spoiledQty, $spoiledCost, $spoiledTotal]    = $this->issueValues($row, 3, $batchMemory[$productId], $runningQty[$productId], $runningValue[$productId]);
+            $beginQty  = $runningQty[$key];
+            $beginCost = $beginQty > 0 ? $runningValue[$key] / $beginQty : 0.0;
 
-            $endingQty  = $runningQty[$productId];
-            $endingCost = $endingQty > 0 ? $runningValue[$productId] / $endingQty : 0.0;
+            [$purchaseQty, $purchaseCost, $purchaseTotal] = $this->purchaseValues($row, $batchMemory[$key], $runningQty[$key], $runningValue[$key]);
+            [$usedQty, $usedCost, $usedTotal]             = $this->issueValues($row, 0, $batchMemory[$key], $runningQty[$key], $runningValue[$key]);
+            [$spoiledQty, $spoiledCost, $spoiledTotal]    = $this->issueValues($row, 3, $batchMemory[$key], $runningQty[$key], $runningValue[$key]);
+
+            $endingQty  = $runningQty[$key];
+            $endingCost = $endingQty > 0 ? $runningValue[$key] / $endingQty : 0.0;
 
             $ledgerRows[] = [
                 'counter'           => $counter++,
                 'product_id'        => $productId,
+                'copy_id'           => $copyId,
+                'copy_unit_cost'    => (float) ($row['copy_unit_cost'] ?? 0),
+                'copy_label'        => $row['copy_label'] ?? '',
                 'transaction_id'    => (int) ($row['transaction_id'] ?? 0),
                 'transaction_type'  => (int) ($row['transaction_type_id'] ?? 0),
                 'product_type'      => $row['product_type'] ?: 'Uncategorized',
@@ -80,56 +86,31 @@ class ReportModel extends Model
     }
 
     /**
-     * Summarized version of batchLedger — one row per product per price.
-     * When the unit cost changes for a product (e.g. purchased at different prices),
-     * each price gets its own line. This applies to both the web view and exported reports.
+     * Summarized version of batchLedger — one row per product per copy (sub-product).
+     * Each copy (price variant) gets its own line. This applies to both the web view and exported reports.
      */
     public function batchLedgerSummarized(string $search, int $year, string $month, int $typeId, int $userOfficeId = 0): array
     {
         $report = $this->batchLedger($search, $year, $month, $typeId, $userOfficeId);
         $rows   = $report['rows'] ?? [];
 
-        // Aggregate per product_id + cost bracket.
-        // A new bracket is created whenever a receipt/purchase has a different unit cost,
-        // or an issue/used has a different unit cost.
-        $products   = [];  // key => aggregated row
-        $lastCost   = [];  // product_id => last seen cost
-        $costSeq    = [];  // product_id => sequence counter
+        // Aggregate per product_id + copy_id.
+        // Each copy (sub-product / price variant) gets its own summary row.
+        $products = [];  // key => aggregated row
 
         foreach ($rows as $row) {
-            $pid = (int) $row['product_id'];
+            $pid    = (int) $row['product_id'];
+            $copyId = (int) ($row['copy_id'] ?? 0);
 
-            // Determine the active cost for this transaction row
-            $activeCost = 0.0;
-            if ($row['purchase_qty'] > 0) {
-                $activeCost = (float) $row['purchase_cost'];
-            } elseif ($row['used_qty'] > 0) {
-                $activeCost = (float) $row['used_cost'];
-            } elseif ($row['spoiled_qty'] > 0) {
-                $activeCost = (float) $row['spoiled_cost'];
-            }
-
-            // Initialise sequence for this product
-            if (! isset($costSeq[$pid])) {
-                $costSeq[$pid] = 0;
-                $lastCost[$pid] = null;
-            }
-
-            // If this row has a meaningful cost and it differs from the previous one, bump the sequence
-            if ($activeCost > 0 && $lastCost[$pid] !== null && abs($activeCost - $lastCost[$pid]) >= 0.005) {
-                $costSeq[$pid]++;
-            }
-
-            if ($activeCost > 0) {
-                $lastCost[$pid] = $activeCost;
-            }
-
-            $key = $pid . '-' . $costSeq[$pid];
+            $key = $pid . '-' . $copyId;
 
             if (! isset($products[$key])) {
                 // First occurrence — seed with beginning values
                 $products[$key] = [
                     'product_id'     => $pid,
+                    'copy_id'        => $copyId,
+                    'copy_unit_cost' => (float) ($row['copy_unit_cost'] ?? 0),
+                    'copy_label'     => $row['copy_label'] ?? '',
                     'product_type'   => $row['product_type'],
                     'stock_no'       => $row['stock_no'],
                     'item'           => $row['item'],
@@ -230,7 +211,8 @@ class ReportModel extends Model
 
         return $this->db->query(
             "SELECT b.product_id, t.transaction_id, t.transaction_qty, t.transaction_unit_cost,
-                    t.transaction_type_id, tt.transaction_type
+                    t.transaction_type_id, tt.transaction_type,
+                    COALESCE(t.copy_id, b.copy_id) AS copy_id
              FROM transaction_table t
              INNER JOIN batch_table b ON t.batch_id = b.batch_id
              INNER JOIN transaction_type_table tt ON t.transaction_type_id = tt.transaction_type_id
@@ -254,12 +236,16 @@ class ReportModel extends Model
             't.transaction_unit_cost',
             't.transaction_type_id',
             'tt.transaction_type',
+            'COALESCE(t.copy_id, b.copy_id) AS copy_id',
+            'COALESCE(pc.unit_cost, 0) AS copy_unit_cost',
+            'COALESCE(pc.label, "") AS copy_label',
         ]);
         $builder->join('batch_table b', 't.batch_id = b.batch_id');
         $builder->join('product_table p', 'b.product_id = p.product_id');
         $builder->join('transaction_type_table tt', 't.transaction_type_id = tt.transaction_type_id');
         $builder->join('unit_table ut', 'p.unit_id = ut.unit_id', 'left');
         $builder->join('type_of_product pt', 'p.type_id = pt.type_id', 'left');
+        $builder->join('product_copy_table pc', 'COALESCE(t.copy_id, b.copy_id) = pc.copy_id', 'left');
         $builder->where('t.transaction_date >=', $monthStart);
         $builder->where('t.transaction_date <', $nextMonth);
         $builder->whereIn('tt.transaction_type', ['receipt', 'issue', 'adjust_out', 'borrow', 'return']);
@@ -285,26 +271,30 @@ class ReportModel extends Model
 
     private function applyRowToRunningBalance(array $row, array &$batchMemory, array &$runningQty, array &$runningValue): void
     {
+        // Use copy_id-based key for per-copy tracking when available
+        $copyId    = (int) ($row['copy_id'] ?? 0);
         $productId = (int) $row['product_id'];
-        $batchMemory[$productId]  ??= [];
-        $runningQty[$productId]   ??= 0.0;
-        $runningValue[$productId] ??= 0.0;
+        $key       = $copyId > 0 ? $productId . '_' . $copyId : (string) $productId;
+
+        $batchMemory[$key]  ??= [];
+        $runningQty[$key]   ??= 0.0;
+        $runningValue[$key] ??= 0.0;
 
         $typeName = strtolower($row['transaction_type'] ?? '');
 
         if ($typeName === 'receipt') {
             $unitCost              = (float) ($row['transaction_unit_cost'] ?? 0);
             $qty                   = (float) ($row['transaction_qty'] ?? 0);
-            $batchMemory[$productId][] = ['qty' => $qty, 'cost' => $unitCost];
-            $runningQty[$productId]   += $qty;
-            $runningValue[$productId] += $qty * $unitCost;
+            $batchMemory[$key][] = ['qty' => $qty, 'cost' => $unitCost];
+            $runningQty[$key]   += $qty;
+            $runningValue[$key] += $qty * $unitCost;
         }
 
         if (in_array($typeName, ['issue', 'adjust_out', 'borrow'], true)) {
             $qty        = (float) ($row['transaction_qty'] ?? 0);
-            $issuedCost = $this->fifoIssue($batchMemory[$productId], $qty);
-            $runningQty[$productId]   -= $qty;
-            $runningValue[$productId] -= $issuedCost;
+            $issuedCost = $this->fifoIssue($batchMemory[$key], $qty);
+            $runningQty[$key]   -= $qty;
+            $runningValue[$key] -= $issuedCost;
         }
 
         // Return: adds stock back
@@ -312,9 +302,9 @@ class ReportModel extends Model
             $unitCost = (float) ($row['transaction_unit_cost'] ?? 0);
             $qty      = (float) ($row['transaction_qty'] ?? 0);
             // Return adds stock + value back (shown under purchase in reports)
-            $batchMemory[$productId][] = ['qty' => $qty, 'cost' => $unitCost];
-            $runningQty[$productId]   += $qty;
-            $runningValue[$productId] += $qty * $unitCost;
+            $batchMemory[$key][] = ['qty' => $qty, 'cost' => $unitCost];
+            $runningQty[$key]   += $qty;
+            $runningValue[$key] += $qty * $unitCost;
         }
     }
 
@@ -436,24 +426,30 @@ class ReportModel extends Model
         $counter    = 1;
 
         foreach ($periodRows as $row) {
-            $pid = (int) $row['product_id'];
-            $batchMemory[$pid]  ??= [];
-            $runningQty[$pid]   ??= 0.0;
-            $runningValue[$pid] ??= 0.0;
+            $pid    = (int) $row['product_id'];
+            $copyId = (int) ($row['copy_id'] ?? 0);
+            $key    = $copyId > 0 ? $pid . '_' . $copyId : (string) $pid;
 
-            $beginQty  = $runningQty[$pid];
-            $beginCost = $beginQty > 0 ? $runningValue[$pid] / $beginQty : 0.0;
+            $batchMemory[$key]  ??= [];
+            $runningQty[$key]   ??= 0.0;
+            $runningValue[$key] ??= 0.0;
 
-            [$purchaseQty, $purchaseCost, $purchaseTotal] = $this->purchaseValues($row, $batchMemory[$pid], $runningQty[$pid], $runningValue[$pid]);
-            [$usedQty, $usedCost, $usedTotal]             = $this->issueValues($row, 0, $batchMemory[$pid], $runningQty[$pid], $runningValue[$pid]);
-            [$spoiledQty, $spoiledCost, $spoiledTotal]    = $this->issueValues($row, 3, $batchMemory[$pid], $runningQty[$pid], $runningValue[$pid]);
+            $beginQty  = $runningQty[$key];
+            $beginCost = $beginQty > 0 ? $runningValue[$key] / $beginQty : 0.0;
 
-            $endingQty  = $runningQty[$pid];
-            $endingCost = $endingQty > 0 ? $runningValue[$pid] / $endingQty : 0.0;
+            [$purchaseQty, $purchaseCost, $purchaseTotal] = $this->purchaseValues($row, $batchMemory[$key], $runningQty[$key], $runningValue[$key]);
+            [$usedQty, $usedCost, $usedTotal]             = $this->issueValues($row, 0, $batchMemory[$key], $runningQty[$key], $runningValue[$key]);
+            [$spoiledQty, $spoiledCost, $spoiledTotal]    = $this->issueValues($row, 3, $batchMemory[$key], $runningQty[$key], $runningValue[$key]);
+
+            $endingQty  = $runningQty[$key];
+            $endingCost = $endingQty > 0 ? $runningValue[$key] / $endingQty : 0.0;
 
             $ledgerRows[] = [
                 'counter'        => $counter++,
                 'product_id'     => $pid,
+                'copy_id'        => $copyId,
+                'copy_unit_cost' => (float) ($row['copy_unit_cost'] ?? 0),
+                'copy_label'     => $row['copy_label'] ?? '',
                 'product_type'   => $row['product_type'] ?: 'Uncategorized',
                 'stock_no'       => $row['stock_no'],
                 'item'           => $row['product'],
@@ -494,7 +490,8 @@ class ReportModel extends Model
 
         return $this->db->query(
             "SELECT b.product_id, t.transaction_qty, t.transaction_unit_cost,
-                    t.transaction_type_id, tt.transaction_type
+                    t.transaction_type_id, tt.transaction_type,
+                    COALESCE(t.copy_id, b.copy_id) AS copy_id
              FROM transaction_table t
              INNER JOIN batch_table b ON t.batch_id = b.batch_id
              INNER JOIN transaction_type_table tt ON t.transaction_type_id = tt.transaction_type_id
@@ -521,12 +518,16 @@ class ReportModel extends Model
             't.transaction_unit_cost',
             't.transaction_type_id',
             'tt.transaction_type',
+            'COALESCE(t.copy_id, b.copy_id) AS copy_id',
+            'COALESCE(pc.unit_cost, 0) AS copy_unit_cost',
+            'COALESCE(pc.label, "") AS copy_label',
         ]);
         $builder->join('batch_table b', 't.batch_id = b.batch_id');
         $builder->join('product_table p', 'b.product_id = p.product_id');
         $builder->join('transaction_type_table tt', 't.transaction_type_id = tt.transaction_type_id');
         $builder->join('unit_table ut', 'p.unit_id = ut.unit_id', 'left');
         $builder->join('type_of_product pt', 'p.type_id = pt.type_id', 'left');
+        $builder->join('product_copy_table pc', 'COALESCE(t.copy_id, b.copy_id) = pc.copy_id', 'left');
         $builder->where('t.transaction_date >=', $dateFrom);
         $builder->where('t.transaction_date <', $dateTo);
         $builder->whereIn('tt.transaction_type', ['receipt', 'issue', 'adjust_out', 'borrow', 'return']);

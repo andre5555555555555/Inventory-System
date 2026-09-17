@@ -79,34 +79,66 @@
                     <tbody>
                     <?php
                         $fmtQty = function($v) { $v = (float) $v; return $v == (int) $v ? (string)(int) $v : rtrim(number_format($v, 2, '.', ''), '0'); };
+                        $groupedByProduct = [];
+                        foreach ($typeRows as $row) {
+                            $pid = (int) $row['product_id'];
+                            if (!isset($groupedByProduct[$pid])) {
+                                $groupedByProduct[$pid] = [];
+                            }
+                            $groupedByProduct[$pid][] = $row;
+                        }
                     ?>
-                    <?php foreach ($typeRows as $row): ?>
-                        <tr data-product-id="<?= (int) $row['product_id'] ?>">
-                            <td><?= $row['counter'] ?></td>
-                            <td><?= esc($row['stock_no']) ?></td>
-                            <td><?= esc($row['item']) ?></td>
-                            <!-- BEGINNING -->
-                            <td><?= $fmtQty($row['begin_qty']) ?></td>
-                            <td><?= esc($row['unit_name']) ?></td>
-                            <td><?= number_format($row['begin_cost'], 2) ?></td>
-                            <td><?= number_format($row['begin_qty'] * $row['begin_cost'], 2) ?></td>
-                            <!-- PURCHASE -->
-                            <td><?= $fmtQty($row['purchase_qty']) ?></td>
-                            <td><?= number_format($row['purchase_cost'], 2) ?></td>
-                            <td><?= number_format($row['purchase_total'], 2) ?></td>
-                            <!-- USED -->
-                            <td><?= $fmtQty($row['used_qty']) ?></td>
-                            <td><?= number_format($row['used_cost'], 2) ?></td>
-                            <td><?= number_format($row['used_total'], 2) ?></td>
-                            <!-- SPOILED -->
-                            <td><?= $fmtQty($row['spoiled_qty']) ?></td>
-                            <td><?= number_format($row['spoiled_cost'], 2) ?></td>
-                            <td><?= number_format($row['spoiled_total'], 2) ?></td>
-                            <!-- ENDING -->
-                            <td><?= $fmtQty($row['ending_qty']) ?></td>
-                            <td><?= number_format($row['ending_cost'], 2) ?></td>
-                            <td><?= number_format($row['ending_qty'] * $row['ending_cost'], 2) ?></td>
-                        </tr>
+                    <?php foreach ($groupedByProduct as $pid => $rowsForProduct): ?>
+                        <?php $isMulti = count($rowsForProduct) > 1; ?>
+                        
+                        <?php if ($isMulti): ?>
+                            <!-- Parent row for multi-copy products (just labels, no balances) -->
+                            <?php $first = $rowsForProduct[0]; ?>
+                            <tr class="report-parent-row" data-product-id="<?= $pid ?>" style="background-color: rgba(0,0,0,0.02); font-weight: 500;">
+                                <td><?= $first['counter'] ?></td>
+                                <td><?= esc($first['stock_no']) ?></td>
+                                <td><?= esc($first['item']) ?></td>
+                                <td colspan="15" style="color: #64748b; font-style: italic;">Multiple price variants</td>
+                            </tr>
+                        <?php endif; ?>
+
+                        <?php foreach ($rowsForProduct as $idx => $row): ?>
+                            <tr data-product-id="<?= (int) $row['product_id'] ?>" data-copy-id="<?= (int) $row['copy_id'] ?>">
+                                <td><?= !$isMulti ? $row['counter'] : '' ?></td>
+                                <td><?= !$isMulti ? esc($row['stock_no']) : '' ?></td>
+                                <td style="<?= $isMulti ? 'padding-left: 2rem; border-left: 3px solid #cbd5e1;' : '' ?>">
+                                    <?php 
+                                        if ($isMulti) {
+                                            $label = $row['copy_label'] ? " ({$row['copy_label']})" : '';
+                                            echo '↳ ₱' . number_format((float)$row['copy_unit_cost'], 2) . esc($label);
+                                        } else {
+                                            echo esc($row['item']);
+                                        }
+                                    ?>
+                                </td>
+                                <!-- BEGINNING -->
+                                <td><?= $fmtQty($row['begin_qty']) ?></td>
+                                <td><?= esc($row['unit_name']) ?></td>
+                                <td><?= number_format($row['begin_cost'], 2) ?></td>
+                                <td><?= number_format($row['begin_qty'] * $row['begin_cost'], 2) ?></td>
+                                <!-- PURCHASE -->
+                                <td><?= $fmtQty($row['purchase_qty']) ?></td>
+                                <td><?= number_format($row['purchase_cost'], 2) ?></td>
+                                <td><?= number_format($row['purchase_total'], 2) ?></td>
+                                <!-- USED -->
+                                <td><?= $fmtQty($row['used_qty']) ?></td>
+                                <td><?= number_format($row['used_cost'], 2) ?></td>
+                                <td><?= number_format($row['used_total'], 2) ?></td>
+                                <!-- SPOILED -->
+                                <td><?= $fmtQty($row['spoiled_qty']) ?></td>
+                                <td><?= number_format($row['spoiled_cost'], 2) ?></td>
+                                <td><?= number_format($row['spoiled_total'], 2) ?></td>
+                                <!-- ENDING -->
+                                <td><?= $fmtQty($row['ending_qty']) ?></td>
+                                <td><?= number_format($row['ending_cost'], 2) ?></td>
+                                <td><?= number_format($row['ending_qty'] * $row['ending_cost'], 2) ?></td>
+                            </tr>
+                        <?php endforeach; ?>
                     <?php endforeach; ?>
                 </tbody>
             </table>

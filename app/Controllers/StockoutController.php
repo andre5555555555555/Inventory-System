@@ -65,6 +65,7 @@ class StockoutController extends BaseController
         $draft = $model->getOrCreateDraft($userId, $userOfficeId ?: null);
 
         $productId   = (int) $this->request->getPost('product_id');
+        $copyId      = (int) $this->request->getPost('copy_id');
         $quantity    = (int) $this->request->getPost('quantity');
         $unit        = trim((string) $this->request->getPost('unit'));
         $description = trim((string) $this->request->getPost('description'));
@@ -73,8 +74,39 @@ class StockoutController extends BaseController
             return redirect()->to(site_url('stockout'))->with('error', 'Please select a product and enter a valid quantity.');
         }
 
+        $db = db_connect();
+
+        $copyBuilder = $db->table('product_copy_table')
+            ->where('product_id', $productId);
+        if ($userOfficeId > 0) {
+            $copyBuilder->where('user_office_id', $userOfficeId);
+        }
+        $copyCount = (int) $copyBuilder->countAllResults();
+
+        if ($copyCount > 0 && $copyId <= 0) {
+            return redirect()->to(site_url('stockout'))->with('error', 'Please select a sub-product for this stock-out request.');
+        }
+
+        if ($copyId > 0) {
+            $stockBuilder = $db->table('batch_table')
+                ->selectSum('current_qty', 'stock')
+                ->where('product_id', $productId)
+                ->where('copy_id', $copyId);
+
+            if ($userOfficeId > 0) {
+                $stockBuilder->where('user_office_id', $userOfficeId);
+            }
+
+            $copyStock = (int) ($stockBuilder->get()->getRowArray()['stock'] ?? 0);
+
+            if ($quantity > $copyStock) {
+                return redirect()->to(site_url('stockout'))->with('error', 'Requested quantity exceeds the selected sub-product stock.');
+            }
+        }
+
         $model->addItem((int) $draft['temp_stockout_id'], [
             'product_id'  => $productId,
+            'copy_id'     => $copyId,
             'quantity'    => $quantity,
             'unit'        => $unit,
             'description' => $description,

@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Models\AdjustmentReasonModel;
 use App\Models\OfficeModel;
+use App\Models\ProductCopyModel;
 use App\Models\ProductModel;
 use App\Models\ReferenceModel;
 use App\Models\TransactionModel;
@@ -102,12 +103,17 @@ class InventoryController extends BaseController
             $stockMap[$pid] = $transactionModel->currentStock($pid, $userOfficeId);
         }
 
+        // Build copies map for all products (keyed by product_id)
+        $copyModel = new ProductCopyModel();
+        $copiesMap = $copyModel->allCopiesGrouped($userOfficeId);
+
         return view('inventory/stock_form', [
             'title'             => 'Add Stock',
             'itemId'            => $productId,
             'currentStock'      => $productId > 0 ? ($stockMap[$productId] ?? 0) : 0,
             'items'             => $items,
             'stockMap'          => $stockMap,
+            'copiesMap'         => $copiesMap,
             'offices'           => $officeModel->orderedList($userOfficeId),
             'references'        => $referenceModel->orderedList($userOfficeId),
             'transactionTypes'  => db_connect()->table('transaction_type_table')->orderBy('transaction_type_id', 'ASC')->get()->getResultArray(),
@@ -386,6 +392,20 @@ class InventoryController extends BaseController
         );
 
         return $this->response->setJSON(['ok' => true]);
+    }
+
+    /**
+     * AJAX — return copies (sub-products) for a given product.
+     * GET stock/copies/{product_id}
+     */
+    public function getCopies(int $productId): \CodeIgniter\HTTP\ResponseInterface
+    {
+        $this->response->setContentType('application/json');
+        $copyModel    = new ProductCopyModel();
+        $userOfficeId = $this->userOfficeId();
+        $copies       = $copyModel->copiesForProduct($productId, $userOfficeId);
+
+        return $this->response->setJSON(['ok' => true, 'copies' => $copies]);
     }
 }
 

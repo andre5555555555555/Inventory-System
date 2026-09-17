@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\ProductCopyModel;
 use CodeIgniter\Database\BaseConnection;
 use DomainException;
 
@@ -79,6 +80,7 @@ class InventoryService
         $dateReceived = $payload['date'] ?? date('Y-m-d');
         $userOfficeId = (int) ($payload['user_office_id'] ?? 0);
         $userId      = (int) ($payload['user_id'] ?? 0);
+        $copyId      = (int) ($payload['copy_id'] ?? 0);
 
         if ($typeId <= 0) {
             $typeId = match ($legacyType) {
@@ -123,11 +125,17 @@ class InventoryService
                 throw new DomainException('Unit cost is required for stock-in.');
             }
 
+            // ── Auto-create or find copy for this price ─────────────────────
+            $copyModel   = new ProductCopyModel();
+            $copy        = $copyModel->findOrCreateCopy($productId, $unitCost, $userOfficeId);
+            $resolvedCopyId = (int) $copy['copy_id'];
+
             $batchNo = 'B-' . strtoupper($userOfficeName) . '-' . date('Ymd') . '-' . str_pad((string) $productId, 4, '0', STR_PAD_LEFT);
 
             $this->db->table('batch_table')->insert([
                 'batch_no'            => $batchNo,
                 'product_id'          => $productId,
+                'copy_id'             => $resolvedCopyId,
                 'expiration_date'     => $expDate,
                 'user_office_id'      => $userOfficeId,
                 'reference_id'        => $referenceId ?: null,
@@ -160,6 +168,7 @@ class InventoryService
                 'transaction_unit_cost' => $unitCost,
                 'transaction_date'      => $dateTime,
                 'batch_id'              => $batchId,
+                'copy_id'              => $resolvedCopyId,
                 'reference_id'          => $referenceId ?: null,
                 'office_id'             => $officeId,
                 'user_id'               => $userId ?: null,
@@ -169,32 +178,42 @@ class InventoryService
                 'updated_at'            => $dateTime,
             ]);
         } elseif ($typeName === 'issue') {
-            $currentStock = $this->currentStock($productId, $userOfficeId);
+            if ($copyId <= 0) {
+                throw new DomainException('Please select a sub-product (price variant) to issue from.');
+            }
+            $currentStock = $this->currentCopyStock($copyId, $userOfficeId);
             if ($currentStock <= 0) {
-                throw new DomainException('Cannot issue stock — there is no stock available for this product.');
+                throw new DomainException('Cannot issue stock — there is no stock available for this sub-product.');
             }
             if ($qty > $currentStock) {
-                throw new DomainException("Cannot issue {$qty} — only {$currentStock} unit(s) available in stock.");
+                throw new DomainException("Cannot issue {$qty} — only {$currentStock} unit(s) available in this sub-product.");
             }
             $effectiveQty = $qty * $usagePct / 100;
-            $this->depleteBatches($productId, $effectiveQty, $userOfficeId, $officeId, $referenceId, $userId, $dateTime, 0, $resolvedTypeId, $unitCost);
+            $this->depleteBatches($productId, $effectiveQty, $userOfficeId, $officeId, $referenceId, $userId, $dateTime, 0, $resolvedTypeId, $unitCost, $copyId);
         } elseif ($typeName === 'borrow') {
             // ── Borrow: behaves like issue (FIFO stock depletion) ────────────
-            $currentStock = $this->currentStock($productId, $userOfficeId);
+            if ($copyId <= 0) {
+                throw new DomainException('Please select a sub-product (price variant) to borrow from.');
+            }
+            $currentStock = $this->currentCopyStock($copyId, $userOfficeId);
             if ($currentStock <= 0) {
-                throw new DomainException('Cannot borrow — there is no stock available for this product.');
+                throw new DomainException('Cannot borrow — there is no stock available for this sub-product.');
             }
             if ($qty > $currentStock) {
-                throw new DomainException("Cannot borrow {$qty} — only {$currentStock} unit(s) available in stock.");
+                throw new DomainException("Cannot borrow {$qty} — only {$currentStock} unit(s) available in this sub-product.");
             }
-            $this->depleteBatches($productId, $qty, $userOfficeId, $officeId, $referenceId, $userId, $dateTime, 0, $resolvedTypeId, $unitCost);
+            $this->depleteBatches($productId, $qty, $userOfficeId, $officeId, $referenceId, $userId, $dateTime, 0, $resolvedTypeId, $unitCost, $copyId);
         } elseif ($typeName === 'return') {
             // ── Return: creates a new batch and a receipt-style transaction ──
+            if ($copyId <= 0) {
+                throw new DomainException('Please select a sub-product (price variant) to return to.');
+            }
             $batchNo = 'RET-' . strtoupper($userOfficeName) . '-' . date('Ymd') . '-' . str_pad((string) $productId, 4, '0', STR_PAD_LEFT);
 
             $this->db->table('batch_table')->insert([
                 'batch_no'        => $batchNo,
                 'product_id'      => $productId,
+                'copy_id'         => $copyId,
                 'expiration_date' => $expDate,
                 'user_office_id'  => $userOfficeId,
                 'reference_id'    => $referenceId ?: null,
@@ -221,6 +240,7 @@ class InventoryService
                 'transaction_unit_cost' => $unitCost,
                 'transaction_date'      => $dateTime,
                 'batch_id'              => $returnBatchId,
+                'copy_id'              => $copyId,
                 'reference_id'          => $referenceId ?: null,
                 'office_id'             => $officeId,
                 'user_id'               => $userId ?: null,
@@ -431,7 +451,25 @@ class InventoryService
     }
 
     /**
+     * Get current stock for a specific copy.
+     */
+    public function currentCopyStock(int $copyId, int $userOfficeId = 0): float
+    {
+        $builder = $this->db->table('batch_table')
+            ->selectSum('current_qty', 'stock')
+            ->where('copy_id', $copyId);
+
+        if ($userOfficeId > 0) {
+            $builder->where('user_office_id', $userOfficeId);
+        }
+
+        $row = $builder->get()->getRowArray();
+        return (float) ($row['stock'] ?? 0);
+    }
+
+    /**
      * Deplete batches FIFO and create transaction records.
+     * When $copyId is provided, only batches belonging to that copy are depleted.
      */
     private function depleteBatches(
         int $productId,
@@ -443,7 +481,8 @@ class InventoryService
         string $dateTime,
         ?int $reasonId = 0,
         int $transactionTypeId = 2,
-        float $unitCost = 0.0
+        float $unitCost = 0.0,
+        int $copyId = 0
     ): void {
         $builder = $this->db->table('batch_table')
             ->where('product_id', $productId)
@@ -451,6 +490,10 @@ class InventoryService
 
         if ($userOfficeId > 0) {
             $builder->where('user_office_id', $userOfficeId);
+        }
+
+        if ($copyId > 0) {
+            $builder->where('copy_id', $copyId);
         }
 
         $batches   = $builder->orderBy('date_received', 'ASC')->orderBy('batch_id', 'ASC')->get()->getResultArray();
@@ -476,6 +519,7 @@ class InventoryService
                 'transaction_unit_cost' => $unitCost,
                 'transaction_date'      => $dateTime,
                 'batch_id'              => (int) $batch['batch_id'],
+                'copy_id'              => $copyId > 0 ? $copyId : ($batch['copy_id'] ?? null),
                 'reference_id'          => $referenceId ?: null,
                 'office_id'             => $officeId ?: null,
                 'user_id'               => $userId ?: null,
