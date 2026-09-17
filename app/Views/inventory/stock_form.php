@@ -186,15 +186,15 @@ foreach ($items as $_item) {
         </form>
     </div>
 </div>
-<!-- Expiry confirmation modal -->
+<!-- Transaction confirmation modal -->
 <div id="expiryModal" style="display:none;" aria-modal="true" role="dialog" aria-labelledby="expiryModalTitle">
     <div class="expiry-modal-backdrop"></div>
     <div class="expiry-modal-box">
         <div class="expiry-modal-icon">⚠️</div>
         <h3 id="expiryModalTitle">No Expiration Date</h3>
-        <p>You haven't set an expiration date for this transaction. Products without an expiry date may be harder to track.</p>
+        <p id="expiryModalMessage">You haven't set an expiration date for this transaction. Products without an expiry date may be harder to track.</p>
         <div id="expiryModalDetails" class="expiry-modal-details"></div>
-        <p class="expiry-modal-question">Are you sure you want to save without one?</p>
+        <p id="expiryModalQuestion" class="expiry-modal-question">Are you sure you want to save without one?</p>
         <div class="expiry-modal-actions">
             <button type="button" id="expiryModalCancel" class="expiry-btn-cancel">Cancel</button>
             <button type="button" id="expiryModalProceed" class="expiry-btn-proceed">Yes, Proceed</button>
@@ -751,7 +751,10 @@ foreach ($items as $_item) {
     const form        = document.querySelector('.stock-form');
     const expiryInput = form?.querySelector('[name="expiration_date"]');
     const modal       = document.getElementById('expiryModal');
+    const modalTitle  = document.getElementById('expiryModalTitle');
+    const modalMessage = document.getElementById('expiryModalMessage');
     const modalDetails = document.getElementById('expiryModalDetails');
+    const modalQuestion = document.getElementById('expiryModalQuestion');
     const cancelBtn   = document.getElementById('expiryModalCancel');
     const proceedBtn  = document.getElementById('expiryModalProceed');
 
@@ -768,6 +771,14 @@ foreach ($items as $_item) {
         }
 
         return copySelect.options[copySelect.selectedIndex]?.text.replace(/\s*\(Out of stock\)\s*$/, '') || '';
+    }
+
+    function selectedAdjustmentReason() {
+        if (!reasonSelect || reasonGroup?.style.display === 'none' || !reasonSelect.value) {
+            return '';
+        }
+
+        return reasonSelect.options[reasonSelect.selectedIndex]?.text.trim() || '';
     }
 
     function addModalDetail(rows, label, value) {
@@ -790,6 +801,7 @@ foreach ($items as $_item) {
         addModalDetail(rows, 'Reference', form.querySelector('[name="reference"]')?.value);
         addModalDetail(rows, 'Quantity', form.querySelector('[name="quantity"]')?.value);
         addModalDetail(rows, 'Unit Cost', form.querySelector('[name="unit_cost"]')?.value);
+        addModalDetail(rows, 'Adjustment Reason', selectedAdjustmentReason());
         if (usagePctGroup?.style.display !== 'none') {
             addModalDetail(rows, 'Usage %', form.querySelector('[name="usage_pct"]')?.value);
         }
@@ -813,17 +825,44 @@ foreach ($items as $_item) {
         });
     }
 
+    function showConfirmation(config) {
+        if (modalTitle) modalTitle.textContent = config.title;
+        if (modalMessage) modalMessage.textContent = config.message;
+        if (modalQuestion) modalQuestion.textContent = config.question;
+        if (proceedBtn) proceedBtn.textContent = config.proceedText;
+        renderExpiryDetails();
+        modal.style.display = 'flex';
+    }
+
     form?.addEventListener('submit', function (e) {
+        if (e.defaultPrevented) return;
+
         // Block if zero-stock violation
         if (isOutType() && currentProductStock === 0) {
             e.preventDefault();
             return;
         }
         if (confirmed) return; // already confirmed — let it submit
-        if (!isOutType() && expiryInput && expiryInput.value.trim() === '') {
+
+        if (isOutType()) {
             e.preventDefault();
-            renderExpiryDetails();
-            modal.style.display = 'flex';
+            showConfirmation({
+                title: 'Confirm Stock Out',
+                message: 'Review the transaction details before saving.',
+                question: 'Save this stock-out transaction?',
+                proceedText: 'Save Transaction',
+            });
+            return;
+        }
+
+        if (expiryInput && expiryInput.value.trim() === '') {
+            e.preventDefault();
+            showConfirmation({
+                title: 'No Expiration Date',
+                message: "You haven't set an expiration date for this transaction. Products without an expiry date may be harder to track.",
+                question: 'Are you sure you want to save without one?',
+                proceedText: 'Yes, Proceed',
+            });
         }
     });
 

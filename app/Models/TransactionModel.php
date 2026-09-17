@@ -66,15 +66,21 @@ class TransactionModel extends Model
             $params[]     = $userOfficeId;
         }
 
-        if ($year > 0 && preg_match('/^\d{1,2}$/', $month)) {
-            $dateFilter = " AND DATE_FORMAT(t.transaction_date, '%Y-%m') = ?";
-            $params[]   = sprintf('%04d-%02d', $year, (int) $month);
-        }
-
         if ($search !== '') {
             $searchFilter = ' AND (p.product LIKE ? OR p.product_description LIKE ? OR p.product_no LIKE ? OR ot.office_name LIKE ? OR r.reference LIKE ?)';
             $wild         = '%' . $search . '%';
             array_push($params, $wild, $wild, $wild, $wild, $wild);
+        }
+
+        if ($year > 0 && preg_match('/^\d{1,2}$/', $month)) {
+            $dateFilter = " AND DATE_FORMAT(date, '%Y-%m') = ?";
+            $params[]   = sprintf('%04d-%02d', $year, (int) $month);
+        } elseif ($year > 0) {
+            $dateFilter = ' AND YEAR(date) = ?';
+            $params[]   = $year;
+        } elseif (preg_match('/^\d{1,2}$/', $month)) {
+            $dateFilter = ' AND MONTH(date) = ?';
+            $params[]   = (int) $month;
         }
 
         // Running balance sub-query using window function.
@@ -162,13 +168,19 @@ class TransactionModel extends Model
         if ($userOfficeId > 0) {
             $totalParams[] = $userOfficeId;
         }
-        if ($year > 0 && preg_match('/^\d{1,2}$/', $month)) {
-            $countDateFilter  = " AND DATE_FORMAT(t.transaction_date, '%Y-%m') = ?";
-            $totalParams[]    = sprintf('%04d-%02d', $year, (int) $month);
-        }
         if ($search !== '') {
             $wild = '%' . $search . '%';
             array_push($totalParams, $wild, $wild, $wild, $wild, $wild);
+        }
+        if ($year > 0 && preg_match('/^\d{1,2}$/', $month)) {
+            $countDateFilter  = " AND DATE_FORMAT(t.transaction_date, '%Y-%m') = ?";
+            $totalParams[]    = sprintf('%04d-%02d', $year, (int) $month);
+        } elseif ($year > 0) {
+            $countDateFilter = ' AND YEAR(t.transaction_date) = ?';
+            $totalParams[]   = $year;
+        } elseif (preg_match('/^\d{1,2}$/', $month)) {
+            $countDateFilter = ' AND MONTH(t.transaction_date) = ?';
+            $totalParams[]   = (int) $month;
         }
 
         $totalSql = "SELECT COUNT(*) AS total FROM (
@@ -181,8 +193,8 @@ class TransactionModel extends Model
             LEFT JOIN reference_table r ON t.reference_id = r.reference_id
             WHERE b.product_id = ? {$countOfficeFilter}
               AND tt.transaction_type IN ('receipt','issue','adjust_out','borrow','return')
-              {$countDateFilter}
               {$countSearchFilter}
+              {$countDateFilter}
             GROUP BY t.transaction_date, t.transaction_type_id, t.office_id, t.reference_id,
                      p.product, p.product_description, p.product_no, p.stock_no,
                      t.copy_id

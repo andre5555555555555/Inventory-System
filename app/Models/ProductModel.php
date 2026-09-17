@@ -67,7 +67,7 @@ class ProductModel extends Model
         return $product;
     }
 
-    public function searchProducts(string $search = '', int $userOfficeId = 0): array
+    public function searchProducts(string $search = '', int $userOfficeId = 0, int $typeId = 0): array
     {
         $builder = $this->db->table($this->table);
         $builder->select(
@@ -94,6 +94,10 @@ class ProductModel extends Model
                 ->orLike('product_table.product_description', $search)
                 ->orLike('product_table.product_no', $search)
                 ->groupEnd();
+        }
+
+        if ($typeId > 0) {
+            $builder->where('product_table.type_id', $typeId);
         }
 
         return $builder

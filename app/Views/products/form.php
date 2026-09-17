@@ -176,6 +176,183 @@
     </form>
 </div>
 
+<div id="product-confirm-overlay" class="product-confirm-overlay" style="display:none;"></div>
+<div id="product-confirm-modal" class="product-confirm-modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="productConfirmTitle">
+    <h2 id="productConfirmTitle">Confirm Product Details</h2>
+    <p>Review the product details before saving.</p>
+    <div id="product-confirm-details" class="product-confirm-details"></div>
+    <div class="product-confirm-actions">
+        <button type="button" id="product-confirm-cancel" class="product-confirm-cancel">Cancel</button>
+        <button type="button" id="product-confirm-save" class="product-confirm-save"><?= $product['product_id'] ? 'Confirm Update' : 'Confirm Save' ?></button>
+    </div>
+</div>
+
+<style>
+.product-confirm-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 8990;
+    background: rgba(10, 30, 30, .55);
+    backdrop-filter: blur(4px);
+}
+.product-confirm-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 8991;
+    width: min(520px, 92vw);
+    background: var(--card-bg, #fff);
+    color: var(--text-primary, #0f172a);
+    border-radius: 16px;
+    box-shadow: 0 28px 70px rgba(15, 61, 62, .24);
+    border: 1px solid rgba(15, 118, 110, .18);
+    padding: 28px 28px 24px;
+}
+.product-confirm-modal h2 {
+    margin: 0 0 8px;
+    font-size: 1.25rem;
+    color: var(--text-primary, #0f3d3e);
+}
+.product-confirm-modal p {
+    margin: 0 0 16px;
+    color: var(--text-secondary, #475569);
+    font-size: 14px;
+}
+.product-confirm-details {
+    margin: 14px 0 20px;
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 10px;
+    background: var(--sidebar-bg, #f8fafc);
+    overflow: hidden;
+}
+.product-confirm-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 10px 12px;
+    font-size: 13px;
+}
+.product-confirm-row + .product-confirm-row {
+    border-top: 1px solid rgba(148, 163, 184, .24);
+}
+.product-confirm-label {
+    color: var(--text-muted, #64748b);
+    font-weight: 700;
+}
+.product-confirm-value {
+    color: var(--text-primary, #111827);
+    font-weight: 700;
+    text-align: right;
+    overflow-wrap: anywhere;
+}
+.product-confirm-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+.product-confirm-actions button {
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-weight: 700;
+    cursor: pointer;
+}
+.product-confirm-cancel {
+    border: 1px solid var(--border-color, #d1d5db);
+    background: transparent;
+    color: var(--text-primary, #334155);
+}
+.product-confirm-save {
+    border: 0;
+    background: #0f766e;
+    color: #fff;
+}
+</style>
+
+<script>
+(function () {
+    var form = document.getElementById('product-form');
+    var overlay = document.getElementById('product-confirm-overlay');
+    var modal = document.getElementById('product-confirm-modal');
+    var details = document.getElementById('product-confirm-details');
+    var cancelBtn = document.getElementById('product-confirm-cancel');
+    var saveBtn = document.getElementById('product-confirm-save');
+    var confirmedDetails = false;
+
+    if (!form || !overlay || !modal || !details || !cancelBtn || !saveBtn) return;
+
+    function fieldValue(name) {
+        return (form.querySelector('[name="' + name + '"]') || {}).value || '';
+    }
+
+    function addRow(rows, label, value) {
+        var clean = String(value || '').trim();
+        if (clean !== '') rows.push({ label: label, value: clean });
+    }
+
+    function renderDetails() {
+        var rows = [];
+        addRow(rows, 'Product No', fieldValue('product_no'));
+        addRow(rows, 'Product Name', fieldValue('product'));
+        addRow(rows, 'Description', fieldValue('product_description'));
+        addRow(rows, 'Re-order Point', fieldValue('product_reorder_point'));
+        addRow(rows, 'Warning Days', fieldValue('expiry_warning_days'));
+        addRow(rows, 'Danger Days', fieldValue('expiry_danger_days'));
+        addRow(rows, 'Entity', fieldValue('entity_name'));
+        addRow(rows, 'Measurement', fieldValue('measurement'));
+        addRow(rows, 'Unit', fieldValue('unit_name'));
+        addRow(rows, 'Product Type', fieldValue('type_name'));
+
+        details.innerHTML = '';
+        rows.forEach(function (row) {
+            var item = document.createElement('div');
+            item.className = 'product-confirm-row';
+
+            var label = document.createElement('span');
+            label.className = 'product-confirm-label';
+            label.textContent = row.label;
+
+            var value = document.createElement('span');
+            value.className = 'product-confirm-value';
+            value.textContent = row.value;
+
+            item.append(label, value);
+            details.appendChild(item);
+        });
+    }
+
+    function showModal() {
+        renderDetails();
+        overlay.style.display = 'block';
+        modal.style.display = 'block';
+    }
+
+    function hideModal() {
+        overlay.style.display = 'none';
+        modal.style.display = 'none';
+    }
+
+    form.addEventListener('submit', function (e) {
+        if (confirmedDetails) return;
+        e.preventDefault();
+        showModal();
+    });
+
+    form.addEventListener('input', function () {
+        confirmedDetails = false;
+    });
+
+    cancelBtn.addEventListener('click', hideModal);
+    overlay.addEventListener('click', hideModal);
+
+    saveBtn.addEventListener('click', function () {
+        confirmedDetails = true;
+        hideModal();
+        form.requestSubmit();
+    });
+})();
+</script>
+
 <?php if (!empty($product['product_id'])): /* modal only needed for edits */ ?>
 <!-- ── "New or Existing Product?" Modal ─────────────────────────────────── -->
 <div id="product-type-overlay" style="
@@ -319,6 +496,7 @@
     }
 
     form.addEventListener('submit', function (e) {
+        if (e.defaultPrevented) return;
         if (pendingSubmit) return; // already chosen — let it through
 
         var currentName = (document.getElementById('input_product')     || {}).value || '';

@@ -12,9 +12,25 @@
 
     <div class="toolbar-card">
         <div class="searchbar">
-            <form method="get" action="<?= site_url('products') ?>">
-                <input type="text" name="search" placeholder="Search product..." value="<?= esc($search) ?>">
-                <button type="submit">Search</button>
+            <form method="get" action="<?= site_url('products') ?>" class="report-toolbar product-filter-toolbar">
+                <div class="report-filter-group report-filter-search">
+                    <label for="product-search">Search Product</label>
+                    <input id="product-search" type="text" name="search" placeholder="Search product..." value="<?= esc($search) ?>">
+                </div>
+                <div class="report-filter-group">
+                    <label for="product-type">Product Type</label>
+                    <select id="product-type" name="type_id">
+                        <option value="0">All Product Types</option>
+                        <?php foreach (($productTypes ?? []) as $pType): ?>
+                            <option value="<?= (int) $pType['type_id'] ?>" <?= (int) ($typeId ?? 0) === (int) $pType['type_id'] ? 'selected' : '' ?>>
+                                <?= esc($pType['type']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="report-filter-actions">
+                    <button type="submit">Apply Filter</button>
+                </div>
             </form>
         </div>
         <?php if ((int) (session('user')['level_id'] ?? 0) >= 2): ?>
@@ -28,6 +44,7 @@
                 <th>Product No</th>
                 <th>Stock No</th>
                 <th>Product</th>
+                <th>Product Type</th>
                 <th>Measurement / Unit</th>
                 <th>Stock</th>
                 <?php if ((int) (session('user')['level_id'] ?? 0) >= 2): ?>
@@ -39,10 +56,11 @@
                     <td><?= esc((string) $product['product_no']) ?></td>
                     <td><?= esc((string) $product['stock_no']) ?></td>
                     <td><?= esc($product['product']) ?></td>
+                    <td><?= esc((string) ($product['type_name'] ?? '')) ?></td>
                     <td><?php
                         $m = trim((string) ($product['measurement'] ?? ''));
                         $u = esc((string) $product['unit_name']);
-                        echo $m !== '' ? esc($m) . ' &middot; ' . $u : $u;
+                        echo $m !== '' ? esc($m) . ' / ' . $u : $u;
                     ?></td>
                     <td><?= esc((string) $product['total_stock']) ?></td>
                     <?php if ((int) (session('user')['level_id'] ?? 0) >= 2): ?>

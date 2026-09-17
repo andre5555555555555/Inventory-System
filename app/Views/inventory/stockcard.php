@@ -92,11 +92,7 @@
                     <div class="info-left">
                         <p><strong>PRODUCT:</strong> <?= esc($itemInfo['item_name'] ?? '') ?></p>
                         <p><strong>DESCRIPTION:</strong> <?= esc($itemInfo['description'] ?? '') ?></p>
-                        <p><strong>UNIT:</strong> <?php
-                            $m = trim((string) ($itemInfo['measurement'] ?? ''));
-                            $u = esc($itemInfo['unit_name'] ?? '');
-                            echo $m !== '' ? esc($m) . ' &middot; ' . $u : $u;
-                        ?></p>
+                        <p><strong>UNIT:</strong> <?= esc($itemInfo['unit_name'] ?? '') ?></p>
                     </div>
                     <div class="info-right">
                         <p><strong>Stock No:</strong> <?= esc($itemInfo['stock_no'] ?? '') ?></p>

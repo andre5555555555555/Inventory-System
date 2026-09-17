@@ -17,12 +17,16 @@ class ProductsController extends BaseController
     public function index()
     {
         $search       = trim((string) $this->request->getGet('search'));
+        $typeId       = (int) ($this->request->getGet('type_id') ?? 0);
         $productModel = new ProductModel();
+        $productTypeModel = new ProductTypeModel();
         $userOfficeId = $this->userOfficeId();
 
         return view('products/index', [
-            'search'   => $search,
-            'products' => $productModel->searchProducts($search, $userOfficeId),
+            'search'       => $search,
+            'typeId'       => $typeId,
+            'productTypes' => $productTypeModel->orderedList($userOfficeId),
+            'products'     => $productModel->searchProducts($search, $userOfficeId, $typeId),
         ]);
     }
 
