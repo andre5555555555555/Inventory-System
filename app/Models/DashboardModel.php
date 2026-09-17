@@ -12,12 +12,13 @@ class DashboardModel extends Model
     {
         $lowStock      = $this->lowStock($userOfficeId);
         $expiring      = $this->expiringSoon($userOfficeId);
+        $outOfStock    = $this->outOfStock($userOfficeId);
         $activeBorrows = $this->activeBorrows($userOfficeId);
 
         return [
             'lowStock'           => $lowStock,
             'expiring'           => $expiring,
-            'outOfStock'         => $this->outOfStock($userOfficeId),
+            'outOfStock'         => $outOfStock,
             'recentTransactions' => $this->recentTransactions($userOfficeId),
             'activeBorrows'      => $activeBorrows,
             // Kept for legacy template compatibility — no longer used for threshold logic
@@ -27,6 +28,7 @@ class DashboardModel extends Model
                 'totalItems'        => $this->totalItems($userOfficeId),
                 'lowStockCount'     => count($lowStock),
                 'expiringCount'     => count($expiring),
+                'outOfStockCount'   => count($outOfStock),
                 'activeBorrowCount' => count($activeBorrows),
             ],
         ];

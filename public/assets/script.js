@@ -290,6 +290,51 @@
         });
     }
 
+    function initDashboardDetailPanels() {
+        const toggles = Array.from(document.querySelectorAll("[data-dashboard-toggle]"));
+        const panels = Array.from(document.querySelectorAll("[data-dashboard-panel]"));
+        if (!toggles.length || !panels.length) return;
+
+        function setOpenPanel(targetKey) {
+            toggles.forEach((toggle) => {
+                const isActive = toggle.getAttribute("data-dashboard-toggle") === targetKey;
+                toggle.classList.toggle("is-active", isActive);
+                toggle.setAttribute("aria-expanded", isActive ? "true" : "false");
+            });
+
+            panels.forEach((panel) => {
+                panel.hidden = panel.getAttribute("data-dashboard-panel") !== targetKey;
+            });
+        }
+
+        function closePanels() {
+            toggles.forEach((toggle) => {
+                toggle.classList.remove("is-active");
+                toggle.setAttribute("aria-expanded", "false");
+            });
+
+            panels.forEach((panel) => {
+                panel.hidden = true;
+            });
+        }
+
+        toggles.forEach((toggle) => {
+            toggle.addEventListener("click", () => {
+                if (toggle.disabled) return;
+
+                const targetKey = toggle.getAttribute("data-dashboard-toggle");
+                const isExpanded = toggle.getAttribute("aria-expanded") === "true";
+
+                if (isExpanded) {
+                    closePanels();
+                    return;
+                }
+
+                setOpenPanel(targetKey);
+            });
+        });
+    }
+
     // =========================
     // SETTINGS MODULE
     // =========================
@@ -887,6 +932,7 @@
         bindItemRedirects();
         bindAdjustSearch();
         bindStockcardTools();
+        initDashboardDetailPanels();
         initSettingsPage();
         initStockoutApproval();
         initProductDelete();
